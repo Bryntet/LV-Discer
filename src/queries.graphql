@@ -3,6 +3,7 @@ query EventInfo($eventId: ID = "78e0173e-6417-48e4-bf9a-da2eefd13701") {
     id
     name
     rounds {
+      id
       pools {
         date
         id

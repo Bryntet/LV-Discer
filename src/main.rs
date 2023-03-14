@@ -1,19 +1,12 @@
-
-use hyper::Client;
 use cynic::{http::SurfExt};
 extern crate hyper;
 extern crate hyper_rustls;
 extern crate google_sheets4 as sheets4;
 use sheets4::api::ValueRange;
-use sheets4::{Result, Error};
-use std::default::Default;
-use sheets4::{api::Response, Sheets, oauth2, };
+use sheets4::{Error};
+use sheets4::{Sheets, oauth2};
 
-async fn do_something() {
-    
-    
-    // Get an ApplicationSecret instance by some means. It contains the `client_id` and 
-    // `client_secret`, among other things.
+async fn get_auth() -> oauth2::authenticator::Authenticator<hyper_rustls::HttpsConnector<hyper::client::HttpConnector>> {
     let secret = oauth2::read_application_secret("credentials.json")
         .await
         .expect("client secret not read");
@@ -26,26 +19,14 @@ async fn do_something() {
     .build()
     .await
     .unwrap();
-    // Instantiate the authenticator. It will choose a suitable authentication flow for you, 
-    // unless you replace  `None` with the desired Flow.
-    // Provide your own `AuthenticatorDelegate` to adjust the way it operates and get feedback about 
-    // what's going on. You probably want to bring in your own `TokenStorage` to persist tokens and
-    // retrieve them from storage.
+    auth
+}
+
+
+async fn do_something(value_range_object: ValueRange, range: &str, auth: oauth2::authenticator::Authenticator<hyper_rustls::HttpsConnector<hyper::client::HttpConnector>>) {
     
-    let mut hub = Sheets::new(hyper::Client::builder().build(hyper_rustls::HttpsConnectorBuilder::new().with_native_roots().https_or_http().enable_http1().enable_http2().build()), auth);
-    // As the method needs a request, you would usually fill it with the desired information
-    // into the respective structure. Some of the parts shown here might not be applicable !
-    // Values shown here are possibly random and not representative !
-    let mut req = ValueRange::default();
-    let values_to_write: Vec<Vec<String>> = vec![
-        vec!["Hello".to_string(), "World".to_string()],
-        vec!["Foo".to_string(), "Bar".to_string()],
-    ];
-    let value_range_object: ValueRange = ValueRange {
-        major_dimension: Some("ROWS".to_string()),
-        range: None,
-        values: Some(values_to_write),
-    };
+    let hub = Sheets::new(hyper::Client::builder().build(hyper_rustls::HttpsConnectorBuilder::new().with_native_roots().https_or_http().enable_http1().enable_http2().build()), auth);
+    
     // You can configure optional parameters by calling the respective setters at will, and
     // execute the final call using `doit()`.
     // Values shown here are possibly random and not representative !
@@ -54,7 +35,7 @@ async fn do_something() {
                  .values_update(
                     value_range_object,
                     "1HfGHHsuRZ7_ToIoBKxswPVXKvJbQxsia6aodBCrZrRw",
-                    "Events!A1:B4"
+                    range
                  )
                  .value_input_option("USER_ENTERED")
                  .doit().await;
@@ -87,74 +68,86 @@ async fn do_something() {
 async fn main() {
     use queries::*;
     use cynic::QueryBuilder;
+    use cynic::Id;
+    
     
     let operation = EventInfo::build(
         EventInfoVariables {
-            event_id: "d9956c2f-78ff-42e5-bf97-6975009566d5".into(),
+            event_id: Id::new("78e0173e-6417-48e4-bf9a-da2eefd13701"),
         }
     );
     let response = surf::post("https://api.tjing.se/graphql")
     .run_graphql(operation)
     .await
     .unwrap();
-    let test = vec![cynic::query_dsl::query::<EventInfo>(EventInfoVariables { event_id: "d9956c2f-78ff-42e5-bf97-6975009566d5".to_string() })];
+    if let Some(data) = response.data {
+        println!("{:#?}", &data);
+        
+        if let Some(event) = data.event {
+            let mut round_ids: Vec<String> = Vec::new();
+            let mut pool_ids: Vec<String> = Vec::new();
+            let mut pool_dates: Vec<String> = Vec::new();
+            for round in event.rounds {
+                if let Some(round) = round {
+                    round_ids.push(format!("{:?}", round.id));
+                    for pool in round.pools {
+                        pool_ids.push(format!("{:?}", pool.id));
+                        pool_dates.push(format!("{:?}", pool.date));
+                        
+                        
 
-    println!("{:#?}\n{:#?}", response, test);
-
-    do_something().await
-}
-
-
-use proc_macro::TokenStream;
-use quote::quote;
-use syn::{parse_macro_input, DeriveInput};
-
-#[proc_macro_attribute]
-pub fn comp(_attr: TokenStream, item: TokenStream) -> TokenStream {
-    let input = parse_macro_input!(item as DeriveInput);
-    let name = input.ident;
-    let fields = input.data;
-
-    let expanded = quote! {
-        #input
-
-        impl #name {
-            fn fields() -> Vec<&'static str> {
-                vec![#(stringify!(#fields)),*]
+                    }
+                }
             }
+           
+            let pool_vec = vec![
+                vec!["ID:".to_string(), "Date:".to_string()],
+                vec![pool_ids.join(","), pool_dates.join(",")]
+            ];
+            let event_vec: Vec<Vec<String>> = vec![
+                vec!["ID".to_string(), "name".to_string(), "Round ids:".to_string(), "Pool ids:".to_string()],
+                vec![format!("{:?}", event.id), event.name, round_ids.join(","), pool_ids.join(","), ]
+            ];
+
+
+            do_something(ValueRange {
+                major_dimension: Some("COLUMNS".to_string()),
+                range: None,
+                values: Some(event_vec),
+            }, "Events!A1:Z1000", get_auth().await).await;
+            do_something(ValueRange {
+                major_dimension: Some("COLUMNS".to_string()),
+                range: None,
+                values: Some(pool_vec),
+            }, "Pools!A1:Z1000", get_auth().await).await;
         }
-    };
-
-    TokenStream::from(expanded)
+    }
 }
 
-#[comp]
-struct Foo {
-    bar: i32,
-    baz: String,
-}
+
 
 #[cynic::schema_for_derives(
     file = r#"src/schema.graphql"#,
     module = "schema",
 )]
 mod queries {
-    
     use super::schema;
-
-    #[derive(cynic::QueryVariables, Debug)]
-    pub struct PoolLBVariables {
-        pub pool_id: cynic::Id,
-    }
     
+
+    
+    #[derive(cynic::QueryVariables, Debug)]
+    pub struct EventInfoVariables {
+        pub event_id: cynic::Id,
+    }
+
     #[derive(cynic::QueryVariables, Debug)]
     pub struct LivescoreVariables {
         pub pool_id: cynic::Id,
     }
 
     #[derive(cynic::QueryVariables, Debug)]
-    pub struct EventInfoVariables {
-        pub event_id: cynic::Id,
+    pub struct PoolLBVariables {
+        pub pool_id: cynic::Id,
     }
 
     #[derive(cynic::QueryVariables, Debug)]
@@ -175,14 +168,14 @@ mod queries {
         #[arguments(poolId: $pool_id)]
         pub pool: Option<Pool2>,
     }
-    
+
     #[derive(cynic::QueryFragment, Debug)]
     #[cynic(graphql_type = "RootQuery", variables = "EventResultVariables")]
     pub struct EventResult {
         #[arguments(eventId: $event_id)]
         pub event: Option<Event>,
     }
-    
+
     #[derive(cynic::QueryFragment, Debug)]
     #[cynic(graphql_type = "RootQuery", variables = "EventInfoVariables")]
     pub struct EventInfo {
@@ -346,6 +339,7 @@ mod queries {
 
     #[derive(cynic::QueryFragment, Debug)]
     pub struct Round {
+        pub id: cynic::Id,
         pub pools: Vec<Pool3>,
     }
 
