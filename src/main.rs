@@ -55,7 +55,7 @@ async fn do_something(value_range_object: ValueRange, range: &str, auth: oauth2:
         |Error::FieldClash(_)
         |Error::JsonDecodeError(_, _) => println!("{}", e),
         },
-        Ok(res) => println!("Success!"),
+        Ok(_res) => println!("Success!"),
     }
     
     
@@ -85,17 +85,12 @@ async fn main() {
         if let Some(pool) = data.pool {
             match pool.status {
                 PoolStatus::Completed => post_status(pool_id).await,
-                PoolStatus::Open => live_status(pool_id).await,
                 _ => println!("no")
             }
         }
     }
 }
 
-
-async fn prep_status(pool_id: cynic::Id) {
-    println!("not yet");
-}
 async fn post_status(pool_id: cynic::Id) {
     use queries::*;
     use cynic::QueryBuilder;
@@ -135,13 +130,12 @@ async fn post_status(pool_id: cynic::Id) {
             }, "Bladet!E1:Z1000", get_auth().await).await;
             if let Some(lb) = pool.leaderboard {
                 
-                let mut good_divs: Vec<PoolLeaderboardDivision2> = Vec::new();
-                use crate::queries::PoolLeaderboardDivisionCombined::PoolLeaderboardDivision;
+                let mut good_divs: Vec<PoolLeaderboardDivision> = Vec::new();
                 for division in lb {
                     let new_div = division.unwrap();
 
                     match new_div {
-                        PoolLeaderboardDivision(test) => good_divs.push(test),
+                        PoolLeaderboardDivisionCombined::PoolLeaderboardDivision(test) => good_divs.push(test),
                         _ => println!("fuck")
                     }
                     //println!("DIVISION: {:#?}", test)
@@ -172,19 +166,53 @@ async fn post_status(pool_id: cynic::Id) {
                         let mut outside_putts = Vec::from(vec!["Outside putts::".to_string(), "".to_string(), "".to_string(), "".to_string()]);
                         for result in player.results {
                             personal_vec.push(result.score.to_string());
-                            if result.is_out_of_bounds {
-                                ob_s.push("true".to_string());
-                            }
-                            else {
-                                ob_s.push("false".to_string());
-                            }
-                            if result.is_inside_putt {
-                                circle_hits.push("true".to_string())
-                            }
+                            ob_s.push(result.is_out_of_bounds.to_string());
+                            circle_hits.push(result.is_inside_putt.to_string());
+                            inside_putts.push(result.is_inside_putt.to_string());
+                            outside_putts.push(result.is_outside_putt.to_string());
+                            
                             
                         }
+                        personal_vec.push(player.is_dnf.to_string());
+                        personal_vec.push(player.is_dns.to_string());
+                        personal_vec.push(player.first_name);
+                        personal_vec.push(player.last_name);
+                        if let Some(par) = player.par {
+                            personal_vec.push(par.to_string());
+                        } else {
+                            personal_vec.push("".to_string());
+                        }
+                        if let Some(pdga) = player.pdga_number {
+                            personal_vec.push(pdga.to_string());
+                        } else {
+                            personal_vec.push("".to_string());
+                        }
+                        if let Some(rating) = player.pdga_rating {
+                            personal_vec.push(rating.to_string());
+                        } else {
+                            personal_vec.push("".to_string());
+                        }
+                        
+                        personal_vec.push(player.place.to_string());
+                        personal_vec.push("issue".to_string());
+                        
+                        if let Some(points) = player.points {
+                            personal_vec.push(points.to_string());
+                        } else {
+                            personal_vec.push("".to_string());
+                        }
+                        if let Some(score) = player.score {
+                            personal_vec.push(score.to_string());
+                        } else {
+                            personal_vec.push("".to_string());
+                        }
+                        
                         player_vec.push(personal_vec);
                         player_vec.push(ob_s);
+                        player_vec.push(circle_hits);
+                        player_vec.push(inside_putts);
+                        player_vec.push(outside_putts);
+
                     }
                     do_something(ValueRange {
                         major_dimension: Some("ROWS".to_string()),
@@ -200,12 +228,8 @@ async fn post_status(pool_id: cynic::Id) {
                     start_row += 50
                     //println!("{:#?}", div_vec)
                     
-                }
-                
+                }   
             }
-        
-            
-            
         }
     }
 }
@@ -244,7 +268,7 @@ mod queries {
     }
 
     #[derive(cynic::QueryFragment, Debug)]
-    pub struct PoolLeaderboardDivision2 {
+    pub struct PoolLeaderboardDivision {
         pub id: cynic::Id,
         pub name: String,
         pub players: Vec<PoolLeaderboardPlayer>,
@@ -314,7 +338,7 @@ mod queries {
 
     #[derive(cynic::InlineFragments, Debug)]
     pub enum PoolLeaderboardDivisionCombined {
-        PoolLeaderboardDivision(PoolLeaderboardDivision2),
+        PoolLeaderboardDivision(PoolLeaderboardDivision),
         #[cynic(fallback)]
         Unknown
     }
@@ -328,7 +352,6 @@ mod queries {
     }
 
 }
-
 #[allow(non_snake_case, non_camel_case_types)]
 mod schema {
     cynic::use_schema!(r#"src/schema.graphql"#);
