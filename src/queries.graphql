@@ -56,22 +56,35 @@ fragment LiveScore on Pool {
 fragment NotLiveScore on Pool {
   leaderboard {
     ... on PoolLeaderboardDivision {
+      id
       name
       players {
-        place
         firstName
+        isDnf
+        isDns
         lastName
-        pdgaNumber
-        score
         par
+        pdgaNumber
+        pdgaRating
+        place
+        playerId
         results {
+          hole {
+            par
+            number
+            length
+          }
           score
           isCircleHit
-          isOutsidePutt
           isInsidePutt
           isOutOfBounds
+          isOutsidePutt
         }
+        points
+        score
       }
+      type
     }
   }
+  position
 }
