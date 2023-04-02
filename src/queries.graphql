@@ -1,141 +1,75 @@
-query EventInfo($eventId: ID = "78e0173e-6417-48e4-bf9a-da2eefd13701") {
-  event(eventId: $eventId) {
-    id
-    name
-    rounds {
-      id
-      pools {
-        date
-        id
-      }
+query StatusPool($poolId: ID = "5be6d127-c72c-471e-ae7d-2a506a23c057") {
+  pool(poolId: $poolId) {
+    status
+  }
+}
+
+query PoolLBAfter($poolId: ID = "5be6d127-c72c-471e-ae7d-2a506a23c057") {
+  pool(poolId: $poolId) {
+    ...PoolLayout
+    ...NotLiveScore
+  }
+}
+
+query PoolLive($poolId: ID = "5be6d127-c72c-471e-ae7d-2a506a23c057") {
+  pool(poolId: $poolId) {
+    ...PoolLayout
+    ...LiveScore
+  }
+}
+
+fragment PoolLayout on Pool {
+  status
+  layoutVersion {
+    holes {
+      number
+      par
+      length
     }
-    players {
-      user {
-        id
+  }
+}
+
+fragment LiveScore on Pool {
+  livescore {
+    ... on PoolLivescoreDivision {
+      name
+      players {
+        place
         firstName
         lastName
-      }
-      division {
-        id
-        type
-        name
-      }
-      dnf {
-        isDnf
-      }
-      dns {
-        isDns
-      }
-    }
-  }
-}
-
-query Livescore($poolId: ID = "5be6d127-c72c-471e-ae7d-2a506a23c057") {
-  pool(poolId: $poolId) {
-    id
-    date
-    status
-    layoutVersion {
-      id
-      holes {
-        number
-        par
-        name
-        length
-      }
-    }
-    livescore {
-      ... on PoolLivescoreDivision {
-        id
-        name
-        players {
-          place
-          firstName
-          lastName
-          pdgaNumber
-          startsAt
-          isDnf
-          isDns
-          totalPar
-          totalScore
-          results {
-            id
-            score
-            isCircleHit
-            isOutsidePutt
-            isInsidePutt
-            isOutOfBounds
-          }
+        pdgaNumber
+        startsAt
+        totalPar
+        totalScore
+        results {
+          score
+          isCircleHit
+          isOutsidePutt
+          isInsidePutt
+          isOutOfBounds
         }
       }
     }
   }
 }
 
-query PoolLB($poolId: ID = "5be6d127-c72c-471e-ae7d-2a506a23c057") {
-  pool(poolId: $poolId) {
-    id
-    date
-    status
-    layoutVersion {
-      id
-      holes {
-        number
+fragment NotLiveScore on Pool {
+  leaderboard {
+    ... on PoolLeaderboardDivision {
+      name
+      players {
+        place
+        firstName
+        lastName
+        pdgaNumber
+        score
         par
-        name
-        length
-      }
-    }
-    leaderboard {
-      ... on PoolLeaderboardDivision {
-        id
-        name
-        players {
-          place
-          firstName
-          lastName
-          pdgaNumber
-          isDnf
-          isDns
+        results {
           score
-          par
-          results {
-            id
-            score
-            isCircleHit
-            isOutsidePutt
-            isInsidePutt
-            isOutOfBounds
-          }
-        }
-      }
-    }
-  }
-}
-
-query EventResult($eventId: ID = "78e0173e-6417-48e4-bf9a-da2eefd13701") {
-  event(eventId: $eventId) {
-    leaderboard {
-      ... on EventLeaderboardDivision {
-        id
-        name
-        type
-        players {
-          firstName
-          lastName
-          pdgaNumber
-          pdgaRating
-          place
-          score
-          par
-          poolLeaderboards {
-            place
-            score
-            points
-            poolId
-          }
-          isDnf
-          isDns
+          isCircleHit
+          isOutsidePutt
+          isInsidePutt
+          isOutOfBounds
         }
       }
     }

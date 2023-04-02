@@ -55,7 +55,7 @@ async fn do_something(value_range_object: ValueRange, range: &str, auth: oauth2:
         |Error::FieldClash(_)
         |Error::JsonDecodeError(_, _) => println!("{}", e),
         },
-        Ok(res) => println!("Success: {:?}", res),
+        Ok(res) => println!("Success!"),
     }
     
     
@@ -69,57 +69,237 @@ async fn main() {
     use queries::*;
     use cynic::QueryBuilder;
     use cynic::Id;
+    let pool_id = Id::new("5be6d127-c72c-471e-ae7d-2a506a23c057");
     
-    
-    let operation = EventInfo::build(
-        EventInfoVariables {
-            event_id: Id::new("78e0173e-6417-48e4-bf9a-da2eefd13701"),
+    let operation = StatusPool::build(
+        StatusPoolVariables {
+            pool_id: pool_id.clone(),
         }
     );
     let response = surf::post("https://api.tjing.se/graphql")
     .run_graphql(operation)
     .await
     .unwrap();
+    
     if let Some(data) = response.data {
-        println!("{:#?}", &data);
-        
-        if let Some(event) = data.event {
-            let mut round_ids: Vec<String> = Vec::new();
-            let mut pool_ids: Vec<String> = Vec::new();
-            let mut pool_dates: Vec<String> = Vec::new();
-            for round in event.rounds {
-                if let Some(round) = round {
-                    round_ids.push(format!("{:?}", round.id));
-                    for pool in round.pools {
-                        pool_ids.push(format!("{:?}", pool.id));
-                        pool_dates.push(format!("{:?}", pool.date));
-                        
-                        
-
-                    }
-                }
+        if let Some(pool) = data.pool {
+            match pool.status {
+                PoolStatus::Completed => post_status(pool_id).await,
+                PoolStatus::Open => live_status(pool_id).await,
+                _ => println!("no")
             }
-           
-            let pool_vec = vec![
-                vec!["ID:".to_string(), "Date:".to_string()],
-                vec![pool_ids.join(","), pool_dates.join(",")]
-            ];
-            let event_vec: Vec<Vec<String>> = vec![
-                vec!["ID".to_string(), "name".to_string(), "Round ids:".to_string(), "Pool ids:".to_string()],
-                vec![format!("{:?}", event.id), event.name, round_ids.join(","), pool_ids.join(","), ]
-            ];
+        }
+    }
+}
 
 
+async fn live_status(pool_id: cynic::Id) {
+    use queries::*;
+    use cynic::QueryBuilder;
+   
+    let operation = PoolLive::build(
+        PoolLiveVariables {
+            pool_id: pool_id,
+        }
+    );
+    let response = surf::post("https://api.tjing.se/graphql")
+    .run_graphql(operation)
+    .await
+    .unwrap();
+
+    if let Some(data) = response.data {
+        if let Some(pool) = data.pool {
+            let mut hole_vec: Vec<Vec<String>> = Vec::new();
+            let holes_amount = pool.layout_version.holes.len();
+            for hole in pool.layout_version.holes {
+                let number = format!("{}", hole.number as i8);
+                let mut par = String::new();
+                let mut lent = String::new();
+                if let Some(parr) = hole.par { 
+                    par = format!("{}", parr as i8);
+                }
+                if let Some(leng) = hole.length { 
+                    lent = format!("{}", leng as i8);
+                }
+                
+                hole_vec.push(vec![number, par, lent]);
+            }
+            println!("{:?}", hole_vec);
             do_something(ValueRange {
                 major_dimension: Some("COLUMNS".to_string()),
                 range: None,
-                values: Some(event_vec),
-            }, "Events!A1:Z1000", get_auth().await).await;
+                values: Some(hole_vec),
+            }, "Bladet!E1:Z1000", get_auth().await).await;
+            use crate::queries::PoolLivescoreDivisionCombined::*;
+            if let Some(lb) = pool.livescore {
+                let mut good_divs: Vec<PoolLivescoreDivision> = Vec::new();
+                for division in lb {
+                    
+                    match division {
+                        PoolLivescoreDivisionn(test) => good_divs.push(test),
+                        _ => println!("fuck")
+                    }
+                    //println!("DIVISION: {:#?}", test)
+                    
+                }
+                let mut start_row: i16 = 4;
+                for div in good_divs {
+                    
+                    let mut player_vec: Vec<Vec<String>> = Vec::new();
+                    for player in div.players {
+                        let mut par = 1000;
+                        if let Some(parr) = player.total_par {
+                            par = parr as i32
+                        } 
+
+                        let place = format!("{}", player.place as i32);
+                        let mut personal_vec: Vec<String> = vec![
+                                String::from(player.first_name.chars().collect::<Vec<_>>()[0]) + &". ".to_string() + &player.last_name, 
+                                place,
+                                format!("{}", par),
+                                holes_amount.to_string()
+                                
+                            ];
+                        let mut ob_s = Vec::from(vec!["OB:".to_string(), "".to_string(), "".to_string(), "".to_string()]);
+                        for result in player.results {
+                            personal_vec.push(result.score.to_string());
+                            if result.is_out_of_bounds {
+                                ob_s.push("true".to_string());
+                            }
+                            else {
+                                ob_s.push("false".to_string());
+                            }
+                        }
+                        player_vec.push(personal_vec);
+                        player_vec.push(ob_s);
+                    }
+                    do_something(ValueRange {
+                        major_dimension: Some("ROWS".to_string()),
+                        range: None,
+                        values: Some(vec![vec![div.name.clone()]]),
+                    }, &("Bladet!A".to_owned() + &start_row.to_string() + ":Z1000"), get_auth().await).await;
+                    
+                    do_something(ValueRange {
+                        major_dimension: Some("ROWS".to_string()),
+                        range: None,
+                        values: Some(player_vec),
+                    }, &("Bladet!A".to_owned() + &(start_row+1).to_string() + ":Z1000"), get_auth().await).await;
+                    start_row += 50
+                    //println!("{:#?}", div_vec)
+                    
+                }
+                
+            }
+        
+            
+            
+        }
+    }
+}
+async fn prep_status(pool_id: cynic::Id) {
+    println!("not yet");
+}
+async fn post_status(pool_id: cynic::Id) {
+    use queries::*;
+    use cynic::QueryBuilder;
+   
+    let operation = PoolLBAfter::build(
+        PoolLBAfterVariables {
+            pool_id: pool_id,
+        }
+    );
+    let response = surf::post("https://api.tjing.se/graphql")
+    .run_graphql(operation)
+    .await
+    .unwrap();
+
+    if let Some(data) = response.data {
+        if let Some(pool) = data.pool {
+            let mut hole_vec: Vec<Vec<String>> = Vec::new();
+            let holes_amount = pool.layout_version.holes.len();
+            for hole in pool.layout_version.holes {
+                let number = format!("{}", hole.number as i8);
+                let mut par = String::new();
+                let mut lent = String::new();
+                if let Some(parr) = hole.par { 
+                    par = format!("{}", parr as i8);
+                }
+                if let Some(leng) = hole.length { 
+                    lent = format!("{}", leng as i8);
+                }
+                
+                hole_vec.push(vec![number, par, lent]);
+            }
+            println!("{:?}", hole_vec);
             do_something(ValueRange {
                 major_dimension: Some("COLUMNS".to_string()),
                 range: None,
-                values: Some(pool_vec),
-            }, "Pools!A1:Z1000", get_auth().await).await;
+                values: Some(hole_vec),
+            }, "Bladet!E1:Z1000", get_auth().await).await;
+            use crate::queries::PoolLeaderboardDivisionCombined::*;
+            if let Some(lb) = pool.leaderboard {
+                let mut good_divs: Vec<PoolLeaderboardDivision> = Vec::new();
+                for division in lb {
+                    let new_div = division.unwrap();
+
+                    match new_div {
+                        PoolLeaderboardDivisionn(test) => good_divs.push(test),
+                        _ => println!("fuck")
+                    }
+                    //println!("DIVISION: {:#?}", test)
+                    
+                }
+                let mut start_row: i16 = 4;
+                for div in good_divs {
+                    
+                    let mut player_vec: Vec<Vec<String>> = Vec::new();
+                    for player in div.players {
+                        let mut par = 1000;
+                        if let Some(parr) = player.par {
+                            par = parr as i32
+                        } 
+
+                        let place = format!("{}", player.place as i32);
+                        let mut personal_vec: Vec<String> = vec![
+                                String::from(player.first_name.chars().collect::<Vec<_>>()[0]) + &". ".to_string() + &player.last_name, 
+                                place,
+                                format!("{}", par),
+                                holes_amount.to_string()
+                                
+                            ];
+                        let mut ob_s = Vec::from(vec!["OB:".to_string(), "".to_string(), "".to_string(), "".to_string()]);
+                        for result in player.results {
+                            personal_vec.push(result.score.to_string());
+                            if result.is_out_of_bounds {
+                                ob_s.push("true".to_string());
+                            }
+                            else {
+                                ob_s.push("false".to_string());
+                            }
+                        }
+                        player_vec.push(personal_vec);
+                        player_vec.push(ob_s);
+                    }
+                    do_something(ValueRange {
+                        major_dimension: Some("ROWS".to_string()),
+                        range: None,
+                        values: Some(vec![vec![div.name.clone()]]),
+                    }, &("Bladet!A".to_owned() + &start_row.to_string() + ":Z1000"), get_auth().await).await;
+                    
+                    do_something(ValueRange {
+                        major_dimension: Some("ROWS".to_string()),
+                        range: None,
+                        values: Some(player_vec),
+                    }, &("Bladet!A".to_owned() + &(start_row+1).to_string() + ":Z1000"), get_auth().await).await;
+                    start_row += 50
+                    //println!("{:#?}", div_vec)
+                    
+                }
+                
+            }
+        
+            
+            
         }
     }
 }
@@ -132,60 +312,45 @@ async fn main() {
 )]
 mod queries {
     use super::schema;
-    
-
-    
-    #[derive(cynic::QueryVariables, Debug)]
-    pub struct EventInfoVariables {
-        pub event_id: cynic::Id,
-    }
 
     #[derive(cynic::QueryVariables, Debug)]
-    pub struct LivescoreVariables {
+    pub struct StatusPoolVariables {
         pub pool_id: cynic::Id,
     }
 
     #[derive(cynic::QueryVariables, Debug)]
-    pub struct PoolLBVariables {
+    pub struct PoolLiveVariables {
         pub pool_id: cynic::Id,
     }
 
     #[derive(cynic::QueryVariables, Debug)]
-    pub struct EventResultVariables {
-        pub event_id: cynic::Id,
+    pub struct PoolLBAfterVariables {
+        pub pool_id: cynic::Id,
     }
 
     #[derive(cynic::QueryFragment, Debug)]
-    #[cynic(graphql_type = "RootQuery", variables = "LivescoreVariables")]
-    pub struct Livescore {
+    #[cynic(graphql_type = "RootQuery", variables = "PoolLiveVariables")]
+    pub struct PoolLive {
         #[arguments(poolId: $pool_id)]
         pub pool: Option<Pool>,
     }
 
     #[derive(cynic::QueryFragment, Debug)]
-    #[cynic(graphql_type = "RootQuery", variables = "PoolLBVariables")]
-    pub struct PoolLB {
+    #[cynic(graphql_type = "RootQuery", variables = "PoolLBAfterVariables")]
+    pub struct PoolLBAfter {
         #[arguments(poolId: $pool_id)]
         pub pool: Option<Pool2>,
     }
 
     #[derive(cynic::QueryFragment, Debug)]
-    #[cynic(graphql_type = "RootQuery", variables = "EventResultVariables")]
-    pub struct EventResult {
-        #[arguments(eventId: $event_id)]
-        pub event: Option<Event>,
-    }
-
-    #[derive(cynic::QueryFragment, Debug)]
-    #[cynic(graphql_type = "RootQuery", variables = "EventInfoVariables")]
-    pub struct EventInfo {
-        #[arguments(eventId: $event_id)]
-        pub event: Option<Event2>,
+    #[cynic(graphql_type = "RootQuery", variables = "StatusPoolVariables")]
+    pub struct StatusPool {
+        #[arguments(poolId: $pool_id)]
+        pub pool: Option<Pool3>,
     }
 
     #[derive(cynic::QueryFragment, Debug)]
     pub struct PoolLivescoreDivision {
-        pub id: cynic::Id,
         pub name: String,
         pub players: Vec<PoolLivescorePlayer>,
     }
@@ -197,8 +362,6 @@ mod queries {
         pub last_name: String,
         pub pdga_number: Option<f64>,
         pub starts_at: Option<DateTime>,
-        pub is_dnf: bool,
-        pub is_dns: bool,
         pub total_par: Option<f64>,
         pub total_score: Option<f64>,
         pub results: Vec<PoolLivescoreResult>,
@@ -206,7 +369,6 @@ mod queries {
 
     #[derive(cynic::QueryFragment, Debug)]
     pub struct PoolLivescoreResult {
-        pub id: cynic::Id,
         pub score: f64,
         pub is_circle_hit: bool,
         pub is_outside_putt: bool,
@@ -216,7 +378,6 @@ mod queries {
 
     #[derive(cynic::QueryFragment, Debug)]
     pub struct PoolLeaderboardDivision {
-        pub id: cynic::Id,
         pub name: String,
         pub players: Vec<PoolLeaderboardPlayer>,
     }
@@ -227,8 +388,6 @@ mod queries {
         pub first_name: String,
         pub last_name: String,
         pub pdga_number: Option<f64>,
-        pub is_dnf: bool,
-        pub is_dns: bool,
         pub score: Option<f64>,
         pub par: Option<f64>,
         pub results: Vec<SimpleResult>,
@@ -236,7 +395,6 @@ mod queries {
 
     #[derive(cynic::QueryFragment, Debug)]
     pub struct SimpleResult {
-        pub id: cynic::Id,
         pub score: f64,
         pub is_circle_hit: bool,
         pub is_outside_putt: bool,
@@ -246,8 +404,6 @@ mod queries {
 
     #[derive(cynic::QueryFragment, Debug)]
     pub struct Pool {
-        pub id: cynic::Id,
-        pub date: DateTime,
         pub status: PoolStatus,
         pub layout_version: LayoutVersion,
         pub livescore: Option<Vec<PoolLivescoreDivisionCombined>>,
@@ -256,16 +412,19 @@ mod queries {
     #[derive(cynic::QueryFragment, Debug)]
     #[cynic(graphql_type = "Pool")]
     pub struct Pool2 {
-        pub id: cynic::Id,
-        pub date: DateTime,
         pub status: PoolStatus,
         pub layout_version: LayoutVersion,
         pub leaderboard: Option<Vec<Option<PoolLeaderboardDivisionCombined>>>,
     }
 
     #[derive(cynic::QueryFragment, Debug)]
+    #[cynic(graphql_type = "Pool")]
+    pub struct Pool3 {
+        pub status: PoolStatus,
+    }
+
+    #[derive(cynic::QueryFragment, Debug)]
     pub struct LayoutVersion {
-        pub id: cynic::Id,
         pub holes: Vec<Hole>,
     }
 
@@ -273,118 +432,19 @@ mod queries {
     pub struct Hole {
         pub number: f64,
         pub par: Option<f64>,
-        pub name: Option<String>,
         pub length: Option<f64>,
-    }
-
-    #[derive(cynic::QueryFragment, Debug)]
-    pub struct EventLeaderboardDivision {
-        pub id: cynic::Id,
-        pub name: String,
-        #[cynic(rename = "type")]
-        pub type_: String,
-        pub players: Vec<EventLeaderboardPlayer>,
-    }
-
-    #[derive(cynic::QueryFragment, Debug)]
-    pub struct EventLeaderboardPlayer {
-        pub first_name: String,
-        pub last_name: String,
-        pub pdga_number: Option<f64>,
-        pub pdga_rating: Option<f64>,
-        pub place: f64,
-        pub score: Option<f64>,
-        pub par: Option<f64>,
-        pub pool_leaderboards: Vec<EventLeaderboardPool>,
-        pub is_dnf: bool,
-        pub is_dns: bool,
-    }
-
-    #[derive(cynic::QueryFragment, Debug)]
-    pub struct EventLeaderboardPool {
-        pub place: f64,
-        pub score: Option<f64>,
-        pub points: Option<f64>,
-        pub pool_id: cynic::Id,
-    }
-
-    #[derive(cynic::QueryFragment, Debug)]
-    pub struct Event {
-        pub leaderboard: Option<Vec<Option<EventLeaderboardDivisionCombined>>>,
-    }
-
-    #[derive(cynic::QueryFragment, Debug)]
-    #[cynic(graphql_type = "Event")]
-    pub struct Event2 {
-        pub id: cynic::Id,
-        pub name: String,
-        pub rounds: Vec<Option<Round>>,
-        pub players: Vec<Player>,
-    }
-
-    #[derive(cynic::QueryFragment, Debug)]
-    pub struct Player {
-        pub user: User,
-        pub division: Division,
-        pub dnf: DNF,
-        pub dns: DNS,
-    }
-
-    #[derive(cynic::QueryFragment, Debug)]
-    pub struct User {
-        pub id: cynic::Id,
-        pub first_name: Option<String>,
-        pub last_name: Option<String>,
-    }
-
-    #[derive(cynic::QueryFragment, Debug)]
-    pub struct Round {
-        pub id: cynic::Id,
-        pub pools: Vec<Pool3>,
-    }
-
-    #[derive(cynic::QueryFragment, Debug)]
-    #[cynic(graphql_type = "Pool")]
-    pub struct Pool3 {
-        pub date: DateTime,
-        pub id: cynic::Id,
-    }
-
-    #[derive(cynic::QueryFragment, Debug)]
-    pub struct Division {
-        pub id: cynic::Id,
-        #[cynic(rename = "type")]
-        pub type_: String,
-        pub name: String,
-    }
-
-    #[derive(cynic::QueryFragment, Debug)]
-    pub struct DNS {
-        pub is_dns: bool,
-    }
-
-    #[derive(cynic::QueryFragment, Debug)]
-    pub struct DNF {
-        pub is_dnf: bool,
-    }
-
-    #[derive(cynic::InlineFragments, Debug)]
-    pub enum EventLeaderboardDivisionCombined {
-        EventLeaderboardDivision(EventLeaderboardDivision),
-        #[cynic(fallback)]
-        Unknown
     }
 
     #[derive(cynic::InlineFragments, Debug)]
     pub enum PoolLeaderboardDivisionCombined {
-        PoolLeaderboardDivision(PoolLeaderboardDivision),
+        PoolLeaderboardDivisionn(PoolLeaderboardDivision),
         #[cynic(fallback)]
         Unknown
     }
 
     #[derive(cynic::InlineFragments, Debug)]
     pub enum PoolLivescoreDivisionCombined {
-        PoolLivescoreDivision(PoolLivescoreDivision),
+        PoolLivescoreDivisionn(PoolLivescoreDivision),
         #[cynic(fallback)]
         Unknown
     }
