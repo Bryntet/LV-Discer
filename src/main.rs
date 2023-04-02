@@ -319,12 +319,12 @@ mod queries {
     }
 
     #[derive(cynic::QueryVariables, Debug)]
-    pub struct PoolLiveVariables {
+    pub struct PoolLBAfterVariables {
         pub pool_id: cynic::Id,
     }
 
     #[derive(cynic::QueryVariables, Debug)]
-    pub struct PoolLBAfterVariables {
+    pub struct PoolLiveVariables {
         pub pool_id: cynic::Id,
     }
 
@@ -378,28 +378,37 @@ mod queries {
 
     #[derive(cynic::QueryFragment, Debug)]
     pub struct PoolLeaderboardDivision {
+        pub id: cynic::Id,
         pub name: String,
         pub players: Vec<PoolLeaderboardPlayer>,
+        #[cynic(rename = "type")]
+        pub type_: String,
     }
 
     #[derive(cynic::QueryFragment, Debug)]
     pub struct PoolLeaderboardPlayer {
-        pub place: f64,
         pub first_name: String,
+        pub is_dnf: bool,
+        pub is_dns: bool,
         pub last_name: String,
-        pub pdga_number: Option<f64>,
-        pub score: Option<f64>,
         pub par: Option<f64>,
+        pub pdga_number: Option<f64>,
+        pub pdga_rating: Option<f64>,
+        pub place: f64,
+        pub player_id: cynic::Id,
         pub results: Vec<SimpleResult>,
+        pub points: Option<f64>,
+        pub score: Option<f64>,
     }
 
     #[derive(cynic::QueryFragment, Debug)]
     pub struct SimpleResult {
+        pub hole: Hole,
         pub score: f64,
         pub is_circle_hit: bool,
-        pub is_outside_putt: bool,
         pub is_inside_putt: bool,
         pub is_out_of_bounds: bool,
+        pub is_outside_putt: bool,
     }
 
     #[derive(cynic::QueryFragment, Debug)]
@@ -415,6 +424,7 @@ mod queries {
         pub status: PoolStatus,
         pub layout_version: LayoutVersion,
         pub leaderboard: Option<Vec<Option<PoolLeaderboardDivisionCombined>>>,
+        pub position: f64,
     }
 
     #[derive(cynic::QueryFragment, Debug)]
@@ -425,11 +435,19 @@ mod queries {
 
     #[derive(cynic::QueryFragment, Debug)]
     pub struct LayoutVersion {
-        pub holes: Vec<Hole>,
+        pub holes: Vec<Hole2>,
     }
 
     #[derive(cynic::QueryFragment, Debug)]
     pub struct Hole {
+        pub par: Option<f64>,
+        pub number: f64,
+        pub length: Option<f64>,
+    }
+
+    #[derive(cynic::QueryFragment, Debug)]
+    #[cynic(graphql_type = "Hole")]
+    pub struct Hole2 {
         pub number: f64,
         pub par: Option<f64>,
         pub length: Option<f64>,
@@ -437,14 +455,14 @@ mod queries {
 
     #[derive(cynic::InlineFragments, Debug)]
     pub enum PoolLeaderboardDivisionCombined {
-        PoolLeaderboardDivisionn(PoolLeaderboardDivision),
+        PoolLeaderboardDivision(PoolLeaderboardDivision),
         #[cynic(fallback)]
         Unknown
     }
 
     #[derive(cynic::InlineFragments, Debug)]
     pub enum PoolLivescoreDivisionCombined {
-        PoolLivescoreDivisionn(PoolLivescoreDivision),
+        PoolLivescoreDivision(PoolLivescoreDivision),
         #[cynic(fallback)]
         Unknown
     }
