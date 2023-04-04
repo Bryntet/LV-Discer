@@ -92,8 +92,9 @@ async fn main() {
                 _ => println!("Status is not completed")
             }
         }
-    } else {
-        println!("No data, probably invalid pool id");
+    } 
+    if let Some(_err) = response.errors {
+        println!("Got error, probably invalid pool id");
     }
 }
 
