@@ -148,17 +148,17 @@ async fn post_status(pool_id: cynic::Id) {
                     //println!("DIVISION: {:#?}", test)
                     
                 }
-                let mut start_row: i16 = 4;
+                let mut start_row: u16 = 4;
                 for div in good_divs {
                     
                     let mut player_vec: Vec<Vec<String>> = Vec::new();
                     for player in div.players {
-                        let mut par = 1000;
+                        let mut par = 100;
                         if let Some(parr) = player.par {
-                            par = parr as i32
+                            par = parr as u8
                         } 
 
-                        let place = format!("{}", player.place as i32);
+                        let place = format!("{}", player.place as u16);
                         let mut personal_vec: Vec<String> = vec![
                                 String::from(player.first_name.chars().collect::<Vec<_>>()[0]) + &". ".to_string() + &player.last_name, 
                                 place,
