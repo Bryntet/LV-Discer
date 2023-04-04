@@ -5,6 +5,7 @@ extern crate google_sheets4 as sheets4;
 use sheets4::api::ValueRange;
 use sheets4::{Error};
 use sheets4::{Sheets, oauth2};
+use std::io;
 
 async fn get_auth() -> oauth2::authenticator::Authenticator<hyper_rustls::HttpsConnector<hyper::client::HttpConnector>> {
     let secret = oauth2::read_application_secret("credentials.json")
@@ -69,7 +70,10 @@ async fn main() {
     use queries::*;
     use cynic::QueryBuilder;
     use cynic::Id;
-    let pool_id = Id::new("5be6d127-c72c-471e-ae7d-2a506a23c057");
+    let mut input = String::new();
+    println!("Enter pool id:");
+    io::stdin().read_line(&mut input).expect("Error!");
+    let pool_id = Id::new(input.trim());
     
     let operation = StatusPool::build(
         StatusPoolVariables {
@@ -85,9 +89,11 @@ async fn main() {
         if let Some(pool) = data.pool {
             match pool.status {
                 PoolStatus::Completed => post_status(pool_id).await,
-                _ => println!("no")
+                _ => println!("Status is not completed")
             }
         }
+    } else {
+        println!("No data, probably invalid pool id");
     }
 }
 
