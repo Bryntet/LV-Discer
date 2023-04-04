@@ -174,11 +174,9 @@ async fn post_status(pool_id: cynic::Id) {
                         for result in player.results {
                             personal_vec.push(result.score.to_string());
                             ob_s.push((result.is_out_of_bounds as u8).to_string());
-                            circle_hits.push((result.is_inside_putt as u8).to_string());
+                            circle_hits.push((result.is_circle_hit as u8).to_string());
                             inside_putts.push((result.is_inside_putt as u8).to_string());
                             outside_putts.push((result.is_outside_putt as u8).to_string());
-                            
-                            
                         }
                         personal_vec.push(player.is_dnf.to_string());
                         personal_vec.push(player.is_dns.to_string());
