@@ -8,7 +8,7 @@ use sheets4::{Sheets, oauth2};
 use std::io;
 
 async fn get_auth() -> oauth2::authenticator::Authenticator<hyper_rustls::HttpsConnector<hyper::client::HttpConnector>> {
-    let secret = oauth2::read_application_secret("credentials.json")
+    let secret = oauth2::read_application_secret("src/credentials.json")
         .await
         .expect("client secret not read");
 
