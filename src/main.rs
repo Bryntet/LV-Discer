@@ -225,13 +225,13 @@ async fn post_status(pool_id: cynic::Id) {
                         major_dimension: Some("ROWS".to_string()),
                         range: None,
                         values: Some(vec![vec![div.name.clone()]]),
-                    }, &("Bladet!A".to_owned() + &start_row.to_string() + ":Z1000"), get_auth().await).await;
+                    }, &("Bladet!A".to_owned() + &start_row.to_string() + ":AG1000"), get_auth().await).await;
                     
                     do_something(ValueRange {
                         major_dimension: Some("ROWS".to_string()),
                         range: None,
                         values: Some(player_vec),
-                    }, &("Bladet!A".to_owned() + &(start_row+1).to_string() + ":Z1000"), get_auth().await).await;
+                    }, &("Bladet!A".to_owned() + &(start_row+1).to_string() + ":AG1000"), get_auth().await).await;
                     start_row += 50
                     //println!("{:#?}", div_vec)
                     
