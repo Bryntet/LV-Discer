@@ -1,7 +1,8 @@
+mod vmix;
 use eframe::egui;
 
 
-fn main() -> Result<(), eframe::Error> {
+fn ui_main_thing() -> Result<(), eframe::Error> {
     let options = eframe::NativeOptions {
         initial_window_size: Some(egui::vec2(320.0, 240.0)),
         ..Default::default()
@@ -20,6 +21,9 @@ struct MyApp {
     my_string: String,
     my_f32: f32,
     my_boolean: bool,
+    id: String,
+    name: String,
+    text: String,
 
 }
 
@@ -35,6 +39,9 @@ impl MyApp {
         let my_string = "Hello world!".to_string();
         let my_f32: f32 = 0.0;
         let my_boolean = false;
+        let id = String::from("909fecdd-3c51-4308-9a37-5365a1eb261c");
+        let name = String::from("TextBlock3.Text");
+        let text = String::from("");
         Self::default()
     }
 }
@@ -48,6 +55,7 @@ impl eframe::App for MyApp {
 
     fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
         egui::CentralPanel::default().show(ctx, |ui| {
+            catppuccin_egui::set_theme(&ctx, catppuccin_egui::MACCHIATO);
             ui.heading("Flip UP, Official VMix tool");
             ui.label("This is a label");
             ui.hyperlink("https://github.com/emilk/egui");
@@ -108,4 +116,12 @@ fn ui_counter(ui: &mut egui::Ui, counter: &mut i32) {
             *counter += 1;
         }
     });
+}
+fn main() {
+    let mut text = vmix::Text {
+        id: String::from("909fecdd-3c51-4308-9a37-5365a1eb261c"),
+        name: String::from("TextBlock3.Text"),
+        text: String::from(""),
+    };
+    text.set_text(String::from("Hello World"));
 }
