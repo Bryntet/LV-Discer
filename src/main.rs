@@ -2,7 +2,7 @@ mod vmix;
 use eframe::egui;
 
 
-fn ui_main_thing() -> Result<(), eframe::Error> {
+fn main() -> Result<(), eframe::Error> {
     let options = eframe::NativeOptions {
         initial_window_size: Some(egui::vec2(320.0, 240.0)),
         ..Default::default()
@@ -13,102 +13,115 @@ fn ui_main_thing() -> Result<(), eframe::Error> {
         Box::new(|_cc| Box::new(MyApp::default())),
     )
 }
-#[derive(Default)]
+
 struct MyApp {
     allowed_to_close: bool,
     show_confirmation_dialog: bool,
-    counter: i32,
-    my_string: String,
-    my_f32: f32,
-    my_boolean: bool,
+    ip: String,
     id: String,
     name: String,
     text: String,
+    box_iteration: u8,
+    box_color: egui::Color32,
 
 }
 
 
-
-impl MyApp {
-    fn new(cc: &eframe::CreationContext<'_>) -> Self {
-        // Customize egui here with cc.egui_ctx.set_fonts and cc.egui_ctx.set_visuals.
-        // Restore app state using cc.storage (requires the "persistence" feature).
-        // Use the cc.gl (a glow::Context) to create graphics shaders and buffers that you can use
-        // for e.g. egui::PaintCallback.
-        let counter = 0;
-        let my_string = "Hello world!".to_string();
-        let my_f32: f32 = 0.0;
-        let my_boolean = false;
-        let id = String::from("909fecdd-3c51-4308-9a37-5365a1eb261c");
-        let name = String::from("TextBlock3.Text");
-        let text = String::from("");
-        Self::default()
+impl Default for MyApp {
+    fn default() -> MyApp {
+        MyApp {
+            allowed_to_close: false,
+            show_confirmation_dialog: false,
+            ip: String::from("192.168.120.109"),
+            id: String::from("909fecdd-3c51-4308-9a37-5365a1eb261c"),
+            name: String::from("TextBlock3.Text"),
+            text: String::from(""),
+            box_iteration: 1,
+            box_color: egui::Color32::from_rgb(255, 0, 0),
+        }
     }
 }
 
 impl eframe::App for MyApp {
     
-    fn on_close_event(&mut self) -> bool {
-        self.show_confirmation_dialog = true;
-        self.allowed_to_close
-    }
+    // fn on_close_event(&mut self) -> bool {
+    //     self.show_confirmation_dialog = true;
+    //     self.allowed_to_close
+    // }
 
     fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
         egui::CentralPanel::default().show(ctx, |ui| {
             catppuccin_egui::set_theme(&ctx, catppuccin_egui::MACCHIATO);
-            ui.heading("Flip UP, Official VMix tool");
-            ui.label("This is a label");
-            ui.hyperlink("https://github.com/emilk/egui");
-            ui.text_edit_singleline(&mut self.my_string);
-            if ui.button("Click me").clicked() { }
-            ui.add(egui::Slider::new(&mut self.my_f32, 0.0..=100.0));
-            ui.add(egui::DragValue::new(&mut self.my_f32));
+            ui.heading("Flip UP -- Official VMix tool");
+            ui.horizontal(|ui| {
+                ui.vertical(|ui| {
+                    ui.label("ID");
+                    ui.text_edit_singleline(&mut self.id);
+                });
+                ui.vertical(|ui| {
+                    ui.label("IP");
+                    ui.text_edit_singleline(&mut self.ip);
+                });
 
-            ui.checkbox(&mut self.my_boolean, "Checkbox");
-            if self.my_boolean {
-                ui_counter(ui, &mut self.counter);
+                ui.color_edit_button_srgba(&mut self.box_color);
+            });
+            ui.separator();
+            ui.horizontal(|ui| {
+                ui.label("Box iteration");
+                ui_counter(ui, &mut self.box_iteration);
+            });
+            ui.horizontal(|ui| {
+                ui.label("Text");
+                ui.text_edit_singleline(&mut self.text);
+            });
+            let mut text = vmix::Text {
+                    id: self.id.clone(),
+                    name: self.name.clone(),
+                    text: self.text.clone(),
+                    ip: self.ip.clone()
+                };
+            text.name_format(self.box_iteration);
+
+            if ui.button("Update text").clicked() { 
+                text.set_text(&self.text);
             }
-
-
             ui.separator();
 
-            
-            ui.collapsing("Click to see what is hidden!", |ui| {
-                ui.label("Not much, as it turns out");
-            });
-
+            if ui.button("Toggle visibility").clicked() { 
+                text.toggle_visibility();
+            }
         });
         
-        if self.show_confirmation_dialog {
-            // Show confirmation dialog:
-            egui::Window::new("Do you want to quit?")
-                .collapsible(false)
-                .resizable(false)
-                .show(ctx, |ui| {
+        // if self.show_confirmation_dialog {
+        //      Show confirmation dialog:
+        //     egui::Window::new("Do you want to quit?")
+        //         .collapsible(false)
+        //         .resizable(false)
+        //         .show(ctx, |ui| {
                     
 
-                    ui.horizontal(|ui| {
-                        if ui.button("Cancel").clicked() {
-                            self.show_confirmation_dialog = false;
-                        }
+        //             ui.horizontal(|ui| {
+        //                 if ui.button("Cancel").clicked() {
+        //                     self.show_confirmation_dialog = false;
+        //                 }
 
-                        if ui.button("Yes!").clicked() {
-                            self.allowed_to_close = true;
-                            frame.close();
-                        }
-                    });
-                });
-        }
+        //                 if ui.button("Yes!").clicked() {
+        //                     self.allowed_to_close = true;
+        //                     frame.close();
+        //                 }
+        //             });
+        //         });
+        // }
     }
     
 }
 
 
 
-fn ui_counter(ui: &mut egui::Ui, counter: &mut i32) {
+fn ui_counter(ui: &mut egui::Ui, counter: &mut u8) {
     // Put the buttons and label on the same row:
     ui.horizontal(|ui| {
-        if ui.button("-").clicked() {
+        if ui.button("-").clicked() && *counter > 1{
             *counter -= 1;
         }
         ui.label(counter.to_string());
@@ -116,12 +129,4 @@ fn ui_counter(ui: &mut egui::Ui, counter: &mut i32) {
             *counter += 1;
         }
     });
-}
-fn main() {
-    let mut text = vmix::Text {
-        id: String::from("909fecdd-3c51-4308-9a37-5365a1eb261c"),
-        name: String::from("TextBlock3.Text"),
-        text: String::from(""),
-    };
-    text.set_text(String::from("Hello World"));
 }

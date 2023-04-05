@@ -7,28 +7,34 @@ pub struct Text {
     pub id: String,
     pub name: String,
     pub text: String,
+    pub ip: String
 }
 
 
 
 
 impl Text {
+    fn base_url(&self) -> String {
+        return format!("http://{}:8088/api/?", self.ip);
+    }
     fn default_select(&self) -> String {
         return format!("Input={}&SelectedName={}", &self.id, &self.name);
     }
-    pub fn set_text(&mut self, text: String) {
-        self.text = text;
-        let resp = reqwest::blocking::get(format!("http://192.168.120.109:8088/api/?Function=SetText&Value={}&{}", self.text, self.default_select())).unwrap();
-        println!("{:#?}", resp);
+
+    pub fn name_format(&mut self, iteration: u8) {
+        self.name = format!("TextBlock{}.Text", iteration);
     }
 
-}
+    pub fn set_text(&mut self, text: &str) {
+        
+        self.text = text.to_string();
+        reqwest::blocking::get(format!("{}Function=SetText&Value={}&{}", self.base_url(), self.text, self.default_select())).unwrap();
+        
+    }
+    pub fn toggle_visibility(&mut self) {
+        reqwest::blocking::get(format!("{}Function=SetImageVisible&{}", self.base_url(), self.default_select())).unwrap();
+        reqwest::blocking::get(format!("{}Function=SetTextVisible&{}", self.base_url(), self.default_select())).unwrap();
+        
+    }
 
-fn main() {
-    let mut text = Text {
-        id: String::from("909fecdd-3c51-4308-9a37-5365a1eb261c"),
-        name: String::from("TextBlock3.Text"),
-        text: String::from(""),
-    };
-    text.set_text(String::from("Hello World"));
 }
