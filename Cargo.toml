@@ -16,12 +16,12 @@ clap = "4.1.8"
 anyhow = "1.0.69"
 google-sheets4 = "*"
 hyper = "0.14.25"
-hyper-rustls = "0.23.2"
+hyper-rustls = "0.24.0"
 yup-oauth2 = "8.1.0"
 paste = "1.0.12"
 quote = "1.0.24"
-
-
+egui = "0.21.0"
+eframe = "0.21.3"
 [dependencies.tokio]
 version = "*"
 features = ["full"]
