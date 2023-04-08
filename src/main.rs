@@ -93,20 +93,26 @@ impl Player {
         println!("{}",self.hole);
     }
     fn reset_score(&mut self) {
-        self.hole = 0;
-        let name = format!("{}.Text", self.input_id);
-        let selection = format!("&Input={}&SelectedName={}.Text", &self.input_id, format!("s{}p{}",self.hole+1,self.num));
-        let select_colour = format!("&Input={}&SelectedName={}.Fill.Color", &self.input_id, format!("h{}p{}",self.hole+1,self.num));
-        let url = format!("http://{}:8088/api/?",self.consts.ip);
         for i in 1..19 {
-            let selection = format!("&Input={}&SelectedName={}.Text", &self.input_id, format!("s{}p{}",i,self.num));
-            let select_colour = format!("&Input={}&SelectedName={}.Fill.Color", &self.input_id, format!("h{}p{}",i,self.num));
-            reqwest::blocking::get(format!("{}Function=SetText&Value={}{}", &url, "", &selection)).unwrap();
-            reqwest::blocking::get(format!("{}Function=SetColor&Value=%23{}{}", &url, self.consts.default_bg_col, &select_colour)).unwrap();
-            reqwest::blocking::get(format!("{}Function=SetTextVisibleOff{}", &url, &selection)).unwrap();
-        }   
+            self.hole = i;
+            self.del_score();
+        }
+        self.hole = 0;
     }
-    
+    fn del_score(&mut self) {
+        let url = format!("http://{}:8088/api/?",self.consts.ip);
+        let selection = format!("&Input={}&SelectedName={}.Text", &self.input_id, format!("s{}p{}",self.hole,self.num));
+        let select_colour = format!("&Input={}&SelectedName={}.Fill.Color", &self.input_id, format!("h{}p{}",self.hole,self.num));
+        reqwest::blocking::get(format!("{}Function=SetText&Value={}{}", &url, "", &selection)).unwrap();
+        reqwest::blocking::get(format!("{}Function=SetColor&Value=%23{}{}", &url, self.consts.default_bg_col, &select_colour)).unwrap();
+        reqwest::blocking::get(format!("{}Function=SetTextVisibleOff{}", &url, &selection)).unwrap();
+    }
+    fn revert_score(&mut self) {
+        if self.hole > 0 {
+            self.del_score();
+            self.hole -= 1;
+        }
+    }
 }
 
 impl Default for Player {
@@ -384,6 +390,9 @@ impl eframe::App for MyApp {
                 ui.horizontal(|ui| {
                     if ui.button("Set score").clicked() {
                         player.set_score();
+                    }
+                    if ui.button("Revert").clicked() {
+                        player.revert_score();
                     }
                     if ui.button("Reset").clicked() {
                         player.reset_score();
