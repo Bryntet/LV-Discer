@@ -115,10 +115,12 @@ impl Player {
         }
     }
     fn set_name(&mut self) {
-        let url = format!("http://{}:8088/api/?",self.consts.ip);
-        let selection = format!("&Input={}&SelectedName={}.Text", &self.input_id, format!("namep{}",self.num));
-        let name = format!("{} {}", &self.player.as_ref().unwrap().first_name, &self.player.as_ref().unwrap().last_name);
-        reqwest::blocking::get(format!("{}Function=SetText&Value={}{}", &url, name, &selection)).unwrap();
+        if let Some(player) = self.player.clone() {
+            let url = format!("http://{}:8088/api/?",self.consts.ip);
+            let selection = format!("&Input={}&SelectedName={}.Text", &self.input_id, format!("namep{}",self.num));
+            let name = format!("{} {}", &player.first_name, &player.last_name);
+            reqwest::blocking::get(format!("{}Function=SetText&Value={}{}", &url, name, &selection)).unwrap();
+        }
     }
 }
 
