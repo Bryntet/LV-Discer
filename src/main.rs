@@ -348,7 +348,7 @@ impl eframe::App for MyApp {
             
 
             
-            ui.horizontal_centered(|ui| {
+            ui.horizontal(|ui| {
                 self.add_players(ui);
             });
             ui.separator();
