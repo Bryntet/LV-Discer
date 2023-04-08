@@ -105,14 +105,14 @@ pub mod queries {
     impl SimpleResult {
         pub fn get_score_colour(&self) -> &str {
             match self.score as i64 {
-                3 => "#AB8E77",
-                2 => "#CA988D",
-                1 => "#EC928F",
-                0 => "#7E8490",
-                -1 => "#A6F8BB",
-                -2 => "#6A8BE7",
-                -3 => "#DD6AC9",
-                _ => "#000000",
+                3 => "AB8E77",
+                2 => "CA988D",
+                1 => "EC928F",
+                0 => "7E8490",
+                -1 => "A6F8BB",
+                -2 => "6A8BE7",
+                -3 => "DD6AC9",
+                _ => "000000",
             }
         }
     }
