@@ -67,9 +67,8 @@ impl Player {
         // Code for anim goes here
     }
 
-    
-
     fn set_score(&mut self, ui: &mut egui::Ui) {
+        println!("{}",self.hole);
         if let Some(player) = self.player.clone() {
             ui.vertical(|ui| {
                 if ui.button("Set score").clicked() {
@@ -81,14 +80,16 @@ impl Player {
                     let url = format!("http://{}:8088/api/?",self.consts.ip);
                     let result = &player.results[self.hole];
                     // Set score
-                    reqwest::blocking::get(format!("{}Function=SetText&Value={}{}", &url, &result.score, &selection)).unwrap();
+                    //reqwest::blocking::get(format!("{}Function=SetText&Value={}{}", &url, &result.score, &selection)).unwrap();
                     // Set colour
-                    reqwest::blocking::get(format!("{}Function=SetColor&Value=%23{}{}", &url, &result.get_score_colour(), &select_colour)).unwrap();
+                    //reqwest::blocking::get(format!("{}Function=SetColor&Value=%23{}{}", &url, &result.get_score_colour(), &select_colour)).unwrap();
                     // Show score
-                    reqwest::blocking::get(format!("{}Function=SetTextVisibleOn{}", &url, &selection)).unwrap();
+                    //reqwest::blocking::get(format!("{}Function=SetTextVisibleOn{}", &url, &selection)).unwrap();
+                    self.hole += 1;
                 }
             });
         }
+        println!("{}",self.hole);
     }
     
     
@@ -118,7 +119,7 @@ impl Default for Player {
 #[derive(Debug)]
 #[derive(PartialEq)]
 enum MyEnum { First, Second, Third}
-struct MyApp {
+struct MyApp<'a> {
     allowed_to_close: bool,
     show_confirmation_dialog: bool,
     id: String,
@@ -131,14 +132,14 @@ struct MyApp {
     score_card: ScoreCard,
     selected_div_ind: usize,
     selected_div: Option<get_data::queries::PoolLeaderboardDivision>,
-    focused_player: Option<Player>,
+    focused_player: Option<&'a mut Player>,
     foc_play_ind: usize,
     consts: Constants,
     input_ids: Vec<String>,
 
 }
-impl Default for MyApp {
-    fn default() -> MyApp {
+impl Default for MyApp<'static> {
+    fn default() -> MyApp<'static> {
         MyApp {
             allowed_to_close: false,
             show_confirmation_dialog: false,
@@ -162,7 +163,7 @@ impl Default for MyApp {
 }
 
 
-impl MyApp {
+impl MyApp<'static> {
     async fn get_all_divs(&mut self) {
 
         self.all_divs = vec![];
@@ -230,7 +231,7 @@ impl MyApp {
         }   
     }
 
-    fn player_focus(&mut self, ui: &mut egui::Ui) {
+    fn player_focus(&mut self, ui: &mut egui::Ui) -> Option<&mut Player> {
         if let Some(player) = &self.focused_player {
             ui.heading(player.player.as_ref().unwrap().first_name.to_owned());
         } else {
@@ -244,16 +245,17 @@ impl MyApp {
             if ui.button("+").clicked() && self.foc_play_ind < 4 {
                 self.foc_play_ind += 1;
             }
-            self.focused_player = match self.foc_play_ind {
-                1 => Some(self.score_card.p1.clone()),
-                2 => Some(self.score_card.p2.clone()),
-                3 => Some(self.score_card.p3.clone()),
-                4 => Some(self.score_card.p4.clone()),
+            let focused_player = match self.foc_play_ind {
+                1 => Some(&mut self.score_card.p1),
+                2 => Some(&mut self.score_card.p2),
+                3 => Some(&mut self.score_card.p3),
+                4 => Some(&mut self.score_card.p4),
                 _ => None
             };
+            return focused_player;
             
         });
-        
+        None
     }
 }
 #[derive(Default)]
@@ -266,7 +268,7 @@ struct ScoreCard {
 
 
 
-impl eframe::App for MyApp {
+impl eframe::App for MyApp<'_> {
     
     // fn on_close_event(&mut self) -> bool {
     //     self.show_confirmation_dialog = true;
@@ -311,11 +313,11 @@ impl eframe::App for MyApp {
                 ui.text_edit_singleline(&mut self.text);
             });
             let mut text = vmix::Text {
-                    id: self.id.clone(),
-                    name: self.name.clone(),
-                    text: self.text.clone(),
-                    ip: self.consts.ip.clone()
-                };
+                id: self.id.clone(),
+                name: self.name.clone(),
+                text: self.text.clone(),
+                ip: self.consts.ip.clone()
+            };
 
             
             text.name_format(self.box_iteration, "s");
@@ -352,7 +354,7 @@ impl eframe::App for MyApp {
             });
             ui.separator();
             if let Some(_) = self.score_card.p4.player {
-                self.player_focus(ui);
+                self.focused_player = self.player_focus(ui);
             }
             if let Some(player) = &mut self.focused_player {
                 player.set_score(ui);
