@@ -93,7 +93,7 @@ impl Player {
         println!("{}",self.hole);
     }
     fn reset_score(&mut self) {
-        for i in 1..19 {
+        for i in 19..1 {
             self.hole = i;
             self.del_score();
         }
