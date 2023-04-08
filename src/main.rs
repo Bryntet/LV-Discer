@@ -20,6 +20,7 @@ fn main() -> Result<(), eframe::Error> {
 struct Constants {
     ip: String,
     pool_id: String,
+    default_bg_col: String
     
 }
 impl Default for Constants {
@@ -90,8 +91,20 @@ impl Player {
         }
         println!("{}",self.hole);
     }
-    
-    
+    fn reset_score(&mut self) {
+        self.hole = 0;
+        let name = format!("{}.Text", self.input_id);
+        let selection = format!("&Input={}&SelectedName={}.Text", &self.input_id, format!("s{}p{}",self.hole+1,self.num));
+        let select_colour = format!("&Input={}&SelectedName={}.Fill.Color", &self.input_id, format!("h{}p{}",self.hole+1,self.num));
+        let url = format!("http://{}:8088/api/?",self.consts.ip);
+        for i in 1..19 {
+            let selection = format!("&Input={}&SelectedName={}.Text", &self.input_id, format!("s{}p{}",i,self.num));
+            let select_colour = format!("&Input={}&SelectedName={}.Fill.Color", &self.input_id, format!("h{}p{}",i,self.num));
+            reqwest::blocking::get(format!("{}Function=SetText&Value={}{}", &url, "", &selection)).unwrap();
+            reqwest::blocking::get(format!("{}Function=SetColor&Value=%23{}{}", &url, self.consts.default_bg_col, &select_colour)).unwrap();
+            reqwest::blocking::get(format!("{}Function=SetTextVisibleOff{}", &url, &selection)).unwrap();
+        }   
+    }
     
 }
 
@@ -245,6 +258,7 @@ impl MyApp {
         });
         
     }
+    
 }
 #[derive(Default)]
 struct ScoreCard {
@@ -366,9 +380,15 @@ impl eframe::App for MyApp {
                 ui.heading("No player selected");
             }
             if let Some(player) = focused_player {
-                if ui.button("Set score").clicked() {
-                    player.set_score();
-                }
+                ui.horizontal(|ui| {
+                    if ui.button("Set score").clicked() {
+                        player.set_score();
+                    }
+                    if ui.button("Reset").clicked() {
+                        player.reset_score();
+                    }
+                });
+                
             }
             ui.separator();
            
