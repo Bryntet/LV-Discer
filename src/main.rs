@@ -65,7 +65,7 @@ impl Player {
                     let selection = format!("&Input={}&SelectedName={}.Text", &self.input_id, format!("s{}p{}",self.hole+1,self.num));
                     let url = format!("http://{}:8088/api/?",self.ip);
                     let result = &player.results[self.hole];
-
+                    println!("{}{}{}", &url, &result.score, &selection);
                     // Set score
                     reqwest::blocking::get(format!("{}Function=SetText&Value={}{}", url, result.score, &selection)).unwrap();
                     // Set colour
