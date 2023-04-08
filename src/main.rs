@@ -87,6 +87,7 @@ impl Player {
                     reqwest::blocking::get(format!("{}Function=SetColor&Value=%23{}{}", &url, &result.get_score_colour(), &select_colour)).unwrap();
                     // Show score
                     reqwest::blocking::get(format!("{}Function=SetTextVisibleOn{}", &url, &selection)).unwrap();
+                    self.hole += 1;
                 }
             });
         }
