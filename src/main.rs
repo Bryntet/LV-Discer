@@ -25,12 +25,13 @@ struct Player {
     input_id: String,
     response: Option<egui::Response>,
     ip: String,
-    num: u8,
+    num: String,
 
 }
 
 impl Player {
     fn player_selector(&mut self, ui: &mut egui::Ui, div: &get_data::queries::PoolLeaderboardDivision, ui_id: &str) {
+        self.num = ui_id.to_string();
         let player_list = div.players.iter().map(|p| p.first_name.to_owned()).collect::<Vec<String>>();
         ui.push_id(ui_id, |ui| {
             ui.vertical(|ui| {
@@ -65,13 +66,13 @@ impl Player {
                     let selection = format!("&Input={}&SelectedName={}.Text", &self.input_id, format!("s{}p{}",self.hole+1,self.num));
                     let url = format!("http://{}:8088/api/?",self.ip);
                     let result = &player.results[self.hole];
-                    println!("{}{}{}", &url, &result.score, &selection);
+                    println!("{}Function=SetText&Value={}{}", &url, &result.score, &selection);
                     // Set score
-                    reqwest::blocking::get(format!("{}Function=SetText&Value={}{}", url, result.score, &selection)).unwrap();
+                    reqwest::blocking::get(format!("{}Function=SetText&Value={}{}", &url, &result.score, &selection)).unwrap();
                     // Set colour
-                    reqwest::blocking::get(format!("{}Function=SetColor&Value={}&{}", url, result.get_score_colour(), &selection)).unwrap();
+                    reqwest::blocking::get(format!("{}Function=SetColor&Value={}&{}", &url, &result.get_score_colour(), &selection)).unwrap();
                     // Show score
-                    reqwest::blocking::get(format!("{}Function=SetTextVisibleOn{}", url, &selection)).unwrap();
+                    reqwest::blocking::get(format!("{}Function=SetTextVisibleOn{}", &url, &selection)).unwrap();
                 }
             });
         }
@@ -96,7 +97,7 @@ impl Default for Player {
             input_id: "".to_owned(),
             response: None,
             ip: "127.0.0.1".to_owned(),
-            num: 0,
+            num: "0".to_string(),
         }
     }
 }
