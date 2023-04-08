@@ -57,6 +57,7 @@ impl Player {
                     div.players.len(),
                     |i| player_list[i].to_owned()
                 ).changed() {
+                    self.set_name();
                     if let Some(player) = div.players.get(self.selected) {
                         self.player = Some(player.clone());
                     }
@@ -112,6 +113,12 @@ impl Player {
             self.del_score();
             self.hole -= 1;
         }
+    }
+    fn set_name(&mut self) {
+        let url = format!("http://{}:8088/api/?",self.consts.ip);
+        let selection = format!("&Input={}&SelectedName={}.Text", &self.input_id, format!("namep{}",self.num));
+        let name = format!("{} {}", &self.player.as_ref().unwrap().first_name, &self.player.as_ref().unwrap().last_name);
+        reqwest::blocking::get(format!("{}Function=SetText&Value={}{}", &url, name, &selection)).unwrap();
     }
 }
 
@@ -378,7 +385,7 @@ impl eframe::App for MyApp {
                 if let Some(pp) = &player.player {
                     ui.horizontal(|ui| {
                         ui.heading(format!("{},",pp.first_name));
-                        ui.heading(format!("Hole {}",player.hole.to_string()));
+                        ui.heading(format!("Hole {}",(player.hole+1).to_string()));
                     });
                 } else {
                     ui.heading("No player selected");
