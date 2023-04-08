@@ -67,27 +67,26 @@ impl Player {
         // Code for anim goes here
     }
 
-    fn set_score(&mut self, ui: &mut egui::Ui) {
+    fn set_score(&mut self) {
         println!("{}",self.hole);
         if let Some(player) = self.player.clone() {
-            ui.vertical(|ui| {
-                if ui.button("Set score").clicked() {
-                    self.start_score_anim();
-                    // wait Xms
-                    let name = format!("{}.Text", self.input_id);
-                    let selection = format!("&Input={}&SelectedName={}.Text", &self.input_id, format!("s{}p{}",self.hole+1,self.num));
-                    let select_colour = format!("&Input={}&SelectedName={}.Fill.Color", &self.input_id, format!("h{}p{}",self.hole+1,self.num));
-                    let url = format!("http://{}:8088/api/?",self.consts.ip);
-                    let result = &player.results[self.hole];
-                    // Set score
-                    reqwest::blocking::get(format!("{}Function=SetText&Value={}{}", &url, &result.score, &selection)).unwrap();
-                    // Set colour
-                    reqwest::blocking::get(format!("{}Function=SetColor&Value=%23{}{}", &url, &result.get_score_colour(), &select_colour)).unwrap();
-                    // Show score
-                    reqwest::blocking::get(format!("{}Function=SetTextVisibleOn{}", &url, &selection)).unwrap();
-                    self.hole += 1;
-                }
-            });
+            self.start_score_anim();
+            // wait Xms
+            let name = format!("{}.Text", self.input_id);
+            let selection = format!("&Input={}&SelectedName={}.Text", &self.input_id, format!("s{}p{}",self.hole+1,self.num));
+            let select_colour = format!("&Input={}&SelectedName={}.Fill.Color", &self.input_id, format!("h{}p{}",self.hole+1,self.num));
+            let url = format!("http://{}:8088/api/?",self.consts.ip);
+            let result = &player.results[self.hole];
+            println!("{}", format!("{}Function=SetColor&Value=%23{}{}", &url, &result.get_score_colour(), &select_colour));
+            // Set score
+            reqwest::blocking::get(format!("{}Function=SetText&Value={}{}", &url, &result.score, &selection)).unwrap();
+            // Set colour
+            reqwest::blocking::get(format!("{}Function=SetColor&Value=%23{}{}", &url, &result.get_score_colour(), &select_colour)).unwrap();
+            // Show score
+            reqwest::blocking::get(format!("{}Function=SetTextVisibleOn{}", &url, &selection)).unwrap();
+            self.hole += 1;
+        
+
         }
         println!("{}",self.hole);
     }
@@ -232,11 +231,7 @@ impl MyApp {
     }
 
     fn player_focus(&mut self, ui: &mut egui::Ui) {
-        if let Some(player) = &self.focused_player {
-            ui.heading(player.player.as_ref().unwrap().first_name.to_owned());
-        } else {
-            ui.heading("No player selected");
-        }
+        
         ui.horizontal(|ui| {
             if ui.button("-").clicked() && self.foc_play_ind > 1{
                 self.foc_play_ind -= 1;
@@ -346,9 +341,11 @@ impl eframe::App for MyApp {
                 self.add_players(ui);
             });
             ui.separator();
+            
             if let Some(_) = self.score_card.p4.player {
                 self.player_focus(ui);
             }
+
             let focused_player = match self.foc_play_ind {
                 1 => Some(&mut self.score_card.p1),
                 2 => Some(&mut self.score_card.p2),
@@ -356,9 +353,18 @@ impl eframe::App for MyApp {
                 4 => Some(&mut self.score_card.p4),
                 _ => None
             };
+            if let Some(player) = &focused_player {
+                if let Some(pp) = &player.player {
+                    ui.heading(pp.first_name.to_owned());
+                } else {
+                    ui.heading("No player selected");
+                }
+            } else {
+                ui.heading("No player selected");
+            }
             if let Some(player) = focused_player {
                 if ui.button("Set score").clicked() {
-                    player.set_score(ui);
+                    player.set_score();
                     player.hole += 1;
                 }
             }
