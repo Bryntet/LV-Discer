@@ -6,7 +6,7 @@ use hyper::http::request;
 
 fn main() -> Result<(), eframe::Error> {
     let options = eframe::NativeOptions {
-        initial_window_size: Some(egui::vec2(800.0, 240.0)),
+        initial_window_size: Some(egui::vec2(800.0, 400.0)),
         ..Default::default()
     };
     eframe::run_native(
@@ -119,7 +119,7 @@ impl Default for Player {
 #[derive(Debug)]
 #[derive(PartialEq)]
 enum MyEnum { First, Second, Third}
-struct MyApp<'a> {
+struct MyApp {
     allowed_to_close: bool,
     show_confirmation_dialog: bool,
     id: String,
@@ -132,14 +132,14 @@ struct MyApp<'a> {
     score_card: ScoreCard,
     selected_div_ind: usize,
     selected_div: Option<get_data::queries::PoolLeaderboardDivision>,
-    focused_player: Option<&'a mut Player>,
+    focused_player: Option<Player>,
     foc_play_ind: usize,
     consts: Constants,
     input_ids: Vec<String>,
 
 }
-impl Default for MyApp<'static> {
-    fn default() -> MyApp<'static> {
+impl Default for MyApp {
+    fn default() -> MyApp {
         MyApp {
             allowed_to_close: false,
             show_confirmation_dialog: false,
@@ -163,7 +163,7 @@ impl Default for MyApp<'static> {
 }
 
 
-impl MyApp<'static> {
+impl MyApp {
     async fn get_all_divs(&mut self) {
 
         self.all_divs = vec![];
@@ -231,7 +231,7 @@ impl MyApp<'static> {
         }   
     }
 
-    fn player_focus(&mut self, ui: &mut egui::Ui) -> Option<&mut Player> {
+    fn player_focus(&mut self, ui: &mut egui::Ui) {
         if let Some(player) = &self.focused_player {
             ui.heading(player.player.as_ref().unwrap().first_name.to_owned());
         } else {
@@ -245,17 +245,10 @@ impl MyApp<'static> {
             if ui.button("+").clicked() && self.foc_play_ind < 4 {
                 self.foc_play_ind += 1;
             }
-            let focused_player = match self.foc_play_ind {
-                1 => Some(&mut self.score_card.p1),
-                2 => Some(&mut self.score_card.p2),
-                3 => Some(&mut self.score_card.p3),
-                4 => Some(&mut self.score_card.p4),
-                _ => None
-            };
-            return focused_player;
+            
             
         });
-        None
+        
     }
 }
 #[derive(Default)]
@@ -268,7 +261,7 @@ struct ScoreCard {
 
 
 
-impl eframe::App for MyApp<'_> {
+impl eframe::App for MyApp {
     
     // fn on_close_event(&mut self) -> bool {
     //     self.show_confirmation_dialog = true;
@@ -354,11 +347,20 @@ impl eframe::App for MyApp<'_> {
             });
             ui.separator();
             if let Some(_) = self.score_card.p4.player {
-                self.focused_player = self.player_focus(ui);
+                self.player_focus(ui);
             }
-            if let Some(player) = &mut self.focused_player {
-                player.set_score(ui);
-                player.hole += 1;
+            let focused_player = match self.foc_play_ind {
+                1 => Some(&mut self.score_card.p1),
+                2 => Some(&mut self.score_card.p2),
+                3 => Some(&mut self.score_card.p3),
+                4 => Some(&mut self.score_card.p4),
+                _ => None
+            };
+            if let Some(player) = focused_player {
+                if ui.button("Set score").clicked() {
+                    player.set_score(ui);
+                    player.hole += 1;
+                }
             }
             ui.separator();
            
