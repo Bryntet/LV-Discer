@@ -57,9 +57,9 @@ impl Player {
                     div.players.len(),
                     |i| player_list[i].to_owned()
                 ).changed() {
-                    self.set_name();
                     if let Some(player) = div.players.get(self.selected) {
                         self.player = Some(player.clone());
+                        self.set_name();
                     }
                 }
             });
@@ -115,7 +115,7 @@ impl Player {
         }
     }
     fn set_name(&mut self) {
-        if let Some(player) = self.player.clone() {
+        if let Some(player) = &self.player {
             let url = format!("http://{}:8088/api/?",self.consts.ip);
             let selection = format!("&Input={}&SelectedName={}.Text", &self.input_id, format!("namep{}",self.num));
             let name = format!("{} {}", &player.first_name, &player.last_name);
