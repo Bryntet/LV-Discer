@@ -27,7 +27,8 @@ impl Default for Constants {
     fn default() -> Self {
         Self {
             ip: "127.0.0.1".to_string(),
-            pool_id: "a592cf05-095c-439f-b69c-66511b6ce9c6".to_string()
+            pool_id: "a592cf05-095c-439f-b69c-66511b6ce9c6".to_string(),
+            default_bg_col: "#3F334D".to_string()
         }
     }
 }
