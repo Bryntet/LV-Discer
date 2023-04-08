@@ -80,11 +80,11 @@ impl Player {
                     let url = format!("http://{}:8088/api/?",self.consts.ip);
                     let result = &player.results[self.hole];
                     // Set score
-                    //reqwest::blocking::get(format!("{}Function=SetText&Value={}{}", &url, &result.score, &selection)).unwrap();
+                    reqwest::blocking::get(format!("{}Function=SetText&Value={}{}", &url, &result.score, &selection)).unwrap();
                     // Set colour
-                    //reqwest::blocking::get(format!("{}Function=SetColor&Value=%23{}{}", &url, &result.get_score_colour(), &select_colour)).unwrap();
+                    reqwest::blocking::get(format!("{}Function=SetColor&Value=%23{}{}", &url, &result.get_score_colour(), &select_colour)).unwrap();
                     // Show score
-                    //reqwest::blocking::get(format!("{}Function=SetTextVisibleOn{}", &url, &selection)).unwrap();
+                    reqwest::blocking::get(format!("{}Function=SetTextVisibleOn{}", &url, &selection)).unwrap();
                     self.hole += 1;
                 }
             });
