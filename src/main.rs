@@ -17,6 +17,20 @@ fn main() -> Result<(), eframe::Error> {
 }
 
 #[derive(Clone)]
+struct Constants {
+    ip: String,
+    pool_id: String,
+    
+}
+impl Default for Constants {
+    fn default() -> Self {
+        Self {
+            ip: "127.0.0.1".to_string(),
+            pool_id: "a592cf05-095c-439f-b69c-66511b6ce9c6".to_string()
+        }
+    }
+}
+#[derive(Clone)]
 struct Player {
     div: get_data::queries::PoolLeaderboardDivision,
     selected: usize,
@@ -24,9 +38,8 @@ struct Player {
     hole: usize,
     input_id: String,
     response: Option<egui::Response>,
-    ip: String,
     num: String,
-
+    consts: Constants,
 }
 
 impl Player {
@@ -64,7 +77,7 @@ impl Player {
                     // wait Xms
                     let name = format!("{}.Text", self.input_id);
                     let selection = format!("&Input={}&SelectedName={}.Text", &self.input_id, format!("s{}p{}",self.hole+1,self.num));
-                    let url = format!("http://{}:8088/api/?",self.ip);
+                    let url = format!("http://{}:8088/api/?",self.consts.ip);
                     let result = &player.results[self.hole];
                     println!("{}Function=SetText&Value={}{}", &url, &result.score, &selection);
                     // Set score
@@ -96,8 +109,8 @@ impl Default for Player {
             hole: 0,
             input_id: "".to_owned(),
             response: None,
-            ip: "127.0.0.1".to_owned(),
             num: "0".to_string(),
+            consts: Constants::default(),
         }
     }
 }
@@ -108,7 +121,6 @@ enum MyEnum { First, Second, Third}
 struct MyApp {
     allowed_to_close: bool,
     show_confirmation_dialog: bool,
-    ip: String,
     id: String,
     name: String,
     text: String,
@@ -117,18 +129,17 @@ struct MyApp {
     selected: usize,
     all_divs: Vec<get_data::queries::PoolLeaderboardDivision>,
     score_card: ScoreCard,
-    pool_id: String,
     selected_div_ind: usize,
     selected_div: Option<get_data::queries::PoolLeaderboardDivision>,
     focused_player: Option<Player>,
     foc_play_ind: usize,
+    consts: Constants,
 }
 impl Default for MyApp {
     fn default() -> MyApp {
         MyApp {
             allowed_to_close: false,
             show_confirmation_dialog: false,
-            ip: String::from("127.0.0.1"),
             id: String::from("506fbd14-52fc-495b-8d17-5b924fba64f3"),
             name: String::from("TextBlock3.Text"),
             text: String::from(""),
@@ -137,11 +148,11 @@ impl Default for MyApp {
             selected: 0,
             score_card: ScoreCard::default(),
             all_divs: vec![], 
-            pool_id: "a592cf05-095c-439f-b69c-66511b6ce9c6".to_string(),
             selected_div_ind: 0,
             selected_div: None,
             focused_player: None,
             foc_play_ind: 0,
+            consts: Constants::default(),
         }
     }
     
@@ -150,8 +161,9 @@ impl Default for MyApp {
 
 impl MyApp {
     async fn get_all_divs(&mut self) {
+
         self.all_divs = vec![];
-        let response = get_data::request_tjing(cynic::Id::from(self.pool_id.clone())).await.unwrap();
+        let response = get_data::request_tjing(cynic::Id::from(self.consts.pool_id.clone())).await.unwrap();
         let mut cont = false;
         if let Some(err) = response.errors {
             println!("Got error, probably invalid pool id\n{:?}", err);
@@ -164,8 +176,10 @@ impl MyApp {
             }
         }
         
+        
+
         if cont {
-            let response = get_data::post_status(cynic::Id::from(self.pool_id.clone())).await.unwrap();
+            let response = get_data::post_status(cynic::Id::from(self.consts.pool_id.clone())).await.unwrap();
             if let Some(err) = response.errors {
                 println!("Got error, probably invalid pool id\n{:?}", err);
             } else if let Some(data) = response.data {
@@ -268,14 +282,18 @@ impl eframe::App for MyApp {
                 });
                 ui.vertical(|ui| {
                     ui.label("IP");
-                    ui.text_edit_singleline(&mut self.ip);
+                    ui.text_edit_singleline(&mut self.consts.ip);
                 });
                 ui.vertical(|ui| {
                     ui.label("Round ID");
-                    ui.text_edit_singleline(&mut self.pool_id);
+                    ui.text_edit_singleline(&mut self.consts.pool_id);
                 });
                 ui.color_edit_button_srgba(&mut self.box_color);
             });
+            self.score_card.p1.consts = self.consts.clone();
+            self.score_card.p2.consts = self.consts.clone();
+            self.score_card.p3.consts = self.consts.clone();
+            self.score_card.p4.consts = self.consts.clone();
             ui.separator();
             ui.horizontal(|ui| {
                 ui.label("Box iteration");
@@ -289,7 +307,7 @@ impl eframe::App for MyApp {
                     id: self.id.clone(),
                     name: self.name.clone(),
                     text: self.text.clone(),
-                    ip: self.ip.clone()
+                    ip: self.consts.ip.clone()
                 };
 
             
