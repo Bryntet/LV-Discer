@@ -21,8 +21,8 @@ impl Text {
         return format!("Input={}&SelectedName={}", &self.id, &self.name);
     }
 
-    pub fn name_format(&mut self, iteration: u8) {
-        self.name = format!("TextBlock{}.Text", iteration);
+    pub fn name_format(&mut self, iteration: u8, pre_name: &str) {
+        self.name = format!("{}{}p4.Text", pre_name, iteration);
     }
 
     pub fn set_text(&mut self, text: &str) {
