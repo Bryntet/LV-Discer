@@ -80,11 +80,11 @@ impl Player {
                     let select_colour = format!("&Input={}&SelectedName={}.Fill.Color", &self.input_id, format!("h{}p{}",self.hole+1,self.num));
                     let url = format!("http://{}:8088/api/?",self.consts.ip);
                     let result = &player.results[self.hole];
-                    println!("{}Function=SetText&Value={}{}", &url, &result.score, &selection);
+                    println!("{}Function=SetColor&Value={}&{}", &url, &result.get_score_colour(), &select_colour);
                     // Set score
                     reqwest::blocking::get(format!("{}Function=SetText&Value={}{}", &url, &result.score, &selection)).unwrap();
                     // Set colour
-                    reqwest::blocking::get(format!("{}Function=SetColor&Value={}&{}", &url, &result.get_score_colour(), &select_colour)).unwrap();
+                    reqwest::blocking::get(format!("{}Function=SetColor&Value={}{}", &url, &result.get_score_colour(), &select_colour)).unwrap();
                     // Show score
                     reqwest::blocking::get(format!("{}Function=SetTextVisibleOn{}", &url, &selection)).unwrap();
                 }
