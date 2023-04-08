@@ -62,7 +62,7 @@ impl Player {
                     self.start_score_anim();
                     // wait Xms
                     let name = format!("{}.Text", self.input_id);
-                    let selection = format!("&Input={}&SelectedName={}.Text", &self.input_id, format!("s{}p{}",self.hole,self.num));
+                    let selection = format!("&Input={}&SelectedName={}.Text", &self.input_id, format!("s{}p{}",self.hole+1,self.num));
                     let url = format!("http://{}:8088/api/?",self.ip);
                     let result = &player.results[self.hole];
 
