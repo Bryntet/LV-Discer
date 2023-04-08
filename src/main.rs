@@ -365,7 +365,6 @@ impl eframe::App for MyApp {
             if let Some(player) = focused_player {
                 if ui.button("Set score").clicked() {
                     player.set_score();
-                    player.hole += 1;
                 }
             }
             ui.separator();
