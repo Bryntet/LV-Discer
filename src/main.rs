@@ -134,6 +134,8 @@ struct MyApp {
     focused_player: Option<Player>,
     foc_play_ind: usize,
     consts: Constants,
+    input_ids: Vec<String>,
+
 }
 impl Default for MyApp {
     fn default() -> MyApp {
@@ -153,6 +155,7 @@ impl Default for MyApp {
             focused_player: None,
             foc_play_ind: 0,
             consts: Constants::default(),
+            input_ids: vec!["506fbd14-52fc-495b-8d17-5b924fba64f3".to_string(),"506fbd14-52fc-495b-8d17-5b924fba64f3".to_string(),"506fbd14-52fc-495b-8d17-5b924fba64f3".to_string(),"506fbd14-52fc-495b-8d17-5b924fba64f3".to_string()]
         }
     }
     
@@ -291,9 +294,13 @@ impl eframe::App for MyApp {
                 ui.color_edit_button_srgba(&mut self.box_color);
             });
             self.score_card.p1.consts = self.consts.clone();
+            self.score_card.p1.input_id = self.input_ids[0].clone();
             self.score_card.p2.consts = self.consts.clone();
+            self.score_card.p2.input_id = self.input_ids[1].clone();
             self.score_card.p3.consts = self.consts.clone();
+            self.score_card.p3.input_id = self.input_ids[2].clone();
             self.score_card.p4.consts = self.consts.clone();
+            self.score_card.p4.input_id = self.input_ids[3].clone();
             ui.separator();
             ui.horizontal(|ui| {
                 ui.label("Box iteration");
