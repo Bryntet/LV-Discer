@@ -11,13 +11,6 @@ query PoolLBAfter($poolId: ID = "5be6d127-c72c-471e-ae7d-2a506a23c057") {
   }
 }
 
-query PoolLive($poolId: ID = "5be6d127-c72c-471e-ae7d-2a506a23c057") {
-  pool(poolId: $poolId) {
-    ...PoolLayout
-    ...LiveScore
-  }
-}
-
 fragment PoolLayout on Pool {
   status
   layoutVersion {
@@ -25,30 +18,6 @@ fragment PoolLayout on Pool {
       number
       par
       length
-    }
-  }
-}
-
-fragment LiveScore on Pool {
-  livescore {
-    ... on PoolLivescoreDivision {
-      name
-      players {
-        place
-        firstName
-        lastName
-        pdgaNumber
-        startsAt
-        totalPar
-        totalScore
-        results {
-          score
-          isCircleHit
-          isOutsidePutt
-          isInsidePutt
-          isOutOfBounds
-        }
-      }
     }
   }
 }
@@ -69,11 +38,6 @@ fragment NotLiveScore on Pool {
         place
         playerId
         results {
-          hole {
-            par
-            number
-            length
-          }
           score
           isCircleHit
           isInsidePutt

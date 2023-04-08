@@ -62,7 +62,7 @@ impl Player {
                     self.start_score_anim();
                     // wait Xms
                     let name = format!("{}.Text", self.input_id);
-                    let selection = format!("&Input={}&SelectedName={}.Text", &self.input_id, format!("s{}",self.hole));
+                    let selection = format!("&Input={}&SelectedName={}.Text", &self.input_id, format!("s{}p{}",self.hole,self.num));
                     let url = format!("http://{}:8088/api/?",self.ip);
                     let result = &player.results[self.hole];
 
@@ -127,7 +127,7 @@ impl Default for MyApp {
         MyApp {
             allowed_to_close: false,
             show_confirmation_dialog: false,
-            ip: String::from("192.168.120.109"),
+            ip: String::from("127.0.0.1"),
             id: String::from("506fbd14-52fc-495b-8d17-5b924fba64f3"),
             name: String::from("TextBlock3.Text"),
             text: String::from(""),
