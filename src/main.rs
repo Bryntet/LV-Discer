@@ -355,7 +355,10 @@ impl eframe::App for MyApp {
             };
             if let Some(player) = &focused_player {
                 if let Some(pp) = &player.player {
-                    ui.heading(pp.first_name.to_owned());
+                    ui.horizontal(|ui| {
+                        ui.heading(format!("{},",pp.first_name));
+                        ui.heading(format!("Hole {}",player.hole.to_string()));
+                    });
                 } else {
                     ui.heading("No player selected");
                 }
