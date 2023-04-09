@@ -38,9 +38,33 @@ struct Player {
     player: Option<get_data::queries::PoolLeaderboardPlayer>,
     hole: usize,
     input_id: String,
-    
     num: String,
     consts: Constants,
+    throws: u8,
+    score: f64,
+    needs_reset: bool,
+}
+
+impl Default for Player {
+    fn default() -> Self {
+        Self {
+            div: get_data::queries::PoolLeaderboardDivision {
+                id: cynic::Id::from(""),
+                name: "".to_owned(),
+                players: vec![],
+                type_: "".to_owned(),
+            },
+            selected: 0,
+            player: None,
+            hole: 0,
+            input_id: "".to_owned(),
+            num: "0".to_string(),
+            consts: Constants::default(),
+            throws: 0,
+            score: 0.0,
+            needs_reset: false,
+        }
+    }
 }
 
 impl Player {
@@ -59,6 +83,10 @@ impl Player {
                     if let Some(player) = div.players.get(self.selected) {
                         self.player = Some(player.clone());
                         self.set_name();
+                        if self.needs_reset {
+                            self.reset_scores();
+                        }
+                        self.needs_reset = true;
                     }
                 }
             });
@@ -69,7 +97,7 @@ impl Player {
         // Code for anim goes here
     }
 
-    fn set_score(&mut self) {
+    fn set_hole_score(&mut self) {
         println!("{}",self.hole);
         if let Some(player) = self.player.clone() {
             self.start_score_anim();
@@ -85,18 +113,28 @@ impl Player {
             reqwest::blocking::get(format!("{}Function=SetColor&Value=%23{}{}", &url, &result.get_score_colour(), &select_colour)).unwrap();
             // Show score
             reqwest::blocking::get(format!("{}Function=SetTextVisibleOn{}", &url, &selection)).unwrap();
+            self.score += result.score;
+            self.set_tot_score();
             self.hole += 1;
-        
 
         }
         println!("{}",self.hole);
     }
-    fn reset_score(&mut self) {
+
+    fn set_tot_score(&mut self) {
+        let selection = format!("&Input={}&SelectedName={}.Text", &self.input_id, format!("scoretotp{}",self.num));
+        let url = format!("http://{}:8088/api/?",self.consts.ip);
+        reqwest::blocking::get(format!("{}Function=SetText&Value={}{}", &url, &self.score, &selection)).unwrap();
+    }
+
+    fn reset_scores(&mut self) {
         for i in 1..19 {
             self.hole = i;
             self.del_score();
         }
         self.hole = 0;
+        self.score = 0.0;
+        self.set_tot_score();
     }
     fn del_score(&mut self) {
         let url = format!("http://{}:8088/api/?",self.consts.ip);
@@ -106,10 +144,15 @@ impl Player {
         reqwest::blocking::get(format!("{}Function=SetColor&Value=%23{}{}", &url, self.consts.default_bg_col, &select_colour)).unwrap();
         reqwest::blocking::get(format!("{}Function=SetTextVisibleOff{}", &url, &selection)).unwrap();
     }
-    fn revert_score(&mut self) {
+    fn revert_hole_score(&mut self) {
         if self.hole > 0 {
             self.del_score();
             self.hole -= 1;
+            if let Some(player) = &self.player {
+                let result = &player.results[self.hole];
+                self.score -= result.score;
+                self.set_tot_score();
+            }
         }
     }
     fn set_name(&mut self) {
@@ -120,26 +163,9 @@ impl Player {
             reqwest::blocking::get(format!("{}Function=SetText&Value={}{}", &url, name, &selection)).unwrap();
         }
     }
+    
 }
 
-impl Default for Player {
-    fn default() -> Self {
-        Self {
-            div: get_data::queries::PoolLeaderboardDivision {
-                id: cynic::Id::from(""),
-                name: "".to_owned(),
-                players: vec![],
-                type_: "".to_owned(),
-            },
-            selected: 0,
-            player: None,
-            hole: 0,
-            input_id: "".to_owned(),
-            num: "0".to_string(),
-            consts: Constants::default(),
-        }
-    }
-}
 
 struct MyApp {
     id: String,
@@ -307,32 +333,7 @@ impl eframe::App for MyApp {
             self.score_card.p3.input_id = self.input_ids[2].clone();
             self.score_card.p4.consts = self.consts.clone();
             self.score_card.p4.input_id = self.input_ids[3].clone();
-            ui.separator();
-            ui.horizontal(|ui| {
-                ui.label("Box iteration");
-                ui_counter(ui, &mut self.box_iteration);
-            });
-            ui.horizontal(|ui| {
-                ui.label("Text");
-                ui.text_edit_singleline(&mut self.text);
-            });
-            let mut text = vmix::Text {
-                id: self.id.clone(),
-                name: self.name.clone(),
-                text: self.text.clone(),
-                ip: self.consts.ip.clone()
-            };
-
             
-            text.name_format(self.box_iteration, "s");
-
-            if ui.button("Update text").clicked() { 
-                text.set_text(&self.text);
-            }
-            ui.separator();
-            if ui.button("Toggle visibility").clicked() { 
-                text.toggle_visibility();
-            }
             ui.separator();
            
             ui.horizontal(|ui| {
@@ -384,13 +385,13 @@ impl eframe::App for MyApp {
             if let Some(player) = focused_player {
                 ui.horizontal(|ui| {
                     if ui.button("Set score").clicked() {
-                        player.set_score();
+                        player.set_hole_score();
                     }
                     if ui.button("Revert").clicked() {
-                        player.revert_score();
+                        player.revert_hole_score();
                     }
                     if ui.button("Reset").clicked() {
-                        player.reset_score();
+                        player.reset_scores();
                     }
                 });
                 
