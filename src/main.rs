@@ -1,7 +1,6 @@
 mod vmix;
 mod get_data;
 use eframe::egui;
-use hyper::http::request;
 
 
 fn main() -> Result<(), eframe::Error> {
@@ -39,7 +38,7 @@ struct Player {
     player: Option<get_data::queries::PoolLeaderboardPlayer>,
     hole: usize,
     input_id: String,
-    response: Option<egui::Response>,
+    
     num: String,
     consts: Constants,
 }
@@ -75,7 +74,6 @@ impl Player {
         if let Some(player) = self.player.clone() {
             self.start_score_anim();
             // wait Xms
-            let name = format!("{}.Text", self.input_id);
             let selection = format!("&Input={}&SelectedName={}.Text", &self.input_id, format!("s{}p{}",self.hole+1,self.num));
             let select_colour = format!("&Input={}&SelectedName={}.Fill.Color", &self.input_id, format!("h{}p{}",self.hole+1,self.num));
             let url = format!("http://{}:8088/api/?",self.consts.ip);
@@ -137,30 +135,22 @@ impl Default for Player {
             player: None,
             hole: 0,
             input_id: "".to_owned(),
-            response: None,
             num: "0".to_string(),
             consts: Constants::default(),
         }
     }
 }
 
-#[derive(Debug)]
-#[derive(PartialEq)]
-enum MyEnum { First, Second, Third}
 struct MyApp {
-    allowed_to_close: bool,
-    show_confirmation_dialog: bool,
     id: String,
     name: String,
     text: String,
     box_iteration: u8,
     box_color: egui::Color32,
-    selected: usize,
     all_divs: Vec<get_data::queries::PoolLeaderboardDivision>,
     score_card: ScoreCard,
     selected_div_ind: usize,
     selected_div: Option<get_data::queries::PoolLeaderboardDivision>,
-    focused_player: Option<Player>,
     foc_play_ind: usize,
     consts: Constants,
     input_ids: Vec<String>,
@@ -169,19 +159,15 @@ struct MyApp {
 impl Default for MyApp {
     fn default() -> MyApp {
         MyApp {
-            allowed_to_close: false,
-            show_confirmation_dialog: false,
             id: String::from("506fbd14-52fc-495b-8d17-5b924fba64f3"),
             name: String::from("TextBlock3.Text"),
             text: String::from(""),
             box_iteration: 1,
             box_color: egui::Color32::from_rgb(255, 0, 0),
-            selected: 0,
             score_card: ScoreCard::default(),
             all_divs: vec![], 
             selected_div_ind: 0,
             selected_div: None,
-            focused_player: None,
             foc_play_ind: 0,
             consts: Constants::default(),
             input_ids: vec!["506fbd14-52fc-495b-8d17-5b924fba64f3".to_string(),"506fbd14-52fc-495b-8d17-5b924fba64f3".to_string(),"506fbd14-52fc-495b-8d17-5b924fba64f3".to_string(),"506fbd14-52fc-495b-8d17-5b924fba64f3".to_string()]
@@ -293,7 +279,7 @@ impl eframe::App for MyApp {
     //     self.allowed_to_close
     // }
 
-    fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
+    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         egui::CentralPanel::default().show(ctx, |ui| {
             
             catppuccin_egui::set_theme(&ctx, catppuccin_egui::MACCHIATO);
@@ -412,29 +398,7 @@ impl eframe::App for MyApp {
             ui.separator();
            
         });
-        
-        // if self.show_confirmation_dialog {
-        //      Show confirmation dialog:
-        //     egui::Window::new("Do you want to quit?")
-        //         .collapsible(false)
-        //         .resizable(false)
-        //         .show(ctx, |ui| {
-                    
-
-        //             ui.horizontal(|ui| {
-        //                 if ui.button("Cancel").clicked() {
-        //                     self.show_confirmation_dialog = false;
-        //                 }
-
-        //                 if ui.button("Yes!").clicked() {
-        //                     self.allowed_to_close = true;
-        //                     frame.close();
-        //                 }
-        //             });
-        //         });
-        // }
     }
-    
 }
 
 

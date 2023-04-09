@@ -1,4 +1,4 @@
-use surf::Request;
+
 
 
 
@@ -31,7 +31,7 @@ impl Text {
         reqwest::blocking::get(format!("{}Function=SetText&Value={}&{}", self.base_url(), self.text, self.default_select())).unwrap();
         
     }
-    pub fn toggle_visibility(&mut self) {
+    pub  fn toggle_visibility(&mut self) {
         reqwest::blocking::get(format!("{}Function=SetImageVisible&{}", self.base_url(), self.default_select())).unwrap();
         reqwest::blocking::get(format!("{}Function=SetTextVisible&{}", self.base_url(), self.default_select())).unwrap();
         

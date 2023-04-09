@@ -1,10 +1,5 @@
 use cynic::{http::SurfExt};
 extern crate hyper;
-use std::io;
-
-
- 
-
 
 pub async fn request_tjing(pool_id: cynic::Id) -> std::result::Result<cynic::GraphQlResponse<queries::StatusPool>, surf::Error> {
     use queries::*;
