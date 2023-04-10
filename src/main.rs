@@ -186,7 +186,6 @@ struct MyApp {
     foc_play_ind: usize,
     consts: Constants,
     input_ids: Vec<String>,
-
 }
 
 impl Default for MyApp {
@@ -298,12 +297,6 @@ struct ScoreCard {
 }
 
 impl eframe::App for MyApp {
-    
-    // fn on_close_event(&mut self) -> bool {
-    //     self.show_confirmation_dialog = true;
-    //     self.allowed_to_close
-    // }
-
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         egui::CentralPanel::default().show(ctx, |ui| {
             
