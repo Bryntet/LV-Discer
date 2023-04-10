@@ -28,12 +28,12 @@ impl Text {
     pub fn set_text(&mut self, text: &str) {
         
         self.text = text.to_string();
-        reqwest::blocking::get(format!("{}Function=SetText&Value={}&{}", self.base_url(), self.text, self.default_select())).unwrap();
+        //reqwest::blocking::get(format!("{}Function=SetText&Value={}&{}", self.base_url(), self.text, self.default_select())).unwrap();
         
     }
     pub  fn toggle_visibility(&mut self) {
-        reqwest::blocking::get(format!("{}Function=SetImageVisible&{}", self.base_url(), self.default_select())).unwrap();
-        reqwest::blocking::get(format!("{}Function=SetTextVisible&{}", self.base_url(), self.default_select())).unwrap();
+        //reqwest::blocking::get(format!("{}Function=SetImageVisible&{}", self.base_url(), self.default_select())).unwrap();
+        //reqwest::blocking::get(format!("{}Function=SetTextVisible&{}", self.base_url(), self.default_select())).unwrap();
         
     }
 
