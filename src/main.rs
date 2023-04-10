@@ -74,7 +74,7 @@ impl Default for Player {
 }
 
 impl Player {
-    fn player_selector(&mut self, ui: &mut egui::Ui, div: &get_data::queries::PoolLeaderboardDivision, ui_id: &str) {
+    fn player_selector(&mut self, ui: &mut egui::Ui, div: &get_data::queries::PoolLeaderboardDivision, ui_id: &str, ctx: egui::Context) {
         self.num = ui_id.to_string();
         let player_list = div.players.iter().map(|p| p.first_name.to_owned()).collect::<Vec<String>>();
         ui.push_id(ui_id, |ui| {
@@ -90,7 +90,7 @@ impl Player {
                         self.player = Some(player.clone());
                         self.set_name();
                         if self.needs_reset {
-                            self.reset_scores();
+                            self.reset_scores(ctx.clone());
                         }
                         self.needs_reset = true;
                     }
@@ -124,47 +124,47 @@ impl Player {
             send_request(format!("{}Function=SetColor&Value=%23{}{}", &url, &result.get_score_colour(), &select_colour), None, ctx.clone());
             // Show score
             //reqwest::blocking::get(format!("{}Function=SetTextVisibleOn{}", &url, &selection)).unwrap();
-            send_request(format!("{}Function=SetTextVisibleOn{}", &url, &selection), None, ctx);
+            send_request(format!("{}Function=SetTextVisibleOn{}", &url, &selection), None, ctx.clone());
 
             self.score += result.score;
-            self.set_tot_score();
+            self.set_tot_score(ctx);
             self.hole += 1;
 
         }
         println!("{}",self.hole);
     }
 
-    fn set_tot_score(&mut self) {
+    fn set_tot_score(&mut self, ctx: egui::Context) {
         let selection = format!("&Input={}&SelectedName={}.Text", &self.input_id, format!("scoretotp{}",self.num));
         let url = format!("http://{}:8088/api/?",self.consts.ip);
-        reqwest::blocking::get(format!("{}Function=SetText&Value={}{}", &url, &self.score, &selection)).unwrap();
+        send_request(format!("{}Function=SetText&Value={}{}", &url, &self.score, &selection), None, ctx);
     }
 
-    fn reset_scores(&mut self) {
+    fn reset_scores(&mut self, ctx: egui::Context) {
         for i in 1..19 {
             self.hole = i;
-            self.del_score();
+            self.del_score(ctx.clone());
         }
         self.hole = 0;
         self.score = 0.0;
-        self.set_tot_score();
+        self.set_tot_score(ctx);
     }
-    fn del_score(&mut self) {
+    fn del_score(&mut self, ctx: egui::Context) {
         let url = format!("http://{}:8088/api/?",self.consts.ip);
         let selection = format!("&Input={}&SelectedName={}.Text", &self.input_id, format!("s{}p{}",self.hole,self.num));
         let select_colour = format!("&Input={}&SelectedName={}.Fill.Color", &self.input_id, format!("h{}p{}",self.hole,self.num));
-        reqwest::blocking::get(format!("{}Function=SetText&Value={}{}", &url, "", &selection)).unwrap();
-        reqwest::blocking::get(format!("{}Function=SetColor&Value=%23{}{}", &url, self.consts.default_bg_col, &select_colour)).unwrap();
-        reqwest::blocking::get(format!("{}Function=SetTextVisibleOff{}", &url, &selection)).unwrap();
+        send_request(format!("{}Function=SetText&Value={}{}", &url, "", &selection), None, ctx.clone());
+        send_request(format!("{}Function=SetColor&Value=%23{}{}", &url, self.consts.default_bg_col, &select_colour), None, ctx.clone());
+        send_request(format!("{}Function=SetTextVisibleOff{}", &url, &selection), None, ctx);
     }
-    fn revert_hole_score(&mut self) {
+    fn revert_hole_score(&mut self, ctx: egui::Context) {
         if self.hole > 0 {
-            self.del_score();
+            self.del_score(ctx.clone());
             self.hole -= 1;
             if let Some(player) = &self.player {
                 let result = &player.results[self.hole];
                 self.score -= result.score;
-                self.set_tot_score();
+                self.set_tot_score(ctx);
             }
         }
     }
@@ -270,17 +270,17 @@ impl MyApp {
         ).changed();
     }
 
-    fn add_players(&mut self, ui: &mut egui::Ui) {
+    fn add_players(&mut self, ui: &mut egui::Ui, ctx: egui::Context) {
         if let Some(div) = &self.selected_div {
-            self.score_card.p1.player_selector(ui, &div, "1");
+            self.score_card.p1.player_selector(ui, &div, "1", ctx.clone());
             if let Some(_) = self.score_card.p1.player.clone() {
-                self.score_card.p2.player_selector(ui, &div, "2");    
+                self.score_card.p2.player_selector(ui, &div, "2", ctx.clone());    
             }
             if let Some(_) = self.score_card.p2.player.clone() {
-                self.score_card.p3.player_selector(ui, &div, "3");
+                self.score_card.p3.player_selector(ui, &div, "3", ctx.clone());
             }
             if let Some(_) = self.score_card.p3.player.clone() {
-                self.score_card.p4.player_selector(ui, &div, "4");
+                self.score_card.p4.player_selector(ui, &div, "4", ctx);
             }
         }   
     }
@@ -368,7 +368,7 @@ impl eframe::App for MyApp {
 
             
             ui.horizontal(|ui| {
-                self.add_players(ui);
+                self.add_players(ui, ctx.clone());
             });
             ui.separator();
             
@@ -401,10 +401,10 @@ impl eframe::App for MyApp {
                         player.set_hole_score(ctx.clone());
                     }
                     if ui.button("Revert").clicked() {
-                        player.revert_hole_score();
+                        player.revert_hole_score(ctx.clone());
                     }
                     if ui.button("Reset").clicked() {
-                        player.reset_scores();
+                        player.reset_scores(ctx.clone());
                     }
                 });
                 
