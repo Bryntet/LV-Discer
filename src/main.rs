@@ -48,7 +48,6 @@ struct Player {
     consts: Constants,
     throws: u8,
     score: f64,
-    needs_reset: bool,
 }
 
 impl Default for Player {
@@ -68,7 +67,6 @@ impl Default for Player {
             consts: Constants::default(),
             throws: 0,
             score: 0.0,
-            needs_reset: false,
         }
     }
 }
@@ -89,10 +87,7 @@ impl Player {
                     if let Some(player) = div.players.get(self.selected) {
                         self.player = Some(player.clone());
                         self.set_name(ctx.clone());
-                        if self.needs_reset {
-                            self.reset_scores(ctx);
-                        }
-                        self.needs_reset = true;
+                        self.reset_scores(ctx);
                     }
                 }
             });
@@ -145,6 +140,7 @@ impl Player {
         self.score = 0.0;
         self.set_tot_score(ctx);
     }
+
     fn del_score(&mut self, ctx: egui::Context) {
         let url = format!("http://{}:8088/api/?",self.consts.ip);
         let selection = format!("&Input={}&SelectedName={}.Text", &self.input_id, format!("s{}p{}",self.hole,self.num));
@@ -153,6 +149,7 @@ impl Player {
         send_request(format!("{}Function=SetColor&Value=%23{}{}", &url, self.consts.default_bg_col, &select_colour), None, ctx.clone());
         send_request(format!("{}Function=SetTextVisibleOff{}", &url, &selection), None, ctx);
     }
+
     fn revert_hole_score(&mut self, ctx: egui::Context) {
         if self.hole > 0 {
             self.del_score(ctx.clone());
@@ -164,6 +161,7 @@ impl Player {
             }
         }
     }
+
     fn set_name(&mut self, ctx: egui::Context) {
         if let Some(player) = &self.player {
             let url = format!("http://{}:8088/api/?",self.consts.ip);
@@ -174,7 +172,6 @@ impl Player {
     }
     
 }
-
 
 struct MyApp {
     id: String,
@@ -191,6 +188,7 @@ struct MyApp {
     input_ids: Vec<String>,
 
 }
+
 impl Default for MyApp {
     fn default() -> MyApp {
         MyApp {
@@ -213,9 +211,7 @@ impl Default for MyApp {
 
 
 impl MyApp {
-
     async fn get_all_divs(&mut self) {
-
         self.all_divs = vec![];
         let response = get_data::request_tjing(cynic::Id::from(self.consts.pool_id.clone())).await.unwrap();
         let mut cont = false;
@@ -230,8 +226,6 @@ impl MyApp {
             }
         }
         
-        
-
         if cont {
             let response = get_data::post_status(cynic::Id::from(self.consts.pool_id.clone())).await.unwrap();
             if let Some(err) = response.errors {
@@ -282,7 +276,6 @@ impl MyApp {
     }
 
     fn player_focus(&mut self, ui: &mut egui::Ui) {
-        
         ui.horizontal(|ui| {
             if ui.button("-").clicked() && self.foc_play_ind > 1{
                 self.foc_play_ind -= 1;
@@ -291,8 +284,6 @@ impl MyApp {
             if ui.button("+").clicked() && self.foc_play_ind < 4 {
                 self.foc_play_ind += 1;
             }
-            
-            
         });
         
     }
@@ -305,8 +296,6 @@ struct ScoreCard {
     p3: Player,
     p4: Player
 }
-
-
 
 impl eframe::App for MyApp {
     
@@ -361,8 +350,6 @@ impl eframe::App for MyApp {
                 }
             });
             
-
-            
             ui.horizontal(|ui| {
                 self.add_players(ui, ctx.clone());
             });
@@ -406,23 +393,17 @@ impl eframe::App for MyApp {
                 
             }
             ui.separator();
-           
         });
     }
 }
 
 
 fn send_request(url: String, tx: Option<Sender<reqwest::Response>>, ctx: egui::Context) {
-
     tokio::spawn(async move {
         let resp = reqwest::get(url).await.expect("unable to send reqwest");
-
         if let Some(tx) = tx {
             let _ = tx.send(resp);
         }
-
         ctx.request_repaint();
     });
-
-
 }
