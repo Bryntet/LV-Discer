@@ -6,20 +6,26 @@ use std::{sync::mpsc::Sender, time::Duration};
 
 
 fn main() -> Result<(), eframe::Error> {
-
     let runtime = tokio::runtime::Builder::new_multi_thread().enable_all().build().expect("unable to create runtime");
     let _e = runtime.enter();
-
     let options = eframe::NativeOptions {
         initial_window_size: Some(egui::vec2(800.0, 400.0)),
         ..Default::default()
     };
+
     eframe::run_native(
         "Flip UP -- Official VMix tool",
         options,
         Box::new(|_cc| Box::new(MyApp::default())),
     )
+
 }
+
+#[wasm_bindgen::prelude::wasm_bindgen]
+pub fn test() {
+    println!("test");
+}
+
 
 #[derive(Clone)]
 struct Constants {
@@ -283,11 +289,10 @@ impl MyApp {
             if ui.button("+").clicked() && self.foc_play_ind < 4 {
                 self.foc_play_ind += 1;
             }
-        });
-        
-    }
-    
+        });   
+    }    
 }
+
 #[derive(Default)]
 struct ScoreCard {
     p1: Player,
