@@ -88,9 +88,9 @@ impl Player {
                 ).changed() {
                     if let Some(player) = div.players.get(self.selected) {
                         self.player = Some(player.clone());
-                        self.set_name();
+                        self.set_name(ctx.clone());
                         if self.needs_reset {
-                            self.reset_scores(ctx.clone());
+                            self.reset_scores(ctx);
                         }
                         self.needs_reset = true;
                     }
@@ -114,16 +114,12 @@ impl Player {
             let result = &player.results[self.hole];
             println!("{}", format!("{}Function=SetColor&Value=%23{}{}", &url, &result.get_score_colour(), &select_colour));
 
-            //let (tx, rx) = std::sync::mpsc::channel();
-
+            
             // Set score
-            //reqwest::blocking::get(format!("{}Function=SetText&Value={}{}", &url, &result.score, &selection)).unwrap();
             send_request(format!("{}Function=SetText&Value={}{}", &url, &result.score, &selection), None, ctx.clone());
             // Set colour
-            //reqwest::blocking::get(format!("{}Function=SetColor&Value=%23{}{}", &url, &result.get_score_colour(), &select_colour)).unwrap();
             send_request(format!("{}Function=SetColor&Value=%23{}{}", &url, &result.get_score_colour(), &select_colour), None, ctx.clone());
             // Show score
-            //reqwest::blocking::get(format!("{}Function=SetTextVisibleOn{}", &url, &selection)).unwrap();
             send_request(format!("{}Function=SetTextVisibleOn{}", &url, &selection), None, ctx.clone());
 
             self.score += result.score;
@@ -168,12 +164,12 @@ impl Player {
             }
         }
     }
-    fn set_name(&mut self) {
+    fn set_name(&mut self, ctx: egui::Context) {
         if let Some(player) = &self.player {
             let url = format!("http://{}:8088/api/?",self.consts.ip);
             let selection = format!("&Input={}&SelectedName={}.Text", &self.input_id, format!("namep{}",self.num));
             let name = format!("{} {}", &player.first_name, &player.last_name);
-            reqwest::blocking::get(format!("{}Function=SetText&Value={}{}", &url, name, &selection)).unwrap();
+            send_request(format!("{}Function=SetText&Value={}{}", &url, name, &selection), None, ctx);
         }
     }
     
