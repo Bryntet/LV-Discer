@@ -2,12 +2,12 @@ mod vmix;
 mod get_data;
 
 use eframe::egui;
-use std::sync::mpsc::Sender;
+use std::{sync::mpsc::Sender, time::Duration};
 
 
 fn main() -> Result<(), eframe::Error> {
 
-    let runtime = tokio::runtime::Builder::new_current_thread().enable_all().build().expect("unable to create runtime");
+    let runtime = tokio::runtime::Builder::new_multi_thread().enable_all().build().expect("unable to create runtime");
     let _e = runtime.enter();
 
     let options = eframe::NativeOptions {
@@ -115,8 +115,6 @@ impl Player {
             println!("{}", format!("{}Function=SetColor&Value=%23{}{}", &url, &result.get_score_colour(), &select_colour));
 
             //let (tx, rx) = std::sync::mpsc::channel();
-
-
 
             // Set score
             //reqwest::blocking::get(format!("{}Function=SetText&Value={}{}", &url, &result.score, &selection)).unwrap();
@@ -421,10 +419,10 @@ impl eframe::App for MyApp {
 fn send_request(url: String, tx: Option<Sender<reqwest::Response>>, ctx: egui::Context) {
 
     tokio::spawn(async move {
-        let body = reqwest::get(url).await.expect("unable to send reqwest");
+        let resp = reqwest::get(url).await.expect("unable to send reqwest");
 
         if let Some(tx) = tx {
-            tx.send(body);
+            let _ = tx.send(resp);
         }
 
         ctx.request_repaint();
