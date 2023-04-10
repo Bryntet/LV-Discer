@@ -1,9 +1,16 @@
 mod vmix;
 mod get_data;
+
 use eframe::egui;
+use std::sync::mpsc::Sender;
 
 
 fn main() -> Result<(), eframe::Error> {
+
+    let runtime = tokio::runtime::Builder::new_current_thread().enable_all().build().expect("unable to create runtime");
+
+    let _ = runtime.enter();
+
     let options = eframe::NativeOptions {
         initial_window_size: Some(egui::vec2(800.0, 400.0)),
         ..Default::default()
@@ -25,7 +32,7 @@ struct Constants {
 impl Default for Constants {
     fn default() -> Self {
         Self {
-            ip: "127.0.0.1".to_string(),
+            ip: "37.123.135.170".to_string(),
             pool_id: "a592cf05-095c-439f-b69c-66511b6ce9c6".to_string(),
             default_bg_col: "3F334D".to_string()
         }
@@ -97,7 +104,7 @@ impl Player {
         // Code for anim goes here
     }
 
-    fn set_hole_score(&mut self) {
+    fn set_hole_score(&mut self, ctx: egui::Context) {
         println!("{}",self.hole);
         if let Some(player) = self.player.clone() {
             self.start_score_anim();
@@ -107,12 +114,21 @@ impl Player {
             let url = format!("http://{}:8088/api/?",self.consts.ip);
             let result = &player.results[self.hole];
             println!("{}", format!("{}Function=SetColor&Value=%23{}{}", &url, &result.get_score_colour(), &select_colour));
+
+            //let (tx, rx) = std::sync::mpsc::channel();
+
+
+
             // Set score
-            reqwest::blocking::get(format!("{}Function=SetText&Value={}{}", &url, &result.score, &selection)).unwrap();
+            //reqwest::blocking::get(format!("{}Function=SetText&Value={}{}", &url, &result.score, &selection)).unwrap();
+            send_request(format!("{}Function=SetText&Value={}{}", &url, &result.score, &selection), None, ctx.clone());
             // Set colour
-            reqwest::blocking::get(format!("{}Function=SetColor&Value=%23{}{}", &url, &result.get_score_colour(), &select_colour)).unwrap();
+            //reqwest::blocking::get(format!("{}Function=SetColor&Value=%23{}{}", &url, &result.get_score_colour(), &select_colour)).unwrap();
+            send_request(format!("{}Function=SetColor&Value=%23{}{}", &url, &result.get_score_colour(), &select_colour), None, ctx.clone());
             // Show score
-            reqwest::blocking::get(format!("{}Function=SetTextVisibleOn{}", &url, &selection)).unwrap();
+            //reqwest::blocking::get(format!("{}Function=SetTextVisibleOn{}", &url, &selection)).unwrap();
+            send_request(format!("{}Function=SetTextVisibleOn{}", &url, &selection), None, ctx);
+
             self.score += result.score;
             self.set_tot_score();
             self.hole += 1;
@@ -204,6 +220,7 @@ impl Default for MyApp {
 
 
 impl MyApp {
+
     async fn get_all_divs(&mut self) {
 
         self.all_divs = vec![];
@@ -385,7 +402,7 @@ impl eframe::App for MyApp {
             if let Some(player) = focused_player {
                 ui.horizontal(|ui| {
                     if ui.button("Set score").clicked() {
-                        player.set_hole_score();
+                        player.set_hole_score(ctx.clone());
                     }
                     if ui.button("Revert").clicked() {
                         player.revert_hole_score();
@@ -403,16 +420,17 @@ impl eframe::App for MyApp {
 }
 
 
+fn send_request(url: String, tx: Option<Sender<reqwest::Response>>, ctx: egui::Context) {
 
-fn ui_counter(ui: &mut egui::Ui, counter: &mut u8) {
-    // Put the buttons and label on the same row:
-    ui.horizontal(|ui| {
-        if ui.button("-").clicked() && *counter > 1{
-            *counter -= 1;
+    tokio::spawn(async move {
+        let body = reqwest::get(url).await.expect("unable to send reqwest");
+
+        if let Some(tx) = tx {
+            tx.send(body);
         }
-        ui.label(counter.to_string());
-        if ui.button("+").clicked() {
-            *counter += 1;
-        }
+
+        ctx.request_repaint();
     });
+
+
 }
