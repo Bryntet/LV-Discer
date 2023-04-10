@@ -8,8 +8,7 @@ use std::sync::mpsc::Sender;
 fn main() -> Result<(), eframe::Error> {
 
     let runtime = tokio::runtime::Builder::new_current_thread().enable_all().build().expect("unable to create runtime");
-
-    let _ = runtime.enter();
+    let _e = runtime.enter();
 
     let options = eframe::NativeOptions {
         initial_window_size: Some(egui::vec2(800.0, 400.0)),
@@ -355,8 +354,7 @@ impl eframe::App for MyApp {
            
             ui.horizontal(|ui| {
                 if ui.button("Get event").clicked() { 
-                    use async_io::block_on;
-                    block_on(self.get_all_divs());
+                    async_std::task::block_on(self.get_all_divs());
                 }
                 if self.all_divs.len() > 0 {
                     if self.choose_div(ui) {

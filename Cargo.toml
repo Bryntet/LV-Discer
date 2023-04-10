@@ -23,7 +23,7 @@ egui = "0.21.0"
 eframe = "0.21.3"
 catppuccin-egui = "2.0.1"
 reqwest = { version = "0.11.16", features = ["blocking"]}
-async-io = "1.13.0"
+async-std = "1.12.0"
 
 [dependencies.tokio]
 version = "*"
