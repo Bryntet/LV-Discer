@@ -1,42 +1,48 @@
-use cynic::{http::SurfExt};
-extern crate hyper;
+use cynic::GraphQlResponse;
+use serde_json::json;
 
-pub async fn request_tjing(pool_id: cynic::Id) -> std::result::Result<cynic::GraphQlResponse<queries::StatusPool>, surf::Error> {
-    use queries::*;
+pub async fn request_tjing(pool_id: cynic::Id) -> cynic::GraphQlResponse<queries::StatusPool> {
     use cynic::QueryBuilder;
-    
-    let operation = StatusPool::build(
-        StatusPoolVariables {
-            pool_id: pool_id.clone(),
-        }
-    );
-    return surf::post("https://api.tjing.se/graphql")
-    .run_graphql(operation)
-    .await;
+    use queries::*;
+
+    let operation = StatusPool::build(StatusPoolVariables {
+        pool_id: pool_id.clone(),
+    });
+
+    let response = reqwest::Client::new()
+        .post("https://api.tjing.se/graphql")
+        .json(&operation)
+        .send()
+        .await
+        .unwrap();
+    response
+        .json::<GraphQlResponse<queries::StatusPool>>()
+        .await
+        .unwrap()
 }
 
-pub async fn post_status(pool_id: cynic::Id) -> Result<cynic::GraphQlResponse<queries::PoolLBAfter, serde::de::IgnoredAny>, surf::Error> {
-    use queries::*;
+pub async fn post_status(pool_id: cynic::Id) -> cynic::GraphQlResponse<queries::PoolLBAfter> {
     use cynic::QueryBuilder;
-   
-    let operation = PoolLBAfter::build(
-        PoolLBAfterVariables {
-            pool_id: pool_id,
-        }
-    );
-    return surf::post("https://api.tjing.se/graphql")
-    .run_graphql(operation)
-    .await;
+    use queries::*;
+    let operation = PoolLBAfter::build(PoolLBAfterVariables {
+        pool_id: pool_id.clone(),
+    });
+
+    let response = reqwest::Client::new()
+        .post("https://api.tjing.se/graphql")
+        .json(&operation)
+        .send()
+        .await
+        .unwrap();
+    response
+        .json::<GraphQlResponse<queries::PoolLBAfter>>()
+        .await
+        .unwrap()
 }
 
-
-
-#[cynic::schema_for_derives(
-    file = r#"src/schema.graphql"#,
-    module = "schema",
-)]
+#[cynic::schema_for_derives(file = r#"src/schema.graphql"#, module = "schema")]
 pub mod queries {
-    
+
     use super::schema;
 
     #[derive(cynic::QueryVariables, Debug)]
@@ -149,7 +155,7 @@ pub mod queries {
     pub enum PoolLeaderboardDivisionCombined {
         PoolLeaderboardDivision(PoolLeaderboardDivision),
         #[cynic(fallback)]
-        Unknown
+        Unknown,
     }
 
     #[derive(cynic::Enum, Clone, Copy, Debug)]
@@ -159,7 +165,6 @@ pub mod queries {
         Open,
         Completed,
     }
-
 }
 #[allow(non_snake_case, non_camel_case_types)]
 mod schema {
