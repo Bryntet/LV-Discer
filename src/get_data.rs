@@ -15,10 +15,7 @@ pub async fn request_tjing(pool_id: cynic::Id) -> cynic::GraphQlResponse<queries
         .send()
         .await
         .unwrap();
-    response
-        .json::<GraphQlResponse<queries::StatusPool>>()
-        .await
-        .unwrap()
+    response.json::<GraphQlResponse<queries::StatusPool>>().await.unwrap()
 }
 
 pub async fn post_status(pool_id: cynic::Id) -> cynic::GraphQlResponse<queries::PoolLBAfter> {

@@ -1625,7 +1625,9 @@ dependencies = [
  "serde_json",
  "syn 2.0.13",
  "wasm-bindgen",
+ "wasm-bindgen-futures",
  "wasm-bindgen-test",
+ "web-sys",
 ]
 
 [[package]]

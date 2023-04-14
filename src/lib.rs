@@ -2,7 +2,7 @@ mod get_data;
 mod utils;
 mod vmix;
 use wasm_bindgen::prelude::*;
-
+use js_sys::JsString;
 // When the `wee_alloc` feature is enabled, use `wee_alloc` as the global
 // allocator.
 #[cfg(feature = "wee_alloc")]
@@ -222,7 +222,7 @@ impl Player {
     }
 }
 #[wasm_bindgen]
-struct MyApp {
+pub struct MyApp {
     id: String,
     name: String,
     text: String,
@@ -261,6 +261,11 @@ impl Default for MyApp {
 }
 #[wasm_bindgen]
 impl MyApp {
+    
+    #[wasm_bindgen(constructor)]
+    pub fn new() -> MyApp {
+        MyApp::default()
+    }
     #[wasm_bindgen(setter = div)]
     pub fn set_div(&mut self, div_name: String) {
         for (i, div) in self.all_divs.iter().enumerate() {
@@ -270,6 +275,49 @@ impl MyApp {
                 break;
             }
         }
+    }
+    #[wasm_bindgen]
+    pub async fn get_divs(&mut self) {
+        if let Some(e) =  get_data::request_tjing(cynic::Id::from(&self.consts.pool_id)).await.errors {
+            log(&format!("Error: {:#?}", e));
+            return;
+        }
+        if let Some(data) = get_data::post_status(cynic::Id::from(&self.consts.pool_id)).await.data {
+            if let Some(pool) = data.pool {
+                if let Some(lb) = pool.leaderboard {
+                    for div in lb {
+                        if let Some(div) = div {
+                            match div {
+                                get_data::queries::PoolLeaderboardDivisionCombined::PoolLeaderboardDivision(d) => {
+                                    self.all_divs.push(d);
+                                }
+                                _ => {}
+                            }
+                        }
+                        
+                    }
+                }
+            }
+            
+        }
+        
+    }
+    
+    #[wasm_bindgen]
+    pub fn get_div_names(&self) -> Vec<JsString> {
+        let mut return_vec = vec![];
+        for div in &self.all_divs {
+            return_vec.push(JsString::from(div.name.clone()));
+        }
+        return_vec
+    }
+    #[wasm_bindgen(setter)]
+    pub fn set_ip(&mut self, ip: JsString) {
+        self.consts.ip = String::from(ip);
+    }
+    #[wasm_bindgen(setter)]
+    pub fn set_pool_id(&mut self, pool_id: JsString) {
+        self.consts.pool_id = String::from(pool_id);
     }
 }
 
