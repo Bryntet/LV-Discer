@@ -1,4 +1,6 @@
-/target
-token.json
-tokencache.json
-src/conf.json
+node_modules*
+target/*
+target
+pkg
+pkg/*
+.git.bak
