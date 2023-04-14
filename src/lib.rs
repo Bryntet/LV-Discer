@@ -3,11 +3,6 @@ mod utils;
 mod vmix;
 use wasm_bindgen::prelude::*;
 use js_sys::JsString;
-// When the `wee_alloc` feature is enabled, use `wee_alloc` as the global
-// allocator.
-#[cfg(feature = "wee_alloc")]
-#[global_allocator]
-static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 
 #[wasm_bindgen]
 extern "C" {
@@ -26,7 +21,7 @@ pub fn test() -> ScoreCard {
 }
 
 #[wasm_bindgen]
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 struct Constants {
     ip: String,
     pool_id: String,
@@ -259,6 +254,12 @@ impl Default for MyApp {
         }
     }
 }
+
+
+
+
+
+
 #[wasm_bindgen]
 impl MyApp {
     
@@ -277,12 +278,15 @@ impl MyApp {
         }
     }
     #[wasm_bindgen]
-    pub async fn get_divs(&mut self) {
-        if let Some(e) =  get_data::request_tjing(cynic::Id::from(&self.consts.pool_id)).await.errors {
-            log(&format!("Error: {:#?}", e));
-            return;
+    pub async fn get_divs(&mut self) -> Result<JsValue, JsValue> {
+        log(&format!("{:#?}", &self.consts));
+        let mut res = String::new(); 
+        if let Err(e) = get_data::request_tjing(cynic::Id::from(&self.consts.pool_id)).await {
+            log(&format!("Error:{:#?}", e));
+            res = e.to_string()
         }
         if let Some(data) = get_data::post_status(cynic::Id::from(&self.consts.pool_id)).await.data {
+            log(&format!("Data:{:#?}", data));
             if let Some(pool) = data.pool {
                 if let Some(lb) = pool.leaderboard {
                     for div in lb {
@@ -298,9 +302,12 @@ impl MyApp {
                     }
                 }
             }
-            
+            res = format!("{:#?}", self.all_divs);
         }
-        
+        log(&res);
+        let promise = js_sys::Promise::resolve(&res.into());
+        let result = wasm_bindgen_futures::JsFuture::from(promise).await?;
+        Ok(result)
     }
     
     #[wasm_bindgen]
@@ -311,12 +318,15 @@ impl MyApp {
         }
         return_vec
     }
+    
     #[wasm_bindgen(setter)]
     pub fn set_ip(&mut self, ip: JsString) {
         self.consts.ip = String::from(ip);
     }
     #[wasm_bindgen(setter)]
     pub fn set_pool_id(&mut self, pool_id: JsString) {
+        log("setting pool id");
+        log(&format!("{:#?}",pool_id));
         self.consts.pool_id = String::from(pool_id);
     }
 }

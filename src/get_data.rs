@@ -1,10 +1,19 @@
 use cynic::GraphQlResponse;
 use serde_json::json;
+use wasm_bindgen::prelude::*;
+use wasm_bindgen::JsCast;
 
-pub async fn request_tjing(pool_id: cynic::Id) -> cynic::GraphQlResponse<queries::StatusPool> {
+#[wasm_bindgen]
+extern "C" {
+    #[wasm_bindgen(js_namespace = console)]
+    fn log(s: &str);
+}
+
+
+pub async fn request_tjing(pool_id: cynic::Id) -> Result<cynic::GraphQlResponse<queries::StatusPool>, reqwest::Error> {
     use cynic::QueryBuilder;
     use queries::*;
-
+    log(&format!("request_tjing({:?})", &pool_id));
     let operation = StatusPool::build(StatusPoolVariables {
         pool_id: pool_id.clone(),
     });
@@ -13,9 +22,19 @@ pub async fn request_tjing(pool_id: cynic::Id) -> cynic::GraphQlResponse<queries
         .post("https://api.tjing.se/graphql")
         .json(&operation)
         .send()
-        .await
-        .unwrap();
-    response.json::<GraphQlResponse<queries::StatusPool>>().await.unwrap()
+        .await;
+    if let Ok(r) = response {
+        let response = r.json::<GraphQlResponse<queries::StatusPool>>().await;
+        log(&format!("{:?}", &response));
+        if let Ok(rr) = response {
+            return Ok(rr);
+        } else {
+            return Err(response.err().unwrap());
+        }
+    } else {
+        return Err(response.err().unwrap());
+    }
+   
 }
 
 pub async fn post_status(pool_id: cynic::Id) -> cynic::GraphQlResponse<queries::PoolLBAfter> {
