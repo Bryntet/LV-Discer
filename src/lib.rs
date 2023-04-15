@@ -1,8 +1,8 @@
 mod get_data;
 mod utils;
 mod vmix;
-use wasm_bindgen::prelude::*;
 use js_sys::JsString;
+use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
 extern "C" {
@@ -20,12 +20,19 @@ pub fn test() -> ScoreCard {
     ScoreCard::default()
 }
 
+
+#[wasm_bindgen]
+pub fn init_panic_hook() {
+    console_error_panic_hook::set_once();
+}
+
 #[wasm_bindgen]
 #[derive(Clone, Debug)]
-struct Constants {
+pub struct Constants {
     ip: String,
     pool_id: String,
     default_bg_col: String,
+    vmix_id: String,
 }
 impl Default for Constants {
     fn default() -> Self {
@@ -33,10 +40,10 @@ impl Default for Constants {
             ip: "37.123.135.170".to_string(),
             pool_id: "a592cf05-095c-439f-b69c-66511b6ce9c6".to_string(),
             default_bg_col: "3F334D".to_string(),
+            vmix_id: "506fbd14-52fc-495b-8d17-5b924fba64f3".to_string(),
         }
     }
 }
-
 
 #[derive(Clone)]
 pub struct Player {
@@ -44,7 +51,6 @@ pub struct Player {
     selected: usize,
     player: Option<get_data::queries::PoolLeaderboardPlayer>,
     hole: usize,
-    input_id: String,
     num: String,
     consts: Constants,
     throws: u8,
@@ -63,7 +69,6 @@ impl Default for Player {
             selected: 0,
             player: None,
             hole: 0,
-            input_id: "".to_owned(),
             num: "0".to_string(),
             consts: Constants::default(),
             throws: 0,
@@ -83,20 +88,20 @@ impl Player {
         // Code for anim goes here
     }
 
-    pub fn set_hole_score(&mut self) -> Vec<String> {
+    pub fn set_hole_score(&mut self) -> Vec<JsString> {
         println!("{}", self.hole);
-        let mut return_vec = vec![];
+        let mut return_vec: Vec<JsString> = vec![];
         if let Some(player) = self.player.clone() {
             self.start_score_anim();
             // wait Xms
             let selection = format!(
                 "&Input={}&SelectedName={}.Text",
-                &self.input_id,
+                &self.consts.vmix_id,
                 format!("s{}p{}", self.hole + 1, self.num)
             );
             let select_colour = format!(
                 "&Input={}&SelectedName={}.Fill.Color",
-                &self.input_id,
+                &self.consts.vmix_id,
                 format!("h{}p{}", self.hole + 1, self.num)
             );
             let url = format!("http://{}:8088/api/?", self.consts.ip);
@@ -115,39 +120,40 @@ impl Player {
             return_vec.push(format!(
                 "{}Function=SetText&Value={}{}",
                 &url, &result.score, &selection
-            ));
+            ).into());
             // Set colour
             return_vec.push(format!(
                 "{}Function=SetColor&Value=%23{}{}",
                 &url,
                 &result.get_score_colour(),
                 &select_colour
-            ));
+            ).into());
             // Show score
-            return_vec.push(format!("{}Function=SetTextVisibleOn{}", &url, &selection));
+            return_vec.push(format!("{}Function=SetTextVisibleOn{}", &url, &selection).into());
 
             self.score += result.score;
             return_vec.push(self.set_tot_score());
             self.hole += 1;
+
         }
         println!("{}", self.hole);
         return_vec
     }
 
-    fn set_tot_score(&mut self) -> String {
+    fn set_tot_score(&mut self) -> JsString {
         let selection = format!(
             "&Input={}&SelectedName={}.Text",
-            &self.input_id,
+            &self.consts.vmix_id,
             format!("scoretotp{}", self.num)
         );
         let url = format!("http://{}:8088/api/?", self.consts.ip);
         format!(
             "{}Function=SetText&Value={}{}",
             &url, &self.score, &selection
-        )
+        ).into()
     }
 
-    fn reset_scores(&mut self) -> Vec<String> {
+    fn reset_scores(&mut self) -> Vec<JsString> {
         let mut return_vec = vec![];
         for i in 1..19 {
             self.hole = i;
@@ -159,32 +165,32 @@ impl Player {
         return_vec
     }
 
-    fn del_score(&mut self) -> Vec<String> {
-        let mut return_vec = vec![];
+    fn del_score(&mut self) -> Vec<JsString> {
+        let mut return_vec: Vec<JsString> = vec![];
         let url = format!("http://{}:8088/api/?", self.consts.ip);
         let selection = format!(
             "&Input={}&SelectedName={}.Text",
-            &self.input_id,
+            &self.consts.vmix_id,
             format!("s{}p{}", self.hole, self.num)
         );
         let select_colour = format!(
             "&Input={}&SelectedName={}.Fill.Color",
-            &self.input_id,
+            &self.consts.vmix_id,
             format!("h{}p{}", self.hole, self.num)
         );
         return_vec.push(format!(
             "{}Function=SetText&Value={}{}",
             &url, "", &selection
-        ));
+        ).into());
         return_vec.push(format!(
             "{}Function=SetColor&Value=%23{}{}",
             &url, self.consts.default_bg_col, &select_colour
-        ));
-        return_vec.push(format!("{}Function=SetTextVisibleOff{}", &url, &selection));
+        ).into());
+        return_vec.push(format!("{}Function=SetTextVisibleOff{}", &url, &selection).into());
         return_vec
     }
 
-    pub fn revert_hole_score(&mut self) -> Vec<String> {
+    pub fn revert_hole_score(&mut self) -> Vec<JsString> {
         let mut return_vec = vec![];
         if self.hole > 0 {
             return_vec.append(&mut self.del_score());
@@ -198,21 +204,21 @@ impl Player {
         return_vec
     }
 
-    pub fn set_name(&mut self) -> String {
+    pub fn set_name(&mut self) -> JsString {
         if let Some(player) = &self.player {
             let url = format!("http://{}:8088/api/?", self.consts.ip);
             let selection = format!(
                 "&Input={}&SelectedName={}.Text",
-                &self.input_id,
+                &self.consts.vmix_id,
                 format!("namep{}", self.num)
             );
             let name = format!("{} {}", &player.first_name, &player.last_name);
-            String::from(format!(
+            JsString::from(format!(
                 "{}Function=SetText&Value={}{}",
                 &url, name, &selection
             ))
         } else {
-            String::from("")
+            JsString::from("")
         }
     }
 }
@@ -223,7 +229,7 @@ pub struct MyApp {
     text: String,
     #[wasm_bindgen(skip)]
     pub all_divs: Vec<get_data::queries::PoolLeaderboardDivision>,
-    #[wasm_bindgen(skip)]
+    #[wasm_bindgen(getter_with_clone)]
     pub score_card: ScoreCard,
     selected_div_ind: usize,
     #[wasm_bindgen(skip)]
@@ -255,38 +261,28 @@ impl Default for MyApp {
     }
 }
 
-
-
-
-
-
 #[wasm_bindgen]
 impl MyApp {
-    
     #[wasm_bindgen(constructor)]
     pub fn new() -> MyApp {
         MyApp::default()
     }
     #[wasm_bindgen(setter = div)]
-    pub fn set_div(&mut self, div_name: String) {
-        for (i, div) in self.all_divs.iter().enumerate() {
-            if div.name == div_name {
-                self.selected_div_ind = i;
-                self.selected_div = Some(div.clone());
-                break;
-            }
-        }
+    pub fn set_div(&mut self, idx: usize) {
+        self.selected_div = Some(self.all_divs[idx].clone());
+        self.score_card.all_play_players= self.selected_div.as_ref().unwrap().players.clone();
     }
     #[wasm_bindgen]
     pub async fn get_divs(&mut self) -> Result<JsValue, JsValue> {
-        log(&format!("{:#?}", &self.consts));
-        let mut res = String::new(); 
+        self.all_divs = vec![];
+        let mut res = String::new();
         if let Err(e) = get_data::request_tjing(cynic::Id::from(&self.consts.pool_id)).await {
-            log(&format!("Error:{:#?}", e));
             res = e.to_string()
         }
-        if let Some(data) = get_data::post_status(cynic::Id::from(&self.consts.pool_id)).await.data {
-            log(&format!("Data:{:#?}", data));
+        if let Some(data) = get_data::post_status(cynic::Id::from(&self.consts.pool_id))
+            .await
+            .data
+        {
             if let Some(pool) = data.pool {
                 if let Some(lb) = pool.leaderboard {
                     for div in lb {
@@ -298,18 +294,16 @@ impl MyApp {
                                 _ => {}
                             }
                         }
-                        
                     }
                 }
             }
             res = format!("{:#?}", self.all_divs);
         }
-        log(&res);
         let promise = js_sys::Promise::resolve(&res.into());
         let result = wasm_bindgen_futures::JsFuture::from(promise).await?;
         Ok(result)
     }
-    
+
     #[wasm_bindgen]
     pub fn get_div_names(&self) -> Vec<JsString> {
         let mut return_vec = vec![];
@@ -318,21 +312,49 @@ impl MyApp {
         }
         return_vec
     }
-    
+    #[wasm_bindgen]
+    pub fn get_player_names(&self) -> Vec<JsString> {
+        let mut return_vec = vec![];
+        if let Some(div) = &self.selected_div {
+            for player in &div.players {
+                return_vec.push(JsString::from(format!(
+                    "{} {}",
+                    &player.first_name, &player.last_name
+                )));
+            }
+        }
+        return_vec
+    }
+    #[wasm_bindgen]
+    pub fn get_player_ids(&self) -> Vec<JsString> {
+        let mut return_vec = vec![];
+        if let Some(div) = &self.selected_div {
+            for player in &div.players {
+                return_vec.push(JsString::from(
+                    format!("{:?}", player.player_id)
+                        .trim_start_matches("Id(\"")
+                        .trim_end_matches("\")")
+                        .to_string(),
+                ));
+            }
+        }
+        return_vec
+    }
+
     #[wasm_bindgen(setter)]
     pub fn set_ip(&mut self, ip: JsString) {
         self.consts.ip = String::from(ip);
     }
     #[wasm_bindgen(setter)]
     pub fn set_pool_id(&mut self, pool_id: JsString) {
-        log("setting pool id");
-        log(&format!("{:#?}",pool_id));
         self.consts.pool_id = String::from(pool_id);
     }
+
+    
 }
 
 #[wasm_bindgen]
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct ScoreCard {
     #[wasm_bindgen(skip)]
     pub p1: Player,
@@ -344,7 +366,12 @@ pub struct ScoreCard {
     pub p4: Player,
     #[wasm_bindgen(skip)]
     pub all_players: Vec<Player>,
+    #[wasm_bindgen(skip)]
+    pub all_play_players: Vec<get_data::queries::PoolLeaderboardPlayer>,
+    test: String,
 }
+
+
 
 #[wasm_bindgen]
 impl ScoreCard {
@@ -354,22 +381,33 @@ impl ScoreCard {
     }
 
     #[wasm_bindgen]
-    pub fn set_player(&mut self, player_num: u8, player_id: String) {
-        log(&format!("{} {}", player_num, player_id));
-        
-        for player_ in &self.all_players {
-            if let Some(player) = &player_.player{
-                if player.player_id == cynic::Id::from(&player_id) {
-                    match player_num {
-                        1 => self.p1 = player_.clone(),
-                        2 => self.p2 = player_.clone(),
-                        3 => self.p3 = player_.clone(),
-                        4 => self.p4 = player_.clone(),
-                        _ => (),
-                    }
-                    break;
+    pub fn set_player(&mut self, player_num: usize, player_id: JsString) -> Vec<JsString> {
+        log("test");
+        //let player_id = player_id.trim_start_matches("\"").trim_end_matches("\"").to_string();
+        log(&format!("set_player: {:?}", player_id));
+        log(&format!("set_player: {:?}", player_num));
+        log(&format!("set_player: {:?}", self.all_play_players.len()));
+        let mut out_vec = vec![];
+        for player in &self.all_play_players {
+            log(&format!("{:?}, {:?}", &player.player_id, cynic::Id::from(&player_id)));
+            if player.player_id == cynic::Id::from(&player_id) {
+                log("here1");
+                let mut new_player = Player { player: Some(player.clone()), num: (player_num).to_string(), ..Default::default() };
+                log("here2");
+                out_vec.push(new_player.set_name());
+                out_vec.append(&mut new_player.reset_scores());
+                match player_num {
+                    1 => self.p1 = new_player,
+                    2 => self.p2 = new_player,
+                    3 => self.p3 = new_player,
+                    4 => self.p4 = new_player,
+                    _ => (),
                 }
+                
             }
         }
+        out_vec
+        
     }
+    
 }

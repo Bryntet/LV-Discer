@@ -13,7 +13,6 @@ extern "C" {
 pub async fn request_tjing(pool_id: cynic::Id) -> Result<cynic::GraphQlResponse<queries::StatusPool>, reqwest::Error> {
     use cynic::QueryBuilder;
     use queries::*;
-    log(&format!("request_tjing({:?})", &pool_id));
     let operation = StatusPool::build(StatusPoolVariables {
         pool_id: pool_id.clone(),
     });
@@ -25,7 +24,6 @@ pub async fn request_tjing(pool_id: cynic::Id) -> Result<cynic::GraphQlResponse<
         .await;
     if let Ok(r) = response {
         let response = r.json::<GraphQlResponse<queries::StatusPool>>().await;
-        log(&format!("{:?}", &response));
         if let Ok(rr) = response {
             return Ok(rr);
         } else {
