@@ -1,42 +1,62 @@
-use cynic::{http::SurfExt};
-extern crate hyper;
+use cynic::GraphQlResponse;
+use serde_json::json;
+use wasm_bindgen::prelude::*;
+use wasm_bindgen::JsCast;
 
-pub async fn request_tjing(pool_id: cynic::Id) -> std::result::Result<cynic::GraphQlResponse<queries::StatusPool>, surf::Error> {
-    use queries::*;
-    use cynic::QueryBuilder;
-    
-    let operation = StatusPool::build(
-        StatusPoolVariables {
-            pool_id: pool_id.clone(),
-        }
-    );
-    return surf::post("https://api.tjing.se/graphql")
-    .run_graphql(operation)
-    .await;
+#[wasm_bindgen]
+extern "C" {
+    #[wasm_bindgen(js_namespace = console)]
+    fn log(s: &str);
 }
 
-pub async fn post_status(pool_id: cynic::Id) -> Result<cynic::GraphQlResponse<queries::PoolLBAfter, serde::de::IgnoredAny>, surf::Error> {
-    use queries::*;
+pub async fn request_tjing(
+    pool_id: cynic::Id,
+) -> Result<cynic::GraphQlResponse<queries::StatusPool>, reqwest::Error> {
     use cynic::QueryBuilder;
-   
-    let operation = PoolLBAfter::build(
-        PoolLBAfterVariables {
-            pool_id: pool_id,
+    use queries::*;
+    let operation = StatusPool::build(StatusPoolVariables {
+        pool_id: pool_id.clone(),
+    });
+    log("hereee");
+    let response = reqwest::Client::new()
+        .post("https://api.tjing.se/graphql")
+        .json(&operation)
+        .send()
+        .await;
+    if let Ok(r) = response {
+        let response = r.json::<GraphQlResponse<queries::StatusPool>>().await;
+        if let Ok(rr) = response {
+            return Ok(rr);
+        } else {
+            return Err(response.err().unwrap());
         }
-    );
-    return surf::post("https://api.tjing.se/graphql")
-    .run_graphql(operation)
-    .await;
+    } else {
+        return Err(response.err().unwrap());
+    }
 }
 
+pub async fn post_status(pool_id: cynic::Id) -> cynic::GraphQlResponse<queries::PoolLBAfter> {
+    use cynic::QueryBuilder;
+    use queries::*;
+    let operation = PoolLBAfter::build(PoolLBAfterVariables {
+        pool_id: pool_id.clone(),
+    });
 
+    let response = reqwest::Client::new()
+        .post("https://api.tjing.se/graphql")
+        .json(&operation)
+        .send()
+        .await
+        .unwrap();
+    response
+        .json::<GraphQlResponse<queries::PoolLBAfter>>()
+        .await
+        .unwrap()
+}
 
-#[cynic::schema_for_derives(
-    file = r#"src/schema.graphql"#,
-    module = "schema",
-)]
+#[cynic::schema_for_derives(file = r#"src/schema.graphql"#, module = "schema")]
 pub mod queries {
-    
+
     use super::schema;
 
     #[derive(cynic::QueryVariables, Debug)]
@@ -149,7 +169,7 @@ pub mod queries {
     pub enum PoolLeaderboardDivisionCombined {
         PoolLeaderboardDivision(PoolLeaderboardDivision),
         #[cynic(fallback)]
-        Unknown
+        Unknown,
     }
 
     #[derive(cynic::Enum, Clone, Copy, Debug)]
@@ -159,7 +179,6 @@ pub mod queries {
         Open,
         Completed,
     }
-
 }
 #[allow(non_snake_case, non_camel_case_types)]
 mod schema {
