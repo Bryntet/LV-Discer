@@ -17,8 +17,17 @@ class instance extends instance_skel {
 		super(system, id, config)
 		
 		this.rust_main = new wasm.MyApp
-		this.rust_main.score_card = new wasm.ScoreCard
+		this.setVariableDefinitions([
+			{
+				label: 'Focused player name',
+				name: 'player_name',
+				default: 'z',
+			},
+		])
 		this.initActions()
+		this.initFeedbacks()
+		
+
 	}
 
 	config_fields() {
@@ -110,33 +119,96 @@ class instance extends instance_skel {
 		this.config.p3 = "none"
 		this.config.p4 = "none"
 		this.config.div = "none"
-		
+		this.foc_player_ind = 0
+		this.setVariable('player_name', "")
+		this.hole = 0
 		this.saveConfig()
 		
 	}
-	
-	initActions() {
-		let actions = {}
-
-		actions['sample_action'] = {
-			label: 'Get info',
-			options: [
-				{
-					type: 'textinput',
-					label: 'Get info from tjing',
-					id: 'text',
-					regex: this.REGEX_SOMETHING,
+	initFeedbacks() {
+		const feedbacks = {
+			display_variable: {
+				type: 'boolean',
+				label: 'Display variable',
+				description: 'Displays the exposed variable on the button',
+				style: {
+					text: '$(lvvmix:player_name)',
+					color: this.rgb(255, 255, 255),
+					bgcolor: this.rgb(0, 0, 0),
 				},
-			],
-			callback: (action, bank) => {
-				let opt = action.options
-				
-				let thing = wasm.test()
-				thing.set_player(1, "t")
-				this.sendCommand(`SET sample_action: ${opt.text}`)
+				callback: () => true, // Always return true, so the feedback is always active
+			},
+
+		}
+		this.setFeedbackDefinitions(feedbacks)
+	}
+	initActions() {
+		let actions = {
+			increase_score: {
+				label: 'Increase score',
+				options: [],
+				callback: (action, bank) => {
+					let inc = this.rust_main.increase_score()
+					console.log(inc)
+					this.wrapRunCommands(inc)
+				},
+			},
+			revert_score_increase: {
+				label: 'Revert score increase',
+				callback: () => {
+					let inc = this.rust_main.revert_score()
+					this.wrapRunCommands(inc)
+				},
+			},
+			change_focused_player_plus: {
+				label: 'Change focused player (+)',
+				callback: () => {
+					if (this.foc_player_ind < 3) {
+						this.foc_player_ind += 1
+						this.rust_main.set_foc(this.foc_player_ind)
+						// TODO: Impl change throw popup
+						this.setVariable('player_name', this.rust_main.get_foc_p_name())
+					}
+				},
+			},
+			change_focused_player_minus: {
+				label: 'Change focused player (-)',
+				callback: () => {
+					if (this.foc_player_ind > 0) {
+						this.foc_player_ind -= 1
+						this.rust_main.set_foc(this.foc_player_ind)
+						// TODO: Impl change throw popup
+						this.setVariable('player_name', this.rust_main.get_foc_p_name())
+					}
+				},
+			},
+			reset_score: {
+				label: 'Reset score',
+				callback: () => {
+					this.wrapRunCommands(this.rust_main.reset_score())
+				},
+			},
+			increase_throw: {
+				label: 'Increase throw',
+				callback: () => {
+					// Your code to increase the throw
+				},
+			},
+			decrease_throw: {
+				label: 'Decrease throw',
+				callback: () => {
+					// Your code to decrease the throw
+				},
+			},
+			ob: {
+				label: 'OB',
+				callback: () => {
+					// Your code for OB
+				},
 			},
 		}
-
+		
+		
 		this.setActions(actions)
 	}
 
@@ -151,7 +223,13 @@ class instance extends instance_skel {
 			console.log('sending command', cmd)
 		}
 	}
-
+	wrapRunCommands(cmd) {
+		this.runCommands(cmd).then(() => {
+			console.log('done')
+		}).catch((err) => {
+			console.log(err)
+		})
+	}
 	updateConfig(config) {
 		let resetConnection = false
 		
@@ -159,12 +237,15 @@ class instance extends instance_skel {
 		console.log(config)
 		this.config = config
 		if (this.config.vmix_input_id) {
+			console.log("setting id")
 			this.rust_main.id = this.config.vmix_input_id
 		}
 		if (this.config.vmix_ip) {
+			console.log("setting ip")
 			this.rust_main.ip = this.config.vmix_ip
 		}
-		if (this.config.event_id) {
+		if (this.config.pool_id) {
+			console.log("setting event id")
 			this.rust_main.pool_id = this.config.pool_id
 			this.rust_main.get_divs().then(() => {
 				this.div_names.length = 0
@@ -196,11 +277,7 @@ class instance extends instance_skel {
 			console.log(player)
 			if (typeof player === 'string' && player !== 'none') {
 				console.log("setting p1")
-				this.runCommands(this.rust_main.score_card.set_player(idx+1, player)).then(() => {
-					console.log("done")
-				}).catch((err) => {
-					console.log(err)
-				})
+				this.wrapRunCommands(this.rust_main.set_player(idx + 1, player))
 			}
 		}		
 	}

@@ -20,7 +20,6 @@ pub fn test() -> ScoreCard {
     ScoreCard::default()
 }
 
-
 #[wasm_bindgen]
 pub fn init_panic_hook() {
     console_error_panic_hook::set_once();
@@ -45,7 +44,7 @@ impl Default for Constants {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Player {
     div: get_data::queries::PoolLeaderboardDivision,
     selected: usize,
@@ -78,21 +77,23 @@ impl Default for Player {
 }
 
 impl Player {
-    pub fn player_selector(&mut self, player: get_data::queries::PoolLeaderboardPlayer) {
+    
+    fn player_selector(&mut self, player: get_data::queries::PoolLeaderboardPlayer) {
         self.player = Some(player);
         self.set_name();
         self.reset_scores();
     }
-
+    
     fn start_score_anim(&mut self) {
         // Code for anim goes here
     }
 
-    pub fn set_hole_score(&mut self) -> Vec<JsString> {
-        println!("{}", self.hole);
+    fn set_hole_score(&mut self) -> Vec<JsString> {
+        log(&format!("{}", self.hole));
         let mut return_vec: Vec<JsString> = vec![];
         if let Some(player) = self.player.clone() {
-            self.start_score_anim();
+            log(&format!("{:#?}", player));
+            // self.start_score_anim();
             // wait Xms
             let selection = format!(
                 "&Input={}&SelectedName={}.Text",
@@ -117,27 +118,32 @@ impl Player {
             );
 
             // Set score
-            return_vec.push(format!(
-                "{}Function=SetText&Value={}{}",
-                &url, &result.score, &selection
-            ).into());
+            return_vec.push(
+                format!(
+                    "{}Function=SetText&Value={}{}",
+                    &url, &result.score, &selection
+                )
+                .into(),
+            );
             // Set colour
-            return_vec.push(format!(
-                "{}Function=SetColor&Value=%23{}{}",
-                &url,
-                &result.get_score_colour(),
-                &select_colour
-            ).into());
+            return_vec.push(
+                format!(
+                    "{}Function=SetColor&Value=%23{}{}",
+                    &url,
+                    &result.get_score_colour(),
+                    &select_colour
+                )
+                .into(),
+            );
             // Show score
             return_vec.push(format!("{}Function=SetTextVisibleOn{}", &url, &selection).into());
 
             self.score += result.score;
             return_vec.push(self.set_tot_score());
             self.hole += 1;
-
+            return return_vec;
         }
-        println!("{}", self.hole);
-        return_vec
+        return vec![];
     }
 
     fn set_tot_score(&mut self) -> JsString {
@@ -150,7 +156,8 @@ impl Player {
         format!(
             "{}Function=SetText&Value={}{}",
             &url, &self.score, &selection
-        ).into()
+        )
+        .into()
     }
 
     fn reset_scores(&mut self) -> Vec<JsString> {
@@ -178,19 +185,19 @@ impl Player {
             &self.consts.vmix_id,
             format!("h{}p{}", self.hole, self.num)
         );
-        return_vec.push(format!(
-            "{}Function=SetText&Value={}{}",
-            &url, "", &selection
-        ).into());
-        return_vec.push(format!(
-            "{}Function=SetColor&Value=%23{}{}",
-            &url, self.consts.default_bg_col, &select_colour
-        ).into());
+        return_vec.push(format!("{}Function=SetText&Value={}{}", &url, "", &selection).into());
+        return_vec.push(
+            format!(
+                "{}Function=SetColor&Value=%23{}{}",
+                &url, self.consts.default_bg_col, &select_colour
+            )
+            .into(),
+        );
         return_vec.push(format!("{}Function=SetTextVisibleOff{}", &url, &selection).into());
         return_vec
     }
 
-    pub fn revert_hole_score(&mut self) -> Vec<JsString> {
+    fn revert_hole_score(&mut self) -> Vec<JsString> {
         let mut return_vec = vec![];
         if self.hole > 0 {
             return_vec.append(&mut self.del_score());
@@ -204,7 +211,7 @@ impl Player {
         return_vec
     }
 
-    pub fn set_name(&mut self) -> JsString {
+    fn set_name(&mut self) -> JsString {
         if let Some(player) = &self.player {
             let url = format!("http://{}:8088/api/?", self.consts.ip);
             let selection = format!(
@@ -263,15 +270,18 @@ impl Default for MyApp {
 
 #[wasm_bindgen]
 impl MyApp {
+    
     #[wasm_bindgen(constructor)]
     pub fn new() -> MyApp {
         MyApp::default()
     }
+    
     #[wasm_bindgen(setter = div)]
     pub fn set_div(&mut self, idx: usize) {
         self.selected_div = Some(self.all_divs[idx].clone());
-        self.score_card.all_play_players= self.selected_div.as_ref().unwrap().players.clone();
+        self.score_card.all_play_players = self.selected_div.as_ref().unwrap().players.clone();
     }
+
     #[wasm_bindgen]
     pub async fn get_divs(&mut self) -> Result<JsValue, JsValue> {
         self.all_divs = vec![];
@@ -305,6 +315,49 @@ impl MyApp {
     }
 
     #[wasm_bindgen]
+    pub fn increase_score(&mut self) -> Vec<JsString> {
+        log("increase_score");
+        self.get_focused().set_hole_score()
+    }
+
+    fn get_focused(&mut self) -> &mut Player {
+        match self.foc_play_ind {
+            0 => &mut self.score_card.p1,
+            1 => &mut self.score_card.p2,
+            2 => &mut self.score_card.p3,
+            3 => &mut self.score_card.p4,
+            _ => &mut self.score_card.p1,
+        }
+    }
+
+    #[wasm_bindgen]
+    pub fn set_player(&mut self, idx: usize, player: JsString) -> Vec<JsString> {
+        self.score_card.set_player(idx, player)
+    }
+
+    #[wasm_bindgen]
+    pub fn set_foc(&mut self, idx: usize) {
+        self.foc_play_ind = idx;
+    }
+    #[wasm_bindgen]
+    pub fn revert_score(&mut self) -> Vec<JsString> {
+        self.get_focused().del_score()
+    }
+    #[wasm_bindgen]
+    pub fn reset_score(&mut self) -> Vec<JsString> {
+        self.get_focused().reset_scores()
+    }
+
+    #[wasm_bindgen]
+    pub fn get_foc_p_name(&mut self) -> JsString {
+        if let Some(player) = self.get_focused().player.clone() {
+            format!("{} {}", player.first_name, player.last_name).into()
+        } else {
+            "".into()
+        }
+    }
+
+    #[wasm_bindgen]
     pub fn get_div_names(&self) -> Vec<JsString> {
         let mut return_vec = vec![];
         for div in &self.all_divs {
@@ -312,6 +365,7 @@ impl MyApp {
         }
         return_vec
     }
+
     #[wasm_bindgen]
     pub fn get_player_names(&self) -> Vec<JsString> {
         let mut return_vec = vec![];
@@ -325,6 +379,7 @@ impl MyApp {
         }
         return_vec
     }
+
     #[wasm_bindgen]
     pub fn get_player_ids(&self) -> Vec<JsString> {
         let mut return_vec = vec![];
@@ -345,12 +400,11 @@ impl MyApp {
     pub fn set_ip(&mut self, ip: JsString) {
         self.consts.ip = String::from(ip);
     }
+
     #[wasm_bindgen(setter)]
     pub fn set_pool_id(&mut self, pool_id: JsString) {
         self.consts.pool_id = String::from(pool_id);
     }
-
-    
 }
 
 #[wasm_bindgen]
@@ -371,8 +425,6 @@ pub struct ScoreCard {
     test: String,
 }
 
-
-
 #[wasm_bindgen]
 impl ScoreCard {
     #[wasm_bindgen(constructor)]
@@ -382,18 +434,20 @@ impl ScoreCard {
 
     #[wasm_bindgen]
     pub fn set_player(&mut self, player_num: usize, player_id: JsString) -> Vec<JsString> {
-        log("test");
         //let player_id = player_id.trim_start_matches("\"").trim_end_matches("\"").to_string();
-        log(&format!("set_player: {:?}", player_id));
-        log(&format!("set_player: {:?}", player_num));
-        log(&format!("set_player: {:?}", self.all_play_players.len()));
         let mut out_vec = vec![];
         for player in &self.all_play_players {
-            log(&format!("{:?}, {:?}", &player.player_id, cynic::Id::from(&player_id)));
+            log(&format!(
+                "{:?}, {:?}",
+                &player.player_id,
+                cynic::Id::from(&player_id)
+            ));
             if player.player_id == cynic::Id::from(&player_id) {
-                log("here1");
-                let mut new_player = Player { player: Some(player.clone()), num: (player_num).to_string(), ..Default::default() };
-                log("here2");
+                let mut new_player = Player {
+                    player: Some(player.clone()),
+                    num: (player_num).to_string(),
+                    ..Default::default()
+                };
                 out_vec.push(new_player.set_name());
                 out_vec.append(&mut new_player.reset_scores());
                 match player_num {
@@ -403,11 +457,8 @@ impl ScoreCard {
                     4 => self.p4 = new_player,
                     _ => (),
                 }
-                
             }
         }
         out_vec
-        
     }
-    
 }

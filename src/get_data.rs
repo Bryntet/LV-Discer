@@ -9,14 +9,15 @@ extern "C" {
     fn log(s: &str);
 }
 
-
-pub async fn request_tjing(pool_id: cynic::Id) -> Result<cynic::GraphQlResponse<queries::StatusPool>, reqwest::Error> {
+pub async fn request_tjing(
+    pool_id: cynic::Id,
+) -> Result<cynic::GraphQlResponse<queries::StatusPool>, reqwest::Error> {
     use cynic::QueryBuilder;
     use queries::*;
     let operation = StatusPool::build(StatusPoolVariables {
         pool_id: pool_id.clone(),
     });
-
+    log("hereee");
     let response = reqwest::Client::new()
         .post("https://api.tjing.se/graphql")
         .json(&operation)
@@ -32,7 +33,6 @@ pub async fn request_tjing(pool_id: cynic::Id) -> Result<cynic::GraphQlResponse<
     } else {
         return Err(response.err().unwrap());
     }
-   
 }
 
 pub async fn post_status(pool_id: cynic::Id) -> cynic::GraphQlResponse<queries::PoolLBAfter> {
