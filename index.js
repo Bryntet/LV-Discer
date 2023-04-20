@@ -1,6 +1,6 @@
 const deasync = require('deasync');
 const instance_skel = require('../../instance_skel')
-const wasm = require("./node_modules/rust-wasm-test-edvin")
+const wasm = require("./pkg")
 const fetch = require('node-fetch')
 // @ts-ignore
 global.fetch = fetch;
@@ -122,6 +122,7 @@ class instance extends instance_skel {
 		this.foc_player_ind = 0
 		this.setVariable('player_name', "")
 		this.hole = 0
+		this.focused_players = [{ id: 'none', label: 'None'}]
 		this.saveConfig()
 		
 	}
@@ -132,11 +133,23 @@ class instance extends instance_skel {
 				label: 'Display variable',
 				description: 'Displays the exposed variable on the button',
 				style: {
-					text: '$(lvvmix:player_name)',
 					color: this.rgb(255, 255, 255),
-					bgcolor: this.rgb(0, 0, 0),
+					bgcolor: this.rgb(0, 0, 255),
 				},
-				callback: () => true, // Always return true, so the feedback is always active
+				options:  [{
+					type: 'dropdown',
+					label: 'Choose an option',
+					id: 'chosen_player',
+					default: 'none',
+					choices:this.focused_players
+				}],
+				callback: (feedback) => {
+					const chosen_player = feedback.options.chosen_player
+					console.log(chosen_player)
+					console.log(this.foc_player_ind)
+					return chosen_player == this.foc_player_ind;
+					
+				}, 
 			},
 
 		}
@@ -146,9 +159,26 @@ class instance extends instance_skel {
 		let actions = {
 			increase_score: {
 				label: 'Increase score',
-				options: [],
+				options: [
+					{
+						type: 'dropdown',
+						label: 'Choose an option',
+						id: 'focused_player',
+						default: 'none', // Set the default value to 'none'
+						choices: this.focused_players,
+					},
+				],
+
 				callback: (action, bank) => {
+					const foc_player = action.options.focused_player
+
+					if (foc_player != 'none') {
+						this.rust_main.set_foc(foc_player)
+					}
 					let inc = this.rust_main.increase_score()
+					if (foc_player != 'none') {
+						this.rust_main.set_foc(this.foc_player_ind)
+					}
 					console.log(inc)
 					this.wrapRunCommands(inc)
 				},
@@ -160,25 +190,26 @@ class instance extends instance_skel {
 					this.wrapRunCommands(inc)
 				},
 			},
-			change_focused_player_plus: {
-				label: 'Change focused player (+)',
-				callback: () => {
-					if (this.foc_player_ind < 3) {
-						this.foc_player_ind += 1
-						this.rust_main.set_foc(this.foc_player_ind)
+			change_focused_player: {
+				label: 'Change focused player',
+				options: [
+					{
+						type: 'dropdown',
+						label: 'Choose an option',
+						id: 'focused_player',
+						default: 'none', // Set the default value to 'none'
+						choices: this.focused_players,
+					},
+				],
+				callback: (action) => {
+					const foc_player = action.options.focused_player
+					this.foc_player_ind = foc_player
+					console.log(this.focused_players)
+					if (foc_player != 'none') {
+						this.rust_main.set_foc(foc_player)
 						// TODO: Impl change throw popup
 						this.setVariable('player_name', this.rust_main.get_foc_p_name())
-					}
-				},
-			},
-			change_focused_player_minus: {
-				label: 'Change focused player (-)',
-				callback: () => {
-					if (this.foc_player_ind > 0) {
-						this.foc_player_ind -= 1
-						this.rust_main.set_foc(this.foc_player_ind)
-						// TODO: Impl change throw popup
-						this.setVariable('player_name', this.rust_main.get_foc_p_name())
+						this.checkFeedbacks()
 					}
 				},
 			},
@@ -190,14 +221,52 @@ class instance extends instance_skel {
 			},
 			increase_throw: {
 				label: 'Increase throw',
-				callback: () => {
-					// Your code to increase the throw
+				options: [
+					{
+						type: 'dropdown',
+						label: 'Choose an option',
+						id: 'focused_player',
+						default: 'none', // Set the default value to 'none'
+						choices: this.focused_players,
+					},
+				],
+				callback: (action) => {
+					const foc_player = action.options.focused_player
+					if (foc_player != 'none') {
+						this.rust_main.set_foc(foc_player)
+					}
+					let inc = [this.rust_main.increase_throw()]
+					this.wrapRunCommands(inc)
+					if (foc_player != 'none') {
+						this.rust_main.set_foc(this.foc_player_ind)
+					}
+					console.log(inc)
+					this.wrapRunCommands(inc)
 				},
 			},
 			decrease_throw: {
 				label: 'Decrease throw',
-				callback: () => {
-					// Your code to decrease the throw
+				options: [
+					{
+						type: 'dropdown',
+						label: 'Choose an option',
+						id: 'focused_player',
+						default: 'none', // Set the default value to 'none'
+						choices: this.focused_players,
+					},
+				],
+				callback: (action) => {
+					const foc_player = action.options.focused_player
+					if (foc_player != 'none') {
+						this.rust_main.set_foc(foc_player)
+					}
+					let inc = [this.rust_main.decrease_throw()]
+					this.wrapRunCommands(inc)
+					if (foc_player != 'none') {
+						this.rust_main.set_foc(this.foc_player_ind)
+					}
+					console.log(inc)
+					this.wrapRunCommands(inc)
 				},
 			},
 			ob: {
@@ -214,7 +283,7 @@ class instance extends instance_skel {
 
 	async runCommands(url_list) {
 		for (const url of url_list) {
-			console.log(await fetch(url))
+			await fetch(url)
 		}
 	}
 
@@ -233,7 +302,9 @@ class instance extends instance_skel {
 	updateConfig(config) {
 		let resetConnection = false
 		
-		
+		if (config.vmix_ip !== this.config.vmix_ip) {
+			this.rust_main.ip = config.vmix_ip
+		}
 		console.log(config)
 		this.config = config
 		if (this.config.vmix_input_id) {
@@ -272,6 +343,8 @@ class instance extends instance_skel {
 				}
 			}
 		}
+		this.focused_players.length = 0
+		this.focused_players.push({ id: 'none', label: 'None' })
 		let list = [this.config.p1, this.config.p2, this.config.p3, this.config.p4]
 		for (const [idx, player] of list.entries()) {
 			console.log(player)
@@ -279,7 +352,13 @@ class instance extends instance_skel {
 				console.log("setting p1")
 				this.wrapRunCommands(this.rust_main.set_player(idx + 1, player))
 			}
-		}		
+		}
+		for (const [idx, name] of this.rust_main.get_focused_player_names().entries()) {
+			this.focused_players.push({ id: idx, label: name })
+		}
+		this.initActions()
+		this.initFeedbacks()
+		
 	}
 }
 

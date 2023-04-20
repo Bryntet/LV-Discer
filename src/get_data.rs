@@ -1,8 +1,6 @@
 use cynic::GraphQlResponse;
 use serde_json::json;
 use wasm_bindgen::prelude::*;
-use wasm_bindgen::JsCast;
-
 #[wasm_bindgen]
 extern "C" {
     #[wasm_bindgen(js_namespace = console)]
@@ -56,7 +54,13 @@ pub async fn post_status(pool_id: cynic::Id) -> cynic::GraphQlResponse<queries::
 
 #[cynic::schema_for_derives(file = r#"src/schema.graphql"#, module = "schema")]
 pub mod queries {
+    use wasm_bindgen::prelude::*;
 
+    #[wasm_bindgen]
+    extern "C" {
+        #[wasm_bindgen(js_namespace = console)]
+        fn log(s: &str);
+    }
     use super::schema;
 
     #[derive(cynic::QueryVariables, Debug)]
@@ -118,8 +122,18 @@ pub mod queries {
         pub is_outside_putt: bool,
     }
     impl SimpleResult {
+        pub fn actual_score(&self) -> f64 {
+            if let Some(par) = self.hole.par {
+                self.score - par
+            } else {
+                log(&format!("no par for hole {}", self.hole.number));
+                self.score
+            }
+        
+        }
+
         pub fn get_score_colour(&self) -> &str {
-            match self.score as i64 {
+            match self.actual_score() as i64 {
                 3 => "AB8E77",
                 2 => "CA988D",
                 1 => "EC928F",
@@ -128,6 +142,24 @@ pub mod queries {
                 -2 => "6A8BE7",
                 -3 => "DD6AC9",
                 _ => "000000",
+            }
+        }
+        
+        pub fn get_mov(&self) -> &str {
+            match self.score as i64 {
+                1 => "00 ace.mov",
+                _ => {
+                    match self.actual_score() as i64 {
+                        3 => "30 3xBogey.mov",
+                        2 => "20 2xBogey.mov",
+                        1 => "10 bogey.mov",
+                        0 => "04 par.mov",
+                        -1 => "03 birdie.mov",
+                        -2 => "02 eagle.mov",
+                        -3 => "01 albatross.mov",
+                        _ => "0",
+                    }
+                }
             }
         }
     }

@@ -75,7 +75,6 @@ impl Default for Player {
         }
     }
 }
-
 impl Player {
     
     fn player_selector(&mut self, player: get_data::queries::PoolLeaderboardPlayer) {
@@ -84,8 +83,17 @@ impl Player {
         self.reset_scores();
     }
     
-    fn start_score_anim(&mut self) {
-        // Code for anim goes here
+    fn start_score_anim(&mut self) -> Vec<JsString> {
+        let mut return_vec: Vec<JsString> = vec![];
+        
+        return_vec
+    }
+    fn get_mov(&self) -> String {
+        let mut mov = "0".to_string();
+        if let Some(player) = self.player.clone() {
+            mov = player.results[self.hole].get_mov().to_string();
+        }
+        mov
     }
 
     fn set_hole_score(&mut self) -> Vec<JsString> {
@@ -138,9 +146,11 @@ impl Player {
             // Show score
             return_vec.push(format!("{}Function=SetTextVisibleOn{}", &url, &selection).into());
 
-            self.score += result.score;
+            self.score += result.actual_score();
             return_vec.push(self.set_tot_score());
             self.hole += 1;
+            self.throws = 0;
+            return_vec.push(self.set_throw());
             return return_vec;
         }
         return vec![];
@@ -202,9 +212,10 @@ impl Player {
         if self.hole > 0 {
             return_vec.append(&mut self.del_score());
             self.hole -= 1;
+            log(&format!("{}", self.hole));
             if let Some(player) = &self.player {
                 let result = &player.results[self.hole];
-                self.score -= result.score;
+                self.score -= result.actual_score();
                 return_vec.push(self.set_tot_score());
             }
         }
@@ -223,6 +234,24 @@ impl Player {
             JsString::from(format!(
                 "{}Function=SetText&Value={}{}",
                 &url, name, &selection
+            ))
+        } else {
+            JsString::from("")
+        }
+    }
+
+    fn set_throw(&self) -> JsString {
+        if let Some(player) = &self.player {
+            let url = format!("http://{}:8088/api/?", self.consts.ip);
+            let selection = format!(
+                "&Input={}&SelectedName={}.Text",
+                &self.consts.vmix_id,
+                format!("t%23p{}", self.num)
+            );
+             
+            JsString::from(format!(
+                "{}Function=SetText&Value={}{}",
+                &url, self.throws, &selection
             ))
         } else {
             JsString::from("")
@@ -275,7 +304,10 @@ impl MyApp {
     pub fn new() -> MyApp {
         MyApp::default()
     }
-    
+    #[wasm_bindgen(setter = ip)]
+    pub fn set_ip(&mut self, ip: String) {
+        self.consts.ip = ip;
+    }
     #[wasm_bindgen(setter = div)]
     pub fn set_div(&mut self, idx: usize) {
         self.selected_div = Some(self.all_divs[idx].clone());
@@ -341,7 +373,7 @@ impl MyApp {
     }
     #[wasm_bindgen]
     pub fn revert_score(&mut self) -> Vec<JsString> {
-        self.get_focused().del_score()
+        self.get_focused().revert_hole_score()
     }
     #[wasm_bindgen]
     pub fn reset_score(&mut self) -> Vec<JsString> {
@@ -380,6 +412,7 @@ impl MyApp {
         return_vec
     }
 
+
     #[wasm_bindgen]
     pub fn get_player_ids(&self) -> Vec<JsString> {
         let mut return_vec = vec![];
@@ -396,11 +429,32 @@ impl MyApp {
         return_vec
     }
 
-    #[wasm_bindgen(setter)]
-    pub fn set_ip(&mut self, ip: JsString) {
-        self.consts.ip = String::from(ip);
+    #[wasm_bindgen]
+    pub fn increase_throw(&mut self) -> JsString {
+        self.get_focused().throws += 1;
+        self.get_focused().set_throw()
+    }
+    #[wasm_bindgen]
+    pub fn decrease_throw(&mut self) -> JsString {
+        self.get_focused().throws -= 1;
+        self.get_focused().set_throw()
     }
 
+    #[wasm_bindgen]
+    pub fn get_focused_player_names(&self) -> Vec<JsString> {
+        let mut return_vec = vec![];
+        for player in vec![self.score_card.p1.clone(), self.score_card.p2.clone(), self.score_card.p3.clone(), self.score_card.p4.clone()] {
+            if let Some(player) = player.player {
+                return_vec.push(JsString::from(format!(
+                    "{} {}",
+                    &player.first_name, &player.last_name
+                )));
+            } else {
+                return_vec.push(JsString::from(""));
+            }
+        }
+        return_vec
+    }
     #[wasm_bindgen(setter)]
     pub fn set_pool_id(&mut self, pool_id: JsString) {
         self.consts.pool_id = String::from(pool_id);
