@@ -85,11 +85,34 @@ impl Player {
     
     fn start_score_anim(&mut self) -> Vec<JsString> {
         let mut return_vec: Vec<JsString> = vec![];
-        
+        return_vec.push(self.set_mov_overlay());
+        return_vec.push(self.set_input_pan());
+        return_vec.push(self.play_anim());
         return_vec
     }
+    
+    fn set_mov_overlay(&mut self) -> JsString {
+        format!("http://{}:8088/api/?Function=OverlayInput4&Input={}", self.consts.ip, self.get_mov()).into()
+    }
+
+    fn set_input_pan(&mut self) -> JsString {
+        let pan = match self.num.parse::<u8>().unwrap() {
+            1 => -0.628,
+            2 => -0.628+0.419,
+            3 => -0.628+0.419*2.0,
+            4 => -0.628+0.419*3.0,
+            _ => -0.628,
+        };
+        format!("http://{}:8088/api/?Function=SetPanX&Value={}&Input={}", self.consts.ip, pan, self.get_mov()).into()
+    }
+    
+    fn play_anim(&mut self) -> JsString {
+        format!("http://{}:8088/api/?Function=Play&Input={}", self.consts.ip, self.get_mov()).into()
+    }
+    
     fn get_mov(&self) -> String {
         let mut mov = "0".to_string();
+        
         if let Some(player) = self.player.clone() {
             mov = player.results[self.hole].get_mov().to_string();
         }
@@ -97,10 +120,8 @@ impl Player {
     }
 
     fn set_hole_score(&mut self) -> Vec<JsString> {
-        log(&format!("{}", self.hole));
         let mut return_vec: Vec<JsString> = vec![];
         if let Some(player) = self.player.clone() {
-            log(&format!("{:#?}", player));
             // self.start_score_anim();
             // wait Xms
             let selection = format!(
@@ -115,15 +136,7 @@ impl Player {
             );
             let url = format!("http://{}:8088/api/?", self.consts.ip);
             let result = &player.results[self.hole];
-            println!(
-                "{}",
-                format!(
-                    "{}Function=SetColor&Value=%23{}{}",
-                    &url,
-                    &result.get_score_colour(),
-                    &select_colour
-                )
-            );
+            
 
             // Set score
             return_vec.push(
@@ -350,6 +363,12 @@ impl MyApp {
     pub fn increase_score(&mut self) -> Vec<JsString> {
         log("increase_score");
         self.get_focused().set_hole_score()
+    }
+
+    #[wasm_bindgen]
+    pub fn play_animation(&mut self) -> Vec<JsString> {
+        log("play_animation");
+        self.get_focused().start_score_anim()
     }
 
     fn get_focused(&mut self) -> &mut Player {

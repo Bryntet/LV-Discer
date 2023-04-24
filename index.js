@@ -266,6 +266,7 @@ class instance extends instance_skel {
 						this.rust_main.set_foc(this.foc_player_ind)
 					}
 					console.log(inc)
+					console.log()
 					this.wrapRunCommands(inc)
 				},
 			},
@@ -273,6 +274,30 @@ class instance extends instance_skel {
 				label: 'OB',
 				callback: () => {
 					// Your code for OB
+				},
+			},
+			run_animation: {
+				label: 'Run animation',
+				options: [
+					{
+						type: 'dropdown',
+						label: 'Focused player',
+						id: 'focused_player',
+						default: 'none', // Set the default value to 'none'
+						choices: this.focused_players,
+					},
+				],
+				callback: (action) => {
+					const foc_player = action.options.focused_player
+					if (foc_player != 'none') {
+						this.rust_main.set_foc(foc_player)
+					}
+					let thing = this.rust_main.play_animation()
+					console.log(thing)
+					this.wrapRunCommands(thing)
+					if (foc_player != 'none') {
+						this.rust_main.set_foc(this.foc_player_ind)
+					}
 				},
 			},
 		}
