@@ -145,21 +145,16 @@ pub mod queries {
             }
         }
         
-        pub fn get_mov(&self) -> &str {
-            match self.score as i64 {
-                1 => "00 ace.mov",
-                _ => {
-                    match self.actual_score() as i64 {
-                        3 => "30 3xBogey.mov",
-                        2 => "20 2xBogey.mov",
-                        1 => "10 bogey.mov",
-                        0 => "04 par.mov",
-                        -1 => "03 birdie.mov",
-                        -2 => "02 eagle.mov",
-                        -3 => "01 albatross.mov",
-                        _ => "0",
-                    }
-                }
+        pub fn get_mov(&self) -> &str {  
+            match self.actual_score() as i64 {
+                3 => "30 3xBogey.mov",
+                2 => "20 2xBogey.mov",
+                1 => "10 bogey.mov",
+                0 => "04 par.mov",
+                -1 => "03 birdie.mov",
+                -2 => "02 eagle.mov",
+                -3 => if self.score == 1.0 {"00 ace.mov"} else {"01 albatross.mov"},
+                _ => "0",
             }
         }
     }
