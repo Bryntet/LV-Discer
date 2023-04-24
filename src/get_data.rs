@@ -129,7 +129,6 @@ pub mod queries {
                 log(&format!("no par for hole {}", self.hole.number));
                 self.score
             }
-        
         }
 
         pub fn get_score_colour(&self) -> &str {
@@ -144,8 +143,8 @@ pub mod queries {
                 _ => "000000",
             }
         }
-        
-        pub fn get_mov(&self) -> &str {  
+
+        pub fn get_mov(&self) -> &str {
             match self.actual_score() as i64 {
                 3 => "30 3xBogey.mov",
                 2 => "20 2xBogey.mov",
@@ -153,7 +152,13 @@ pub mod queries {
                 0 => "04 par.mov",
                 -1 => "03 birdie.mov",
                 -2 => "02 eagle.mov",
-                -3 => if self.score == 1.0 {"00 ace.mov"} else {"01 albatross.mov"},
+                -3 => {
+                    if self.score == 1.0 {
+                        "00 ace.mov"
+                    } else {
+                        "01 albatross.mov"
+                    }
+                }
                 _ => "0",
             }
         }

@@ -76,13 +76,12 @@ impl Default for Player {
     }
 }
 impl Player {
-    
     fn player_selector(&mut self, player: get_data::queries::PoolLeaderboardPlayer) {
         self.player = Some(player);
         self.set_name();
         self.reset_scores();
     }
-    
+
     fn start_score_anim(&mut self) -> Vec<JsString> {
         let mut return_vec: Vec<JsString> = vec![];
         return_vec.push(self.set_mov_overlay());
@@ -90,29 +89,45 @@ impl Player {
         return_vec.push(self.play_anim());
         return_vec
     }
-    
+
     fn set_mov_overlay(&mut self) -> JsString {
-        format!("http://{}:8088/api/?Function=OverlayInput4&Input={}", self.consts.ip, self.get_mov()).into()
+        format!(
+            "http://{}:8088/api/?Function=OverlayInput4&Input={}",
+            self.consts.ip,
+            self.get_mov()
+        )
+        .into()
     }
 
     fn set_input_pan(&mut self) -> JsString {
         let pan = match self.num.parse::<u8>().unwrap() {
             1 => -0.628,
-            2 => -0.628+0.419,
-            3 => -0.628+0.419*2.0,
-            4 => -0.628+0.419*3.0,
+            2 => -0.628 + 0.419,
+            3 => -0.628 + 0.419 * 2.0,
+            4 => -0.628 + 0.419 * 3.0,
             _ => -0.628,
         };
-        format!("http://{}:8088/api/?Function=SetPanX&Value={}&Input={}", self.consts.ip, pan, self.get_mov()).into()
+        format!(
+            "http://{}:8088/api/?Function=SetPanX&Value={}&Input={}",
+            self.consts.ip,
+            pan,
+            self.get_mov()
+        )
+        .into()
     }
-    
+
     fn play_anim(&mut self) -> JsString {
-        format!("http://{}:8088/api/?Function=Play&Input={}", self.consts.ip, self.get_mov()).into()
+        format!(
+            "http://{}:8088/api/?Function=Play&Input={}",
+            self.consts.ip,
+            self.get_mov()
+        )
+        .into()
     }
-    
+
     fn get_mov(&self) -> String {
         let mut mov = "0".to_string();
-        
+
         if let Some(player) = self.player.clone() {
             mov = player.results[self.hole].get_mov().to_string();
         }
@@ -136,7 +151,6 @@ impl Player {
             );
             let url = format!("http://{}:8088/api/?", self.consts.ip);
             let result = &player.results[self.hole];
-            
 
             // Set score
             return_vec.push(
@@ -261,7 +275,7 @@ impl Player {
                 &self.consts.vmix_id,
                 format!("t%23p{}", self.num)
             );
-             
+
             JsString::from(format!(
                 "{}Function=SetText&Value={}{}",
                 &url, self.throws, &selection
@@ -312,7 +326,6 @@ impl Default for MyApp {
 
 #[wasm_bindgen]
 impl MyApp {
-    
     #[wasm_bindgen(constructor)]
     pub fn new() -> MyApp {
         MyApp::default()
@@ -431,7 +444,6 @@ impl MyApp {
         return_vec
     }
 
-
     #[wasm_bindgen]
     pub fn get_player_ids(&self) -> Vec<JsString> {
         let mut return_vec = vec![];
@@ -462,7 +474,12 @@ impl MyApp {
     #[wasm_bindgen]
     pub fn get_focused_player_names(&self) -> Vec<JsString> {
         let mut return_vec = vec![];
-        for player in vec![self.score_card.p1.clone(), self.score_card.p2.clone(), self.score_card.p3.clone(), self.score_card.p4.clone()] {
+        for player in vec![
+            self.score_card.p1.clone(),
+            self.score_card.p2.clone(),
+            self.score_card.p3.clone(),
+            self.score_card.p4.clone(),
+        ] {
             if let Some(player) = player.player {
                 return_vec.push(JsString::from(format!(
                     "{} {}",
