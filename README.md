@@ -1,3 +1,3 @@
-# A rust based GUI tool that integrates the Tjing graphql API with vmix
+# A rust web asdembly based companion module that integrates the Tjing graphql API with vMix
 
 # VERY WIP
