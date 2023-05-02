@@ -326,10 +326,8 @@ class instance extends instance_skel {
 	}
 	updateConfig(config) {
 		let resetConnection = false
+		console.log(config.vmix_ip, this.config.vmix_ip)
 		
-		if (config.vmix_ip !== this.config.vmix_ip) {
-			this.rust_main.ip = config.vmix_ip
-		}
 		console.log(config)
 		this.config = config
 		if (this.config.vmix_input_id) {

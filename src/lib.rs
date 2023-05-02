@@ -332,7 +332,11 @@ impl MyApp {
     }
     #[wasm_bindgen(setter = ip)]
     pub fn set_ip(&mut self, ip: String) {
-        self.consts.ip = ip;
+        
+        self.consts.ip = ip.clone();
+        self.score_card.consts.ip = ip;
+        log(&format!("ip set to {}", &self.consts.ip));
+        
     }
     #[wasm_bindgen(setter = div)]
     pub fn set_div(&mut self, idx: usize) {
@@ -512,7 +516,7 @@ pub struct ScoreCard {
     pub all_players: Vec<Player>,
     #[wasm_bindgen(skip)]
     pub all_play_players: Vec<get_data::queries::PoolLeaderboardPlayer>,
-    test: String,
+    consts: Constants,
 }
 
 #[wasm_bindgen]
@@ -536,6 +540,7 @@ impl ScoreCard {
                 let mut new_player = Player {
                     player: Some(player.clone()),
                     num: (player_num).to_string(),
+                    consts: self.consts.clone(),
                     ..Default::default()
                 };
                 out_vec.push(new_player.set_name());
