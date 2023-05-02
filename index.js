@@ -308,7 +308,17 @@ class instance extends instance_skel {
 
 	async runCommands(url_list) {
 		for (const url of url_list) {
-			await fetch(url)
+			try {await fetch(url)} 
+			catch (err) {
+				for (let i = 0; i < 3; i++) {
+					try {
+						await fetch(url)
+						break
+					} catch (err) {
+						console.log(err)
+					}
+				}
+			}
 		}
 	}
 
