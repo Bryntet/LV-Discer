@@ -84,6 +84,7 @@ impl Player {
 
     fn start_score_anim(&mut self) -> Vec<JsString> {
         let mut return_vec: Vec<JsString> = vec![];
+        return_vec.push(format!("http://{}:8088/api/?Function=OverlayInput4Off", self.consts.ip).into());
         return_vec.push(self.set_input_pan());
         return_vec.push(self.set_mov_overlay());
         //return_vec.append(&mut self.play_anim());
