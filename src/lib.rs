@@ -86,7 +86,7 @@ impl Player {
         let mut return_vec: Vec<JsString> = vec![];
         return_vec.push(self.set_mov_overlay());
         return_vec.push(self.set_input_pan());
-        return_vec.push(self.play_anim());
+        return_vec.append(&mut self.play_anim());
         return_vec
     }
 
@@ -116,13 +116,20 @@ impl Player {
         .into()
     }
 
-    fn play_anim(&mut self) -> JsString {
+    fn play_anim(&mut self) -> Vec<JsString> {
+        
+        vec![
+            format!(
+            "http://{}:8088/api/?Function=Restart&Input={}",
+            self.consts.ip,
+            self.get_mov()
+        ).into(),
         format!(
             "http://{}:8088/api/?Function=Play&Input={}",
             self.consts.ip,
             self.get_mov()
         )
-        .into()
+        .into()]
     }
 
     fn get_mov(&self) -> String {
