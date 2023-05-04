@@ -86,7 +86,7 @@ impl Player {
         let mut return_vec: Vec<JsString> = vec![];
         return_vec.push(self.set_mov_overlay());
         return_vec.push(self.set_input_pan());
-        return_vec.append(&mut self.play_anim());
+        //return_vec.append(&mut self.play_anim());
         return_vec
     }
 
