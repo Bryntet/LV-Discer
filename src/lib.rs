@@ -55,6 +55,7 @@ pub struct Player {
     throws: u8,
     score: f64,
     shift: usize,
+    ob: bool,
 }
 
 impl Default for Player {
@@ -74,6 +75,7 @@ impl Default for Player {
             throws: 0,
             score: 0.0,
             shift: 0,
+            ob: false,
         }
     }
 }
@@ -89,6 +91,7 @@ impl Player {
         return_vec.push(format!("http://{}:8088/api/?Function=OverlayInput4Off", self.consts.ip).into());
         return_vec.push(self.set_input_pan());
         return_vec.push(self.set_mov_overlay());
+        self.ob = false;
         //return_vec.append(&mut self.play_anim());
         return_vec
     }
@@ -120,7 +123,6 @@ impl Player {
     }
 
     fn play_anim(&mut self) -> Vec<JsString> {
-        
         vec![
             format!(
             "http://{}:8088/api/?Function=Restart&Input={}",
@@ -136,12 +138,13 @@ impl Player {
     }
 
     fn get_mov(&self) -> String {
-        let mut mov = "0".to_string();
-
-        if let Some(player) = self.player.clone() {
-            mov = player.results[self.hole].get_mov().to_string();
+        if self.ob {
+            "50 ob.mov".to_string()
+        } else if let Some(player) = self.player.clone() {
+            player.results[self.hole].get_mov().to_string()
+        } else {
+            "".to_string()
         }
-        mov
     }
 
     fn set_hole_score(&mut self) -> Vec<JsString> {
@@ -225,14 +228,16 @@ impl Player {
             let in_hole = self.hole.clone();
             let diff = self.hole - 8;
             self.hole = diff;
+            let score = self.score.clone();
             log(&format!("diff: {}", diff));
-            for i in diff..in_hole+1 {
+            for i in diff..in_hole {
                 log(&format!("i: {}", i));
                 self.shift = diff;
                 log(&format!("hole: {}\nshift: {}", self.hole, self.shift));
                 return_vec.append(&mut self.set_hole_score());
             } 
-            self.hole = in_hole;
+            self.score = score;
+            return_vec.append(&mut self.set_hole_score());
             return_vec
         } else {
             vec![]
@@ -241,7 +246,7 @@ impl Player {
 
     fn reset_scores(&mut self) -> Vec<JsString> {
         let mut return_vec = vec![];
-        for i in 1..19 {
+        for i in 0..9 {
             self.hole = i;
             return_vec.append(&mut self.del_score());
         }
@@ -257,12 +262,17 @@ impl Player {
         let selection = format!(
             "&Input={}&SelectedName={}.Text",
             &self.consts.vmix_id,
-            format!("s{}p{}", self.hole, self.num)
+            format!("s{}p{}", self.hole+1, self.num)
         );
         let select_colour = format!(
             "&Input={}&SelectedName={}.Fill.Color",
             &self.consts.vmix_id,
-            format!("h{}p{}", self.hole, self.num)
+            format!("h{}p{}", self.hole+1, self.num)
+        );
+        let selection_hole = format!(
+            "&Input={}&SelectedName={}.Text",
+            &self.consts.vmix_id,
+            format!("HN{}p{}", self.hole+1, self.num)
         );
         return_vec.push(format!("{}Function=SetText&Value={}{}", &url, "", &selection).into());
         return_vec.push(
@@ -271,6 +281,13 @@ impl Player {
                 &url, self.consts.default_bg_col, &select_colour
             )
             .into(),
+        );
+        return_vec.push(
+            format!(
+                "{}Function=SetText&Value={}{}",
+                &url, &self.hole+1, &selection_hole
+            )
+            .into()
         );
         return_vec.push(format!("{}Function=SetTextVisibleOff{}", &url, &selection).into());
         return_vec
@@ -431,6 +448,13 @@ impl MyApp {
     #[wasm_bindgen]
     pub fn play_animation(&mut self) -> Vec<JsString> {
         log("play_animation");
+        self.get_focused().start_score_anim()
+    }
+
+    #[wasm_bindgen]
+    pub fn ob_anim(&mut self) -> Vec<JsString> {
+        log("ob_anim");
+        self.get_focused().ob = true;
         self.get_focused().start_score_anim()
     }
 
@@ -607,12 +631,8 @@ mod tests {
     use wasm_bindgen_futures::JsFuture;
     use wasm_bindgen_test::*;
     use wasm_bindgen::prelude::*;
-
-    #[wasm_bindgen]
-    extern "C" {
-        #[wasm_bindgen(js_namespace = console)]
-        fn log(s: &str);
-    }
+    
+    
     async fn generate_app() -> MyApp {
         let mut app = MyApp::default();
         //app.set_pool_id("5f9b4b4e-5b7c-4b1e-8b0a-0b9b5b4a4b4b".into());
@@ -628,32 +648,25 @@ mod tests {
         app
     }
 
-    #[wasm_bindgen_test]
-    async fn test_shift_scores() {
-        let mut app = generate_app().await;
-        // Call the shift_scores method.
-        
-        
-        app.get_focused().hole = 11;
+    async fn run_from_rust(urls: Vec<JsString>) {
         let client = reqwest::Client::new();
-        for url in app.get_focused().shift_scores() {
+        for url in urls {
             let _ = client
             .post::<String>(url.into())
             .send().await;
         }
-        
-        //let shifted_scores_js_strings = app.score_card.p1.shift_scores();
-        
-        // Check if the scores have been shifted correctly.
-        // Check the expected state of the `Player` instance after shifting.
-        // You may need to iterate over the shifted_scores_js_strings and parse the data
-        // to ensure it matches the expected state.
-        // You can also directly check the state of the player.results field after the shift.
-
-        // Add assertions to ensure that the state of the `Player` instance is as expected.
-        // For example:
-        // assert_eq!(player.hole, expected_hole_value);
-        // assert_eq!(player.score, expected_score_value);
-        // assert_eq!(player.shift, expected_shift_value);
     }
+
+    #[wasm_bindgen_test]
+    async fn test_shift_scores() {
+        let mut app = generate_app().await;
+        app.get_focused().hole = 17;
+        run_from_rust(app.get_focused().shift_scores()).await;        
+    }
+
+    #[wasm_bindgen_test]
+    async fn delete_scores() {
+        run_from_rust(generate_app().await.get_focused().reset_scores()).await;
+    }
+
 }

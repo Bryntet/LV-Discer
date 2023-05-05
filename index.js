@@ -112,11 +112,21 @@ class instance extends instance_skel {
 	}
 
 	init() {
-		this.players = [{ id: 'none', label: 'None' }]
-		this.div_names = [{ id: 'none', label: 'None'}]		
+		if (typeof this.players === 'undefined') {
+			this.players = []
+		}
+		this.players.push({ id: 'none', label: 'None' })
+		if (typeof this.div_names === 'undefined') {
+			this.div_names = []
+		}
+		this.div_names.push({ id: 'none', label: 'None'})
 		this.foc_player_ind = 0
 		this.setVariable('player_name', "")
+		
 		this.hole = 0
+		if (typeof this.focused_players === 'undefined') {
+			this.focused_players = []
+		}
 		this.focused_players = [{ id: 'none', label: 'None'}]
 		
 	}
@@ -267,7 +277,7 @@ class instance extends instance_skel {
 			ob: {
 				label: 'OB',
 				callback: () => {
-					// Your code for OB
+					this.wrapRunCommands(this.rust_main.ob_anim())
 				},
 			},
 			run_animation: {
