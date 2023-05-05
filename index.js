@@ -118,7 +118,6 @@ class instance extends instance_skel {
 		this.setVariable('player_name', "")
 		this.hole = 0
 		this.focused_players = [{ id: 'none', label: 'None'}]
-		this.saveConfig()
 		
 	}
 	initFeedbacks() {
