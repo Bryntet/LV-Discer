@@ -113,7 +113,7 @@ class instance extends instance_skel {
 		this.div_names = [{ id: 'none', label: 'None'}]
 		this.config.vmix_ip = "37.123.135.170"
 		this.config.pool_id = 'a592cf05-095c-439f-b69c-66511b6ce9c6'
-		this.config.vmix_input_id = '506fbd14-52fc-495b-8d17-5b924fba64f3'
+		this.config.vmix_input_id = '1e8955e9-0925-4b54-9e05-69c1b3bbe5ae'
 		this.config.p1 = "none"
 		this.config.p2 = "none"
 		this.config.p3 = "none"
