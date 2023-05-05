@@ -36,10 +36,10 @@ pub struct Constants {
 impl Default for Constants {
     fn default() -> Self {
         Self {
-            ip: "37.123.135.170".to_string(),
+            ip: "192.168.120.135".to_string(),
             pool_id: "a592cf05-095c-439f-b69c-66511b6ce9c6".to_string(),
             default_bg_col: "3F334D".to_string(),
-            vmix_id: "506fbd14-52fc-495b-8d17-5b924fba64f3".to_string(),
+            vmix_id: "1e8955e9-0925-4b54-9e05-69c1b3bbe5ae".to_string(),
         }
     }
 }
@@ -54,6 +54,7 @@ pub struct Player {
     consts: Constants,
     throws: u8,
     score: f64,
+    shift: usize,
 }
 
 impl Default for Player {
@@ -72,6 +73,7 @@ impl Default for Player {
             consts: Constants::default(),
             throws: 0,
             score: 0.0,
+            shift: 0,
         }
     }
 }
@@ -104,7 +106,7 @@ impl Player {
         let pan = match self.num.parse::<u8>().unwrap() {
             1 => -0.628,
             2 => -0.628 + 0.419,
-            3 => -0.628 + 0.418 * 2.0,
+            3 => -0.628 + 0.4185 * 2.0,
             4 => -0.628 + 0.419 * 3.0,
             _ => -0.628,
         };
@@ -150,12 +152,17 @@ impl Player {
             let selection = format!(
                 "&Input={}&SelectedName={}.Text",
                 &self.consts.vmix_id,
-                format!("s{}p{}", self.hole + 1, self.num)
+                format!("s{}p{}", self.hole + 1 - self.shift, self.num)
             );
             let select_colour = format!(
                 "&Input={}&SelectedName={}.Fill.Color",
                 &self.consts.vmix_id,
-                format!("h{}p{}", self.hole + 1, self.num)
+                format!("h{}p{}", self.hole + 1 - self.shift, self.num)
+            );
+            let selection_hole = format!(
+                "&Input={}&SelectedName={}.Text",
+                &self.consts.vmix_id,
+                format!("HN{}p{}", self.hole + 1 - self.shift, self.num)
             );
             let url = format!("http://{}:8088/api/?", self.consts.ip);
             let result = &player.results[self.hole];
@@ -180,15 +187,22 @@ impl Player {
             );
             // Show score
             return_vec.push(format!("{}Function=SetTextVisibleOn{}", &url, &selection).into());
+            return_vec.push(format!("{}Function=SetTextVisibleOn{}", &url, &selection_hole).into());
+            return_vec.push(
+                format!(
+                    "{}Function=SetText&Value={}{}",
+                    &url, &self.hole+1, &selection_hole
+                )
+                .into()
+            );
 
             self.score += result.actual_score();
             return_vec.push(self.set_tot_score());
             self.hole += 1;
             self.throws = 0;
             return_vec.push(self.set_throw());
-            return return_vec;
         }
-        return vec![];
+        return_vec
     }
 
     fn set_tot_score(&mut self) -> JsString {
@@ -203,6 +217,26 @@ impl Player {
             &url, &self.score, &selection
         )
         .into()
+    }
+
+    fn shift_scores(&mut self) -> Vec<JsString> {
+        let mut return_vec = vec![];
+        if self.hole > 8 {
+            let in_hole = self.hole.clone();
+            let diff = self.hole - 8;
+            self.hole = diff;
+            log(&format!("diff: {}", diff));
+            for i in diff..in_hole+1 {
+                log(&format!("i: {}", i));
+                self.shift = diff;
+                log(&format!("hole: {}\nshift: {}", self.hole, self.shift));
+                return_vec.append(&mut self.set_hole_score());
+            } 
+            self.hole = in_hole;
+            return_vec
+        } else {
+            vec![]
+        }
     }
 
     fn reset_scores(&mut self) -> Vec<JsString> {
@@ -313,7 +347,7 @@ pub struct MyApp {
 impl Default for MyApp {
     fn default() -> MyApp {
         MyApp {
-            id: String::from("506fbd14-52fc-495b-8d17-5b924fba64f3"),
+            id: String::from("1e8955e9-0925-4b54-9e05-69c1b3bbe5ae"),
             name: String::from("TextBlock3.Text"),
             text: String::from(""),
             score_card: ScoreCard::default(),
@@ -323,10 +357,10 @@ impl Default for MyApp {
             foc_play_ind: 0,
             consts: Constants::default(),
             input_ids: vec![
-                "506fbd14-52fc-495b-8d17-5b924fba64f3".to_string(),
-                "506fbd14-52fc-495b-8d17-5b924fba64f3".to_string(),
-                "506fbd14-52fc-495b-8d17-5b924fba64f3".to_string(),
-                "506fbd14-52fc-495b-8d17-5b924fba64f3".to_string(),
+                "1e8955e9-0925-4b54-9e05-69c1b3bbe5ae".to_string(),
+                "1e8955e9-0925-4b54-9e05-69c1b3bbe5ae".to_string(),
+                "1e8955e9-0925-4b54-9e05-69c1b3bbe5ae".to_string(),
+                "1e8955e9-0925-4b54-9e05-69c1b3bbe5ae".to_string(),
             ],
         }
     }
@@ -539,11 +573,6 @@ impl ScoreCard {
         //let player_id = player_id.trim_start_matches("\"").trim_end_matches("\"").to_string();
         let mut out_vec = vec![];
         for player in &self.all_play_players {
-            log(&format!(
-                "{:?}, {:?}",
-                &player.player_id,
-                cynic::Id::from(&player_id)
-            ));
             if player.player_id == cynic::Id::from(&player_id) {
                 let mut new_player = Player {
                     player: Some(player.clone()),
@@ -563,5 +592,64 @@ impl ScoreCard {
             }
         }
         out_vec
+    }
+}
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tokio_test;
+    use wasm_bindgen_futures::JsFuture;
+    use wasm_bindgen_test::*;
+    use wasm_bindgen::prelude::*;
+
+    #[wasm_bindgen]
+    extern "C" {
+        #[wasm_bindgen(js_namespace = console)]
+        fn log(s: &str);
+    }
+    async fn generate_app() -> MyApp {
+        let mut app = MyApp::default();
+        //app.set_pool_id("5f9b4b4e-5b7c-4b1e-8b0a-0b9b5b4a4b4b".into());
+        let _ = app.get_divs().await;
+        
+        
+        app.set_div(0);
+        let ids = app.get_player_ids();
+        for i in 1..5 {
+            app.set_player(i.clone(), ids[i.clone()].clone().into());
+        }
+        app.set_foc(1);
+        app
+    }
+
+    #[wasm_bindgen_test]
+    async fn test_shift_scores() {
+        let mut app = generate_app().await;
+        // Call the shift_scores method.
+        
+        
+        app.get_focused().hole = 10;
+        let client = reqwest::Client::new();
+        for url in app.get_focused().shift_scores() {
+            let _ = client
+            .post::<String>(url.into())
+            .send().await;
+        }
+        
+        //let shifted_scores_js_strings = app.score_card.p1.shift_scores();
+        
+        // Check if the scores have been shifted correctly.
+        // Check the expected state of the `Player` instance after shifting.
+        // You may need to iterate over the shifted_scores_js_strings and parse the data
+        // to ensure it matches the expected state.
+        // You can also directly check the state of the player.results field after the shift.
+
+        // Add assertions to ensure that the state of the `Player` instance is as expected.
+        // For example:
+        // assert_eq!(player.hole, expected_hole_value);
+        // assert_eq!(player.score, expected_score_value);
+        // assert_eq!(player.shift, expected_shift_value);
     }
 }
