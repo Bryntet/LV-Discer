@@ -421,7 +421,11 @@ impl MyApp {
     #[wasm_bindgen]
     pub fn increase_score(&mut self) -> Vec<JsString> {
         log("increase_score");
-        self.get_focused().set_hole_score()
+        if self.get_focused().hole > 8 {
+            self.get_focused().shift_scores()
+        } else {
+            self.get_focused().set_hole_score()
+        }
     }
 
     #[wasm_bindgen]
@@ -630,7 +634,7 @@ mod tests {
         // Call the shift_scores method.
         
         
-        app.get_focused().hole = 10;
+        app.get_focused().hole = 11;
         let client = reqwest::Client::new();
         for url in app.get_focused().shift_scores() {
             let _ = client
