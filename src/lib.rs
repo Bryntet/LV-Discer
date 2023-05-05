@@ -455,7 +455,9 @@ impl MyApp {
     pub fn ob_anim(&mut self) -> Vec<JsString> {
         log("ob_anim");
         self.get_focused().ob = true;
-        self.get_focused().start_score_anim()
+        let mut t = self.get_focused().start_score_anim();
+        t.push(self.increase_throw());
+        t
     }
 
     fn get_focused(&mut self) -> &mut Player {
