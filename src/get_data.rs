@@ -45,11 +45,11 @@ pub async fn post_status(pool_id: cynic::Id) -> cynic::GraphQlResponse<queries::
         .json(&operation)
         .send()
         .await
-        .unwrap();
+        .expect("failed to send request");
     response
         .json::<GraphQlResponse<queries::PoolLBAfter>>()
         .await
-        .unwrap()
+        .expect("failed to parse response")
 }
 
 #[cynic::schema_for_derives(file = r#"src/schema.graphql"#, module = "schema")]
