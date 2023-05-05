@@ -45,18 +45,21 @@ class instance extends instance_skel {
 				label: 'vMix IP Adress',
 				width: 6,
 				regex: this.REGEX_IP,
+				default: '192.168.120.135',
 			},
 			{
 				type: 'textinput',
 				id: 'pool_id',
 				label: 'Pool ID',
 				width: 6,
+				default: 'a592cf05-095c-439f-b69c-66511b6ce9c6',
 			},
 			{
 				type: 'textinput',
 				id: 'vmix_input_id',
 				label: 'vMix input ID',
 				width: 6,
+				default: '1e8955e9-0925-4b54-9e05-69c1b3bbe5ae',
 			},
 			{
 				type: 'dropdown',
@@ -98,7 +101,7 @@ class instance extends instance_skel {
 				default: 'none',
 				choices: this.players,
 			},
-		];
+		]
 	}
 
 	
@@ -110,15 +113,7 @@ class instance extends instance_skel {
 
 	init() {
 		this.players = [{ id: 'none', label: 'None' }]
-		this.div_names = [{ id: 'none', label: 'None'}]
-		this.config.vmix_ip = "37.123.135.170"
-		this.config.pool_id = 'a592cf05-095c-439f-b69c-66511b6ce9c6'
-		this.config.vmix_input_id = '1e8955e9-0925-4b54-9e05-69c1b3bbe5ae'
-		this.config.p1 = "none"
-		this.config.p2 = "none"
-		this.config.p3 = "none"
-		this.config.p4 = "none"
-		this.config.div = "none"
+		this.div_names = [{ id: 'none', label: 'None'}]		
 		this.foc_player_ind = 0
 		this.setVariable('player_name', "")
 		this.hole = 0
