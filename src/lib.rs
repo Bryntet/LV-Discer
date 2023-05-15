@@ -114,7 +114,7 @@ impl Player {
             _ => -0.628,
         };
         format!(
-            "FUNCTION SetPanX Value={} Input={}",
+            "FUNCTION SetPanX Value={}&Input={}",
             pan,
             self.get_mov()
         )
@@ -140,7 +140,7 @@ impl Player {
         } else if let Some(player) = self.player.clone() {
             player.results[self.hole].get_mov().to_string()
         } else {
-            "".to_string()
+            "AAA FUCK THIS SHOULDN'T HAPPEN".to_string()
         }
     }
 
@@ -150,17 +150,17 @@ impl Player {
             // self.start_score_anim();
             // wait Xms
             let selection = format!(
-                "Input={} SelectedName={}.Text",
+                "Input={}&SelectedName={}.Text",
                 &self.consts.vmix_id,
                 format!("s{}p{}", self.hole + 1 - self.shift, self.num)
             );
             let select_colour = format!(
-                "Input={} SelectedName={}.Fill.Color",
+                "Input={}&SelectedName={}.Fill.Color",
                 &self.consts.vmix_id,
                 format!("h{}p{}", self.hole + 1 - self.shift, self.num)
             );
             let selection_hole = format!(
-                "Input={} SelectedName={}.Text",
+                "Input={}&SelectedName={}.Text",
                 &self.consts.vmix_id,
                 format!("HN{}p{}", self.hole + 1 - self.shift, self.num)
             );
@@ -169,7 +169,7 @@ impl Player {
             // Set score
             return_vec.push(
                 format!(
-                    "FUNCTION SetText Value={} {}",
+                    "FUNCTION SetText Value={}&{}",
                     &result.score, &selection
                 )
                 .into(),
@@ -177,7 +177,7 @@ impl Player {
             // Set colour
             return_vec.push(
                 format!(
-                    "FUNCTION SetColor Value=#{} {}",
+                    "FUNCTION SetColor Value=#{}&{}",
                     &result.get_score_colour(),
                     &select_colour
                 )
@@ -188,7 +188,7 @@ impl Player {
             return_vec.push(format!("FUNCTION SetTextVisibleOn {}", &selection_hole).into());
             return_vec.push(
                 format!(
-                    "FUNCTION SetText Value={} {}",
+                    "FUNCTION SetText Value={}&{}",
                     &self.hole+1, &selection_hole
                 )
                 .into()
@@ -205,12 +205,12 @@ impl Player {
 
     fn set_tot_score(&mut self) -> JsString {
         let selection = format!(
-            "Input={} SelectedName={}.Text",
+            "Input={}&SelectedName={}.Text",
             &self.consts.vmix_id,
             format!("scoretotp{}", self.num)
         );
         format!(
-            "FUNCTION SetText Value={} {}",
+            "FUNCTION SetText Value={}&{}",
             &self.score, &selection
         )
         .into()
@@ -253,31 +253,31 @@ impl Player {
     fn del_score(&mut self) -> Vec<JsString> {
         let mut return_vec: Vec<JsString> = vec![];
         let selection = format!(
-            "Input={} SelectedName={}.Text",
+            "Input={}&SelectedName={}.Text",
             &self.consts.vmix_id,
             format!("s{}p{}", self.hole+1, self.num)
         );
         let select_colour = format!(
-            "Input={} SelectedName={}.Fill.Color",
+            "Input={}&SelectedName={}.Fill.Color",
             &self.consts.vmix_id,
             format!("h{}p{}", self.hole+1, self.num)
         );
         let selection_hole = format!(
-            "Input={} SelectedName={}.Text",
+            "Input={}&SelectedName={}.Text",
             &self.consts.vmix_id,
             format!("HN{}p{}", self.hole+1, self.num)
         );
-        return_vec.push(format!("FUNCTION SetText Value={} {}", "", &selection).into());
+        return_vec.push(format!("FUNCTION SetText Value={}&{}", "", &selection).into());
         return_vec.push(
             format!(
-                "FUNCTION SetColor&Value=#{} {}",
+                "FUNCTION SetColor Value=#{}&{}",
                 self.consts.default_bg_col, &select_colour
             )
             .into(),
         );
         return_vec.push(
             format!(
-                "FUNCTION SetText&Value={} {}",
+                "FUNCTION SetText Value={}&{}",
                 &self.hole+1, &selection_hole
             )
             .into()
@@ -304,13 +304,13 @@ impl Player {
     fn set_name(&mut self) -> JsString {
         if let Some(player) = &self.player {
             let selection = format!(
-                "Input={} SelectedName={}.Text",
+                "Input={}&SelectedName={}.Text",
                 &self.consts.vmix_id,
                 format!("namep{}", self.num)
             );
             let name = format!("{} {}", &player.first_name, &player.last_name);
             JsString::from(format!(
-                "FUNCTION SetText&Value={} {}",
+                "FUNCTION SetText Value={}&{}",
                 name, &selection
             ))
         } else {
@@ -321,13 +321,13 @@ impl Player {
     fn set_throw(&self) -> JsString {
         if let Some(_player) = &self.player {
             let selection = format!(
-                "Input={} SelectedName={}.Text",
+                "Input={}&SelectedName={}.Text",
                 &self.consts.vmix_id,
                 format!("t#p{}", self.num)
             );
 
             JsString::from(format!(
-                "FUNCTION SetText&Value={} {}",
+                "FUNCTION SetText Value={}&{}",
                 self.throws, &selection
             ))
         } else {

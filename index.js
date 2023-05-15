@@ -14,7 +14,6 @@ global.Request = fetch.Request;
 // @ts-ignore
 global.Response = fetch.Response;
 global.AbortController = require('abort-controller')
-
 class instance extends instance_skel {
 	constructor(system, id, config) {
 		super(system, id, config)
@@ -28,9 +27,11 @@ class instance extends instance_skel {
 			},
 		])
 		this.client = new net.Socket()
+		this.client.setMaxListeners(40)
+		this.isConnected = false
+		this.second_one_running = false
 		this.initActions()
 		this.initFeedbacks()
-		
 
 	}
 
@@ -108,19 +109,33 @@ class instance extends instance_skel {
 		]
 	}
 
+
+	beConnected() {
+		if (!this.isConnected) {
+			this.client.connect({ port: 8099, host: this.config.vmix_ip }, () => {
+				this.isConnected = true
+				console.log('Connected to vMix')
+			})
+		}
+	}
+
 	vmixTCP(msg) {
-		this.client.connect({ port: 8099, host: this.ip }, () => {
-			console.log('Connected to vMix')
-			console.log('Sending: ' + msg)
-			client.write(msg+'\r\n')
-		})
-
+		if (!this.isConnected) {
+			console.log("Not connected to vMix, connecting...")
+			this.beConnected()
+		} 
+		console.log(msg.join('\r\n'))
+		this.client.write("\r\n"+msg.join("\r\n")+ "\r\n")
 		this.client.on('data', (data) => {
-			console.log('Received: ' + data)
+			if (data.includes("ERR")) {
+				console.log('Received error: \n' + data)
+				//this.client.destroy()
+			}
 		})
-
 		this.client.on('close', () => {
 			console.log('Connection closed')
+			this.destroy()
+			this.isConnected = false
 		})
 
 		this.client.on('error', (err) => {
@@ -142,6 +157,11 @@ class instance extends instance_skel {
 		if (typeof this.div_names === 'undefined') {
 			this.div_names = []
 		}
+		this.config.p1 = 'none'
+		this.config.p2 = 'none'
+		this.config.p3 = 'none'
+		this.config.p4 = 'none'
+		this.config.div = 'none'
 		this.div_names.push({ id: 'none', label: 'None'})
 		this.foc_player_ind = 0
 		this.setVariable('player_name', "")
@@ -243,7 +263,7 @@ class instance extends instance_skel {
 			reset_score: {
 				label: 'Reset score',
 				callback: () => {
-					this.wrapRunCommands(this.rust_main.reset_score())
+					this.vmixTCP(this.rust_main.reset_score())
 				},
 			},
 			increase_throw: {
@@ -300,7 +320,7 @@ class instance extends instance_skel {
 			ob: {
 				label: 'OB',
 				callback: () => {
-					this.wrapRunCommands(this.rust_main.ob_anim())
+					this.vmixTCP(this.rust_main.ob_anim())
 				},
 			},
 			run_animation: {
@@ -321,7 +341,7 @@ class instance extends instance_skel {
 					}
 					let thing = this.rust_main.play_animation()
 					console.log(thing)
-					this.wrapRunCommands(thing)
+					this.vmixTCP(thing)
 					if (foc_player != 'none') {
 						this.rust_main.set_foc(this.foc_player_ind)
 					}
@@ -362,6 +382,8 @@ class instance extends instance_skel {
 		})
 	}
 	updateConfig(config) {
+		this.client.destroy()
+		this.isConnected = false
 		let resetConnection = false
 		console.log(config.vmix_ip, this.config.vmix_ip)
 		
@@ -410,7 +432,7 @@ class instance extends instance_skel {
 			console.log(player)
 			if (typeof player === 'string' && player !== 'none') {
 				console.log("setting p1")
-				this.wrapRunCommands(this.rust_main.set_player(idx + 1, player))
+				this.vmixTCP(this.rust_main.set_player(idx + 1, player))
 			}
 		}
 		for (const [idx, name] of this.rust_main.get_focused_player_names().entries()) {

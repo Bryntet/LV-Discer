@@ -133,6 +133,7 @@ pub mod queries {
 
         pub fn get_score_colour(&self) -> &str {
             match self.actual_score() as i64 {
+                4 => "AB8E77", // TODO FIX CORRECT COLOUR
                 3 => "AB8E77",
                 2 => "CA988D",
                 1 => "EC928F",
@@ -140,12 +141,13 @@ pub mod queries {
                 -1 => "A6F8BB",
                 -2 => "6A8BE7",
                 -3 => "DD6AC9",
-                _ => "000000",
+                _ => "AB8E77",
             }
         }
 
         pub fn get_mov(&self) -> &str {
             match self.actual_score() as i64 {
+                4 => "40 ouch.mov",
                 3 => "30 3xBogey.mov",
                 2 => "20 2xBogey.mov",
                 1 => "10 bogey.mov",
@@ -159,7 +161,7 @@ pub mod queries {
                         "01 albatross.mov"
                     }
                 }
-                _ => "0",
+                _ => "",
             }
         }
     }
