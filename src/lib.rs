@@ -319,7 +319,7 @@ impl Player {
     }
 
     fn set_throw(&self) -> JsString {
-        if let Some(player) = &self.player {
+        if let Some(_player) = &self.player {
             let selection = format!(
                 "Input={} SelectedName={}.Text",
                 &self.consts.vmix_id,

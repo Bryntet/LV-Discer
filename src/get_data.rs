@@ -1,5 +1,5 @@
 use cynic::GraphQlResponse;
-use serde_json::json;
+
 use wasm_bindgen::prelude::*;
 #[wasm_bindgen]
 extern "C" {
