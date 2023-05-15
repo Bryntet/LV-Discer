@@ -2,6 +2,9 @@ const deasync = require('deasync');
 const instance_skel = require('../../instance_skel')
 const wasm = require("./pkg")
 const fetch = require('node-fetch')
+const net = require('net')
+
+
 // @ts-ignore
 global.fetch = fetch;
 // @ts-ignore
@@ -24,6 +27,7 @@ class instance extends instance_skel {
 				default: 'z',
 			},
 		])
+		this.client = new net.Socket()
 		this.initActions()
 		this.initFeedbacks()
 		
@@ -104,6 +108,25 @@ class instance extends instance_skel {
 		]
 	}
 
+	vmix_tcp(msg) {
+		this.client.connect({ port: 8099, host: this.ip }, () => {
+			console.log('Connected to vMix')
+			console.log('Sending: ' + msg)
+			client.write(msg+'\r\n')
+		})
+
+		this.client.on('data', (data) => {
+			console.log('Received: ' + data)
+		})
+
+		this.client.on('close', () => {
+			console.log('Connection closed')
+		})
+
+		this.client.on('error', (err) => {
+			console.error('There was an error with the connection: ', err)
+		})
+	}
 	
 
 	destroy() {
