@@ -108,7 +108,7 @@ class instance extends instance_skel {
 		]
 	}
 
-	vmix_tcp(msg) {
+	vmixTCP(msg) {
 		this.client.connect({ port: 8099, host: this.ip }, () => {
 			console.log('Connected to vMix')
 			console.log('Sending: ' + msg)
@@ -207,14 +207,14 @@ class instance extends instance_skel {
 						this.rust_main.set_foc(this.foc_player_ind)
 					}
 					console.log(inc)
-					this.wrapRunCommands(inc)
+					this.vmixTCP(inc)
 				},
 			},
 			revert_score_increase: {
 				label: 'Revert score increase',
 				callback: () => {
 					let inc = this.rust_main.revert_score()
-					this.wrapRunCommands(inc)
+					this.vmixTCP(inc)
 				},
 			},
 			change_focused_player: {
@@ -263,12 +263,12 @@ class instance extends instance_skel {
 						this.rust_main.set_foc(foc_player)
 					}
 					let inc = [this.rust_main.increase_throw()]
-					this.wrapRunCommands(inc)
+					this.vmixTCP(inc)
 					if (foc_player != 'none') {
 						this.rust_main.set_foc(this.foc_player_ind)
 					}
 					console.log(inc)
-					this.wrapRunCommands(inc)
+					this.vmixTCP(inc)
 				},
 			},
 			decrease_throw: {
@@ -288,13 +288,13 @@ class instance extends instance_skel {
 						this.rust_main.set_foc(foc_player)
 					}
 					let inc = [this.rust_main.decrease_throw()]
-					this.wrapRunCommands(inc)
+					this.vmixTCP(inc)
 					if (foc_player != 'none') {
 						this.rust_main.set_foc(this.foc_player_ind)
 					}
 					console.log(inc)
 					console.log()
-					this.wrapRunCommands(inc)
+					this.vmixTCP(inc)
 				},
 			},
 			ob: {
