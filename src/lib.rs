@@ -98,11 +98,7 @@ impl Player {
     }
 
     fn set_mov_overlay(&mut self) -> JsString {
-        format!(
-            "FUNCTION OverlayInput4 Input={}",
-            self.get_mov()
-        )
-        .into()
+        format!("FUNCTION OverlayInput4 Input={}", self.get_mov()).into()
     }
 
     fn set_input_pan(&mut self) -> JsString {
@@ -113,25 +109,14 @@ impl Player {
             4 => -0.628 + 0.419 * 3.0,
             _ => -0.628,
         };
-        format!(
-            "FUNCTION SetPanX Value={}&Input={}",
-            pan,
-            self.get_mov()
-        )
-        .into()
+        format!("FUNCTION SetPanX Value={}&Input={}", pan, self.get_mov()).into()
     }
 
     fn play_anim(&mut self) -> Vec<JsString> {
         vec![
-            format!(
-            "FUNCTION Restart Input={}",
-            self.get_mov()
-        ).into(),
-        format!(
-            "FUNCTION Play Input={}",
-            self.get_mov()
-        )
-        .into()]
+            format!("FUNCTION Restart Input={}", self.get_mov()).into(),
+            format!("FUNCTION Play Input={}", self.get_mov()).into(),
+        ]
     }
 
     fn get_mov(&self) -> String {
@@ -167,13 +152,8 @@ impl Player {
             let result = &player.results[self.hole];
 
             // Set score
-            return_vec.push(
-                format!(
-                    "FUNCTION SetText Value={}&{}",
-                    &result.score, &selection
-                )
-                .into(),
-            );
+            return_vec
+                .push(format!("FUNCTION SetText Value={}&{}", &result.score, &selection).into());
             // Set colour
             return_vec.push(
                 format!(
@@ -189,9 +169,10 @@ impl Player {
             return_vec.push(
                 format!(
                     "FUNCTION SetText Value={}&{}",
-                    &self.hole+1, &selection_hole
+                    &self.hole + 1,
+                    &selection_hole
                 )
-                .into()
+                .into(),
             );
 
             self.score += result.actual_score();
@@ -209,11 +190,7 @@ impl Player {
             &self.consts.vmix_id,
             format!("scoretotp{}", self.num)
         );
-        format!(
-            "FUNCTION SetText Value={}&{}",
-            &self.score, &selection
-        )
-        .into()
+        format!("FUNCTION SetText Value={}&{}", &self.score, &selection).into()
     }
 
     fn shift_scores(&mut self) -> Vec<JsString> {
@@ -228,11 +205,10 @@ impl Player {
             self.shift = diff;
             log(&format!("hole: {}\nshift: {}", self.hole, self.shift));
             return_vec.append(&mut self.set_hole_score());
-        } 
+        }
         self.score = score;
         return_vec.append(&mut self.set_hole_score());
         return_vec
-        
     }
 
     fn reset_scores(&mut self) -> Vec<JsString> {
@@ -252,17 +228,17 @@ impl Player {
         let selection = format!(
             "Input={}&SelectedName={}.Text",
             &self.consts.vmix_id,
-            format!("s{}p{}", self.hole+1, self.num)
+            format!("s{}p{}", self.hole + 1, self.num)
         );
         let select_colour = format!(
             "Input={}&SelectedName={}.Fill.Color",
             &self.consts.vmix_id,
-            format!("h{}p{}", self.hole+1, self.num)
+            format!("h{}p{}", self.hole + 1, self.num)
         );
         let selection_hole = format!(
             "Input={}&SelectedName={}.Text",
             &self.consts.vmix_id,
-            format!("HN{}p{}", self.hole+1, self.num)
+            format!("HN{}p{}", self.hole + 1, self.num)
         );
         return_vec.push(format!("FUNCTION SetText Value={}&{}", "", &selection).into());
         return_vec.push(
@@ -275,9 +251,10 @@ impl Player {
         return_vec.push(
             format!(
                 "FUNCTION SetText Value={}&{}",
-                &self.hole+1, &selection_hole
+                &self.hole + 1,
+                &selection_hole
             )
-            .into()
+            .into(),
         );
         return_vec.push(format!("FUNCTION SetTextVisibleOff {}", &selection).into());
         return_vec
@@ -295,7 +272,6 @@ impl Player {
                 if self.hole > 8 {
                     self.hole -= 1;
                     return_vec.append(&mut self.shift_scores());
-
                 } else {
                     return_vec.push(self.set_tot_score());
                 }
@@ -312,10 +288,7 @@ impl Player {
                 format!("namep{}", self.num)
             );
             let name = format!("{} {}", &player.first_name, &player.last_name);
-            JsString::from(format!(
-                "FUNCTION SetText Value={}&{}",
-                name, &selection
-            ))
+            JsString::from(format!("FUNCTION SetText Value={}&{}", name, &selection))
         } else {
             JsString::from("")
         }
@@ -385,11 +358,9 @@ impl MyApp {
     }
     #[wasm_bindgen(setter = ip)]
     pub fn set_ip(&mut self, ip: String) {
-        
         self.consts.ip = ip.clone();
         self.score_card.consts.ip = ip;
         log(&format!("ip set to {}", &self.consts.ip));
-        
     }
     #[wasm_bindgen(setter = div)]
     pub fn set_div(&mut self, idx: usize) {
@@ -619,22 +590,19 @@ impl ScoreCard {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
     use tokio_test;
+    use wasm_bindgen::prelude::*;
     use wasm_bindgen_futures::JsFuture;
     use wasm_bindgen_test::*;
-    use wasm_bindgen::prelude::*;
-    
-    
+
     async fn generate_app() -> MyApp {
         let mut app = MyApp::default();
         //app.set_pool_id("5f9b4b4e-5b7c-4b1e-8b0a-0b9b5b4a4b4b".into());
         let _ = app.get_divs().await;
-        
-        
+
         app.set_div(0);
         let ids = app.get_player_ids();
         for i in 1..5 {
@@ -647,9 +615,7 @@ mod tests {
     async fn run_from_rust(urls: Vec<JsString>) {
         let client = reqwest::Client::new();
         for url in urls {
-            let _ = client
-            .post::<String>(url.into())
-            .send().await;
+            let _ = client.post::<String>(url.into()).send().await;
         }
     }
 
@@ -657,12 +623,11 @@ mod tests {
     async fn test_shift_scores() {
         let mut app = generate_app().await;
         app.get_focused().hole = 17;
-        run_from_rust(app.get_focused().shift_scores()).await;        
+        run_from_rust(app.get_focused().shift_scores()).await;
     }
 
     #[wasm_bindgen_test]
     async fn delete_scores() {
         run_from_rust(generate_app().await.get_focused().reset_scores()).await;
     }
-
 }
