@@ -165,6 +165,10 @@ class instance extends instance_skel {
 		this.div_names.push({ id: 'none', label: 'None'})
 		this.foc_player_ind = 0
 		this.setVariable('player_name', "")
+		this.setVariable('p1', "")
+		this.setVariable('p2', "")
+		this.setVariable('p3', "")
+		this.setVariable('p4', "")
 		
 		this.hole = 0
 		if (typeof this.focused_players === 'undefined') {
@@ -440,7 +444,11 @@ class instance extends instance_skel {
 		}
 		this.initActions()
 		this.initFeedbacks()
-		
+
+		// Set variable for focused players
+		this.rust_main.get_focused_player_names().forEach((name, index) => {
+			this.setVariable("p"+(index+1), name)
+		});
 	}
 }
 
