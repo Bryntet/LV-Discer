@@ -218,24 +218,21 @@ impl Player {
 
     fn shift_scores(&mut self) -> Vec<JsString> {
         let mut return_vec = vec![];
-        if self.hole > 8 {
-            let in_hole = self.hole.clone();
-            let diff = self.hole - 8;
-            self.hole = diff;
-            let score = self.score.clone();
-            log(&format!("diff: {}", diff));
-            for i in diff..in_hole {
-                log(&format!("i: {}", i));
-                self.shift = diff;
-                log(&format!("hole: {}\nshift: {}", self.hole, self.shift));
-                return_vec.append(&mut self.set_hole_score());
-            } 
-            self.score = score;
+        let in_hole = self.hole.clone();
+        let diff = self.hole - 8;
+        self.hole = diff;
+        let score = self.score.clone();
+        log(&format!("diff: {}", diff));
+        for i in diff..in_hole {
+            log(&format!("i: {}", i));
+            self.shift = diff;
+            log(&format!("hole: {}\nshift: {}", self.hole, self.shift));
             return_vec.append(&mut self.set_hole_score());
-            return_vec
-        } else {
-            vec![]
-        }
+        } 
+        self.score = score;
+        return_vec.append(&mut self.set_hole_score());
+        return_vec
+        
     }
 
     fn reset_scores(&mut self) -> Vec<JsString> {
@@ -289,13 +286,19 @@ impl Player {
     fn revert_hole_score(&mut self) -> Vec<JsString> {
         let mut return_vec = vec![];
         if self.hole > 0 {
-            return_vec.append(&mut self.del_score());
             self.hole -= 1;
+            return_vec.append(&mut self.del_score());
             log(&format!("{}", self.hole));
             if let Some(player) = &self.player {
                 let result = &player.results[self.hole];
                 self.score -= result.actual_score();
-                return_vec.push(self.set_tot_score());
+                if self.hole > 8 {
+                    self.hole -= 1;
+                    return_vec.append(&mut self.shift_scores());
+
+                } else {
+                    return_vec.push(self.set_tot_score());
+                }
             }
         }
         return_vec

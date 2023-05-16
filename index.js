@@ -125,7 +125,7 @@ class instance extends instance_skel {
 			this.beConnected()
 		} 
 		console.log(msg.join('\r\n'))
-		this.client.write("\r\n"+msg.join("\r\n")+ "\r\n")
+		this.client.write(msg.join("\r\n")+ "\r\n")
 		this.client.on('data', (data) => {
 			if (data.includes("ERR")) {
 				console.log('Received error: \n' + data)
