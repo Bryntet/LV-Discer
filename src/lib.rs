@@ -288,9 +288,9 @@ impl Player {
                 format!("namep{}", self.num)
             );
             let name = format!("{} {}", &player.first_name, &player.last_name);
-            JsString::from(format!("FUNCTION SetText Value={}&{}", name, &selection))
+            format!("FUNCTION SetText Value={}&{}", name, &selection).into()
         } else {
-            JsString::from("")
+            "".into()
         }
     }
 
@@ -302,12 +302,12 @@ impl Player {
                 format!("t#p{}", self.num)
             );
 
-            JsString::from(format!(
+            format!(
                 "FUNCTION SetText Value={}&{}",
                 self.throws, &selection
-            ))
+            ).into()
         } else {
-            JsString::from("")
+            "".into()
         }
     }
 }
@@ -331,9 +331,9 @@ pub struct MyApp {
 impl Default for MyApp {
     fn default() -> MyApp {
         MyApp {
-            id: String::from("1e8955e9-0925-4b54-9e05-69c1b3bbe5ae"),
-            name: String::from("TextBlock3.Text"),
-            text: String::from(""),
+            id: "1e8955e9-0925-4b54-9e05-69c1b3bbe5ae".into(),
+            name: "TextBlock3.Text".into(),
+            text: "".into(),
             score_card: ScoreCard::default(),
             all_divs: vec![],
             selected_div_ind: 0,
@@ -403,17 +403,27 @@ impl MyApp {
     #[wasm_bindgen]
     pub fn increase_score(&mut self) -> Vec<JsString> {
         log("increase_score");
-        if self.get_focused().hole > 8 {
-            self.get_focused().shift_scores()
+        let hole = self.get_focused().hole;
+        log(format!("hole: {}", hole).as_str());
+        if hole <= 17 {
+            if hole <= 8 {
+                self.get_focused().set_hole_score()
+            } else {
+                self.get_focused().shift_scores()
+            }
         } else {
-            self.get_focused().set_hole_score()
+            vec![]
         }
     }
 
     #[wasm_bindgen]
     pub fn play_animation(&mut self) -> Vec<JsString> {
         log("play_animation");
-        self.get_focused().start_score_anim()
+        if self.get_focused().hole <= 17 {
+            self.get_focused().start_score_anim()
+        } else {
+            vec![]
+        }   
     }
 
     #[wasm_bindgen]
@@ -466,7 +476,7 @@ impl MyApp {
     pub fn get_div_names(&self) -> Vec<JsString> {
         let mut return_vec = vec![];
         for div in &self.all_divs {
-            return_vec.push(JsString::from(div.name.clone()));
+            return_vec.push(div.name.clone().into());
         }
         return_vec
     }
@@ -476,10 +486,10 @@ impl MyApp {
         let mut return_vec = vec![];
         if let Some(div) = &self.selected_div {
             for player in &div.players {
-                return_vec.push(JsString::from(format!(
+                return_vec.push(format!(
                     "{} {}",
                     &player.first_name, &player.last_name
-                )));
+                ).into());
             }
         }
         return_vec
