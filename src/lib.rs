@@ -271,6 +271,7 @@ impl Player {
                 self.score -= result.actual_score();
                 if self.hole > 8 {
                     self.hole -= 1;
+                    self.score -= &player.results[self.hole].actual_score();
                     return_vec.append(&mut self.shift_scores());
                 } else {
                     return_vec.push(self.set_tot_score());
