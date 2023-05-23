@@ -54,10 +54,10 @@ class instance extends instance_skel {
 			},
 			{
 				type: 'textinput',
-				id: 'pool_id',
-				label: 'Pool ID',
+				id: 'event_id',
+				label: 'Event ID',
 				width: 6,
-				default: 'a592cf05-095c-439f-b69c-66511b6ce9c6',
+				default: 'a57b4ed6-f64a-4710-8f20-f93e82d4fe79',
 			},
 			{
 				type: 'textinput',
@@ -401,15 +401,15 @@ class instance extends instance_skel {
 			console.log("setting ip")
 			this.rust_main.ip = this.config.vmix_ip
 		}
-		if (this.config.pool_id) {
+		if (this.config.event_id) {
 			console.log("setting event id")
-			this.rust_main.pool_id = this.config.pool_id
-			this.rust_main.get_divs().then(() => {
-				this.div_names.length = 0
-				this.div_names.push({ id: 'none', label: 'None' })
-				for (const [idx, name] of this.rust_main.get_div_names().entries()) {
-					this.div_names.push({ id: idx, label: name })
-				}
+			this.rust_main.event_id = this.config.event_id
+			this.rust_main.get_event().then(() => {
+				// this.div_names.length = 0
+				// this.div_names.push({ id: 'none', label: 'None' })
+				// for (const [idx, name] of this.rust_main.get_div_names().entries()) {
+				// 	this.div_names.push({ id: idx, label: name })
+				// }
 			})
 			if (Number.isInteger(this.config.div)) {
 				this.rust_main.div = this.config.div
@@ -449,6 +449,8 @@ class instance extends instance_skel {
 		this.rust_main.get_focused_player_names().forEach((name, index) => {
 			this.setVariable("p"+(index+1), name)
 		});
+		console.log("hereeee")
+		console.log(this.rust_main.get_all_rounds())
 	}
 }
 

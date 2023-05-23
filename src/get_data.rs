@@ -7,37 +7,13 @@ extern "C" {
     fn log(s: &str);
 }
 
-pub async fn request_tjing(
-    pool_id: cynic::Id,
-) -> Result<cynic::GraphQlResponse<queries::StatusPool>, reqwest::Error> {
-    use cynic::QueryBuilder;
-    use queries::*;
-    let operation = StatusPool::build(StatusPoolVariables {
-        pool_id: pool_id.clone(),
-    });
-    log("hereee");
-    let response = reqwest::Client::new()
-        .post("https://api.tjing.se/graphql")
-        .json(&operation)
-        .send()
-        .await;
-    if let Ok(r) = response {
-        let response = r.json::<GraphQlResponse<queries::StatusPool>>().await;
-        if let Ok(rr) = response {
-            return Ok(rr);
-        } else {
-            return Err(response.err().unwrap());
-        }
-    } else {
-        return Err(response.err().unwrap());
-    }
-}
 
-pub async fn post_status(pool_id: cynic::Id) -> cynic::GraphQlResponse<queries::PoolLBAfter> {
+
+pub async fn post_status(event_id: cynic::Id) -> cynic::GraphQlResponse<queries::EventQuery> {
     use cynic::QueryBuilder;
     use queries::*;
-    let operation = PoolLBAfter::build(PoolLBAfterVariables {
-        pool_id: pool_id.clone(),
+    let operation = EventQuery::build(EventQueryVariables {
+        event_id: event_id.clone(),
     });
 
     let response = reqwest::Client::new()
@@ -47,13 +23,15 @@ pub async fn post_status(pool_id: cynic::Id) -> cynic::GraphQlResponse<queries::
         .await
         .expect("failed to send request");
     response
-        .json::<GraphQlResponse<queries::PoolLBAfter>>()
+        .json::<GraphQlResponse<queries::EventQuery>>()
         .await
         .expect("failed to parse response")
 }
 
 #[cynic::schema_for_derives(file = r#"src/schema.graphql"#, module = "schema")]
 pub mod queries {
+    use std::default;
+
     use wasm_bindgen::prelude::*;
 
     #[wasm_bindgen]
@@ -61,32 +39,29 @@ pub mod queries {
         #[wasm_bindgen(js_namespace = console)]
         fn log(s: &str);
     }
+
+
     use super::schema;
 
     #[derive(cynic::QueryVariables, Debug)]
-    pub struct StatusPoolVariables {
-        pub pool_id: cynic::Id,
-    }
-
-    #[derive(cynic::QueryVariables, Debug)]
-    pub struct PoolLBAfterVariables {
-        pub pool_id: cynic::Id,
+    pub struct EventQueryVariables {
+        pub event_id: cynic::Id,
     }
 
     #[derive(cynic::QueryFragment, Debug)]
-    #[cynic(graphql_type = "RootQuery", variables = "PoolLBAfterVariables")]
-    pub struct PoolLBAfter {
-        #[arguments(poolId: $pool_id)]
-        pub pool: Option<Pool>,
+    #[cynic(graphql_type = "RootQuery", variables = "EventQueryVariables")]
+    pub struct EventQuery {
+        #[arguments(eventId: $event_id)]
+        pub event: Option<Event>,
     }
-
-    #[derive(cynic::QueryFragment, Debug)]
-    #[cynic(graphql_type = "RootQuery", variables = "StatusPoolVariables")]
-    pub struct StatusPool {
-        #[arguments(poolId: $pool_id)]
-        pub pool: Option<Pool2>,
+    #[derive(cynic::QueryFragment, Debug, Clone)]
+    pub struct Event {
+        pub rounds: Vec<Option<Round>>,
     }
-
+     #[derive(cynic::QueryFragment, Debug, Clone)]
+    pub struct Round {
+        pub pools: Vec<Pool>,
+    }
     #[derive(cynic::QueryFragment, Debug, Clone)]
     pub struct PoolLeaderboardDivision {
         pub id: cynic::Id,
@@ -110,6 +85,43 @@ pub mod queries {
         pub results: Vec<SimpleResult>,
         pub points: Option<f64>,
         pub score: Option<f64>,
+    }
+    
+    enum RankUpDown {
+        Up(i8),
+        Down(i8),
+        Same,
+    }
+    impl Default for RankUpDown {
+        fn default() -> Self { RankUpDown::Same }
+    }
+
+
+    #[derive(Default)]
+    struct LBInformation {
+        position: u8,
+        round_score: i16,
+        total_score: i16,
+        player_name: String,
+        rank: RankUpDown,
+        best_score: bool,
+        through: u8,
+    }
+
+    impl PoolLeaderboardPlayer {
+
+        fn get_current_round(&self, through: u8) -> LBInformation {
+            LBInformation::default()
+        }
+
+        fn total_score(&self) -> i16 {
+            let mut total_score = 0;
+            for result in &self.results {
+                total_score += result.actual_score() as i16;
+            }
+            total_score
+        }
+
     }
 
     #[derive(cynic::QueryFragment, Debug, Clone)]
@@ -165,7 +177,7 @@ pub mod queries {
             }
         }
     }
-    #[derive(cynic::QueryFragment, Debug)]
+    #[derive(cynic::QueryFragment, Debug, Clone)]
     pub struct Pool {
         pub status: PoolStatus,
         pub layout_version: LayoutVersion,
@@ -173,15 +185,10 @@ pub mod queries {
         pub position: f64,
     }
 
-    #[derive(cynic::QueryFragment, Debug)]
-    #[cynic(graphql_type = "Pool")]
-    pub struct Pool2 {
-        pub status: PoolStatus,
-    }
 
-    #[derive(cynic::QueryFragment, Debug)]
+    #[derive(cynic::QueryFragment, Debug, Clone)]
     pub struct LayoutVersion {
-        pub holes: Vec<Hole2>,
+        pub holes: Vec<Hole>,
     }
 
     #[derive(cynic::QueryFragment, Debug, Clone)]
@@ -191,17 +198,10 @@ pub mod queries {
         pub length: Option<f64>,
     }
 
-    #[derive(cynic::QueryFragment, Debug)]
-    #[cynic(graphql_type = "Hole")]
-    pub struct Hole2 {
-        pub number: f64,
-        pub par: Option<f64>,
-        pub length: Option<f64>,
-    }
 
-    #[derive(cynic::InlineFragments, Debug)]
+    #[derive(cynic::InlineFragments, Debug, Clone)]
     pub enum PoolLeaderboardDivisionCombined {
-        PoolLeaderboardDivision(PoolLeaderboardDivision),
+        PLD(PoolLeaderboardDivision),
         #[cynic(fallback)]
         Unknown,
     }
@@ -213,6 +213,8 @@ pub mod queries {
         Open,
         Completed,
     }
+
+    
 }
 #[allow(non_snake_case, non_camel_case_types)]
 mod schema {

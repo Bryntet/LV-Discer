@@ -56,6 +56,7 @@ pub struct Player {
     score: f64,
     shift: usize,
     ob: bool,
+    total_score: i32,
 }
 
 impl Default for Player {
@@ -76,6 +77,7 @@ impl Default for Player {
             score: 0.0,
             shift: 0,
             ob: false,
+            total_score: 0,
         }
     }
 }
@@ -327,6 +329,10 @@ pub struct MyApp {
     foc_play_ind: usize,
     consts: Constants,
     input_ids: Vec<String>,
+    event: Option<get_data::queries::Event>,
+    event_id: String,
+    pools: Vec<get_data::queries::Pool>,
+    pool: Option<get_data::queries::Pool>,
 }
 
 impl Default for MyApp {
@@ -347,6 +353,10 @@ impl Default for MyApp {
                 "1e8955e9-0925-4b54-9e05-69c1b3bbe5ae".to_string(),
                 "1e8955e9-0925-4b54-9e05-69c1b3bbe5ae".to_string(),
             ],
+            event: None,
+            pools: vec![],
+            pool: None,
+            event_id: "a57b4ed6-f64a-4710-8f20-f93e82d4fe79".into(),
         }
     }
 }
@@ -369,37 +379,59 @@ impl MyApp {
         self.score_card.all_play_players = self.selected_div.as_ref().unwrap().players.clone();
     }
 
+
     #[wasm_bindgen]
-    pub async fn get_divs(&mut self) -> Result<JsValue, JsValue> {
-        self.all_divs = vec![];
-        let mut res = String::new();
-        if let Err(e) = get_data::request_tjing(cynic::Id::from(&self.consts.pool_id)).await {
-            res = e.to_string()
-        }
-        if let Some(data) = get_data::post_status(cynic::Id::from(&self.consts.pool_id))
+    pub async fn get_event(&mut self) -> Result<JsValue, JsValue> {
+        self.pools = vec![];
+        let mut promise: usize = 0;
+        if let Some(data) = get_data::post_status(cynic::Id::from(&self.event_id))
             .await
             .data
         {
-            if let Some(pool) = data.pool {
-                if let Some(lb) = pool.leaderboard {
-                    for div in lb {
-                        if let Some(div) = div {
-                            match div {
-                                get_data::queries::PoolLeaderboardDivisionCombined::PoolLeaderboardDivision(d) => {
-                                    self.all_divs.push(d);
-                                }
-                                _ => {}
-                            }
+            if let Some(event) = data.event {
+                for round in &event.rounds {
+                    if let Some(round) = round {
+                        for pool in &round.pools {
+                            self.pools.push(pool.clone());
                         }
                     }
                 }
+                promise = event.rounds.len();
+                self.event = Some(event);
             }
-            res = format!("{:#?}", self.all_divs);
         }
-        let promise = js_sys::Promise::resolve(&res.into());
+        let promise = js_sys::Promise::resolve(&JsValue::from_str(&promise.to_string()));
         let result = wasm_bindgen_futures::JsFuture::from(promise).await?;
         Ok(result)
     }
+    
+    #[wasm_bindgen]
+    pub async fn get_all_rounds(&self) -> usize {
+        self.pools.len()
+    }
+
+    // #[wasm_bindgen]
+    // pub async fn get_divs(&mut self) -> Result<JsValue, JsValue> {
+    //     self.all_divs = vec![];
+        
+    //     if let Some(pool) = self.pool {
+    //         if let Some(lb) = pool.leaderboard {
+    //             for div in lb {
+    //                 if let Some(div) = div {
+    //                     match div {
+    //                         get_data::queries::PoolLeaderboardDivisionCombined::PoolLeaderboardDivision(d) => {
+    //                             self.all_divs.push(d);
+    //                         }
+    //                         _ => {}
+    //                     }
+    //                 }
+    //             }
+    //         }
+    //     }
+            
+        
+        
+    // }
 
     #[wasm_bindgen]
     pub fn increase_score(&mut self) -> Vec<JsString> {
@@ -544,6 +576,10 @@ impl MyApp {
         return_vec
     }
     #[wasm_bindgen(setter)]
+    pub fn set_event_id(&mut self, event_id: JsString) {
+        self.event_id = String::from(event_id);
+    }
+    #[wasm_bindgen(setter)]
     pub fn set_pool_id(&mut self, pool_id: JsString) {
         self.consts.pool_id = String::from(pool_id);
     }
@@ -599,6 +635,17 @@ impl ScoreCard {
         }
         out_vec
     }
+    
+    #[wasm_bindgen]
+    pub fn set_total_score(&mut self, player_num: usize, new_score: i32) {
+        match player_num {
+            1 => self.p1.total_score = new_score,
+            2 => self.p2.total_score = new_score,
+            3 => self.p3.total_score = new_score,
+            4 => self.p4.total_score = new_score,
+            _ => panic!("Invalid player number"),
+        }
+    }
 }
 
 #[cfg(test)]
@@ -610,35 +657,68 @@ mod tests {
     use wasm_bindgen_test::*;
 
     async fn generate_app() -> MyApp {
+        println!("hi");
         let mut app = MyApp::default();
-        //app.set_pool_id("5f9b4b4e-5b7c-4b1e-8b0a-0b9b5b4a4b4b".into());
-        let _ = app.get_divs().await;
 
-        app.set_div(0);
-        let ids = app.get_player_ids();
-        for i in 1..5 {
-            app.set_player(i.clone(), ids[i.clone()].clone().into());
-        }
-        app.set_foc(1);
+        //app.set_event_id("a57b4ed6-f64a-4710-8f20-f93e82d4fe79".into());
+        //let _ = app.get_event().await;
+        
+        println!("{:?}", app.pools);
+
+        // app.set_div(0);
+        // let ids = app.get_player_ids();
+        // for i in 1..5 {
+        //     app.set_player(i.clone(), ids[i.clone()].clone().into());
+        // }
+        // app.set_foc(1);
         app
     }
 
-    async fn run_from_rust(urls: Vec<JsString>) {
-        let client = reqwest::Client::new();
-        for url in urls {
-            let _ = client.post::<String>(url.into()).send().await;
-        }
-    }
+    // async fn run_from_rust(urls: Vec<JsString>) {
+    //     let client = reqwest::Client::new();
+    //     for url in urls {
+    //         let _ = client.post::<String>(url.into()).send().await;
+    //     }
+    // }
+
+    // #[wasm_bindgen_test]
+    // async fn test_shift_scores() {
+    //     let mut app = generate_app().await;
+    //     app.get_focused().hole = 17;
+    //     run_from_rust(app.get_focused().shift_scores()).await;
+    // }
+
+    // #[wasm_bindgen_test]
+    // async fn delete_scores() {
+    //     run_from_rust(generate_app().await.get_focused().reset_scores()).await;
+    // }
+
+    // #[wasm_bindgen_test]
+    // async fn get_rounds() {
+    //     let mut app = generate_app().await;
+    //     let _ = app.get_event().await;
+    //     log(&app.event_id);
+    //     let _rounds = app.get_all_rounds().await;
+    // }
 
     #[wasm_bindgen_test]
-    async fn test_shift_scores() {
-        let mut app = generate_app().await;
-        app.get_focused().hole = 17;
-        run_from_rust(app.get_focused().shift_scores()).await;
+    async fn my_async_test() {
+        // Create a promise that is ready on the next tick of the micro task queue.
+        let promise = js_sys::Promise::resolve(&JsValue::from(42));
+
+        // Convert that promise into a future and make the test wait on it.
+        let x = JsFuture::from(promise).await.unwrap();
+        assert_eq!(x, 42);
     }
 
-    #[wasm_bindgen_test]
-    async fn delete_scores() {
-        run_from_rust(generate_app().await.get_focused().reset_scores()).await;
-    }
+    // #[wasm_bindgen_test]
+    // async fn test_event() {
+
+        
+    //     println!("{:#?}",get_data::post_status(cynic::Id::from("a57b4ed6-f64a-4710-8f20-f93e82d4fe79"))
+    //         .await
+    //         .data
+    //         .unwrap());
+    // }
+
 }
