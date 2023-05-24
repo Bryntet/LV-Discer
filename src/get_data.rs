@@ -2,7 +2,7 @@ use cynic::GraphQlResponse;
 
 use wasm_bindgen::prelude::*;
 
-use self::{queries::PoolLeaderboardDivision, schema::__fields::Pool::round};
+use self::{queries::{PoolLeaderboardDivision, Division}, schema::__fields::Pool::round};
 #[wasm_bindgen]
 extern "C" {
     #[wasm_bindgen(js_namespace = console)]
@@ -28,48 +28,96 @@ pub async fn post_status(event_id: cynic::Id) -> cynic::GraphQlResponse<queries:
         .await
         .expect("failed to parse response")
 }
-
-struct Round {
-    divisions: Vec<queries::PoolLeaderboardDivision>,
+#[derive(Debug)]
+pub struct PlayerRound {
+    results: Vec<queries::SimpleResult>,
 }
-impl Round {
-    fn new(event: queries::Event, round_id: cynic::Id, valid_pool_inds: &Vec<usize>) -> Self {
-        let mut divisions: Vec<queries::PoolLeaderboardDivision> = vec![];
-        for round in event.rounds {
-            if round.clone().expect("no round").id == round_id {
-                for ind in valid_pool_inds.clone() {
-                    for div in &round.clone().expect("no round").pools[ind].clone().leaderboard.expect("no leaderboard") {
-                        match div {
-                            Some(queries::PoolLeaderboardDivisionCombined::PLD(division)) => {
-                                divisions.push(division.clone());
-                            },
-                            Some(queries::PoolLeaderboardDivisionCombined::Unknown) => {},
-                            None => {},
-                        }
+impl PlayerRound {
+    fn new(results: Vec<queries::SimpleResult>) -> Self {
+        Self {
+            results
+        }
+    }
+
+    fn get_score(&self, hole: usize) -> i16 {
+        for i in 0..hole+1 {
+            if let Some(par) = self.results[i].hole.par {
+                return self.results[i].actual_score() as i16;
+            }
+        }
+        0
+    }
+    
+}
+#[derive(Debug)]
+pub struct NewPlayer {
+    pub player_id: cynic::Id,
+    pub name: String,
+    rank: queries::RankUpDown,
+    best_score: bool,
+    through: u8,
+    current_score: i16,
+    round_score: i16,
+    round_ind: usize,
+    rounds: Vec<PlayerRound>,
+    div_id: cynic::Id,
+    hole: usize
+}
+
+impl NewPlayer {
+    pub fn new(id: cynic::Id, f_name: String, l_name: String, event: queries::Event, div_id: cynic::Id, ) -> Self {
+        let mut rounds: Vec<PlayerRound> = vec![];
+        for rnd in event.rounds {
+            for pool in rnd.expect("no round").pools {
+                for player in pool.leaderboard.expect("no lb") {
+                    match player {
+                        Some(queries::PoolLeaderboardDivisionCombined::PLD(division)) => {
+                            if division.id == div_id {
+                                for player in division.players {
+                                    if player.player_id == id {
+                                        rounds.push(PlayerRound::new(player.results));
+                                    }
+                                }
+                            }
+                        },
+                        Some(queries::PoolLeaderboardDivisionCombined::Unknown) => {},
+                        None => {},
                     }
                 }
-                
             }
         }
-        
 
         Self {
-            divisions
+            player_id: id,
+            name: format!("{} {}", f_name, l_name),
+            rank: queries::RankUpDown::Same,
+            best_score: false,
+            through: 0,
+            current_score: 0,
+            round_score: 0,
+            round_ind: 0,
+            rounds,
+            div_id,
+            hole: 0,
         }
     }
-    pub fn get_players_in_div(&self, div_id: cynic::Id) -> Vec<queries::PoolLeaderboardPlayer> {
-        for div in self.divisions {
-            if div.id == div_id {
-                return div.players;
-            }
+
+    pub fn get_round_total_score(&self, round_ind: usize) -> i16 {
+        self.rounds[round_ind].get_score(17)
+    }
+
+    fn score_before_round(&self) -> i16 {
+        let mut total_score = 0;
+        for round_ind in 0..self.round_ind {
+            total_score += self.get_round_total_score(round_ind)
         }
-        vec![]
+        total_score
     }
 }
 
-
-struct EventHandler {
-    chosen_division: cynic::Id,
+#[derive(Clone)]
+pub struct RustHandler {
+    pub chosen_division: cynic::Id,
     event: queries::Event,
     divisions: Vec<queries::Division>,
     round_id: cynic::Id,
@@ -77,8 +125,8 @@ struct EventHandler {
     valid_pool_inds: Vec<usize>,
 }
 
-impl EventHandler {
-    fn new(chosen_division: cynic::Id, pre_event: GraphQlResponse<queries::EventQuery>) -> Self {
+impl RustHandler {
+    pub fn new(pre_event: GraphQlResponse<queries::EventQuery>) -> Self {
 
         let event = pre_event.data.expect("no data").event.expect("no event");
         let mut divisions: Vec<queries::Division> = vec![];
@@ -89,30 +137,54 @@ impl EventHandler {
         }
         
         Self {
-            chosen_division,
+            chosen_division: divisions[0].id.clone(),
             event,
             divisions,
             round_id: cynic::Id::from(""),
             round_ind: 0,
-            valid_pool_inds: vec![],
+            valid_pool_inds: vec![0],
         }
     }
     
-    fn score_before_round(&self, player_id: cynic::Id) -> i16 {
-        for round_ind in 0..self.round_ind {
-            let round_id = self.event.rounds[round_ind].clone().expect("no round").id;
-            let rnd = Round::new(self.event.clone(), round_id, &self.valid_pool_inds);
-            for player in rnd.get_players_in_div(self.chosen_division.clone()) {
-                if player.player_id == player_id {
-                    return player.score.map(|s| s as i16).unwrap_or(0);
+    pub fn get_divisions(&self) -> Vec<Division> {
+        let mut divs: Vec<Division> = vec![];
+        for div in &self.divisions {
+            divs.push(div.clone());
+        }
+        divs
+    }
+
+    pub fn get_round(&self) -> queries::Round {
+        self.event.rounds[self.round_ind].clone().expect("no round")
+    }
+
+    pub fn get_players(&self) -> Vec<NewPlayer> {
+        let mut players: Vec<queries::PoolLeaderboardPlayer> = vec![];
+        let mut out_vec: Vec<NewPlayer> = vec![];
+        for ind in &self.valid_pool_inds {
+            for div in &self.event.rounds[self.round_ind].clone().expect("no round").pools[*ind].clone().leaderboard.expect("no leaderboard") {
+                match div {
+                    Some(queries::PoolLeaderboardDivisionCombined::PLD(division)) => {
+                        if division.id == self.chosen_division {
+                            for player in &division.players {
+                                players.push(player.clone());
+                            }
+                        }
+                    },
+                    Some(queries::PoolLeaderboardDivisionCombined::Unknown) => {},
+                    None => {},
                 }
             }
         }
-        0
+        for player in players {
+            out_vec.push(NewPlayer::new(player.player_id, player.first_name, player.last_name, self.event.clone(), self.chosen_division.clone()));
+        }
+        out_vec
+    }
+    pub fn set_chosen_by_ind(&mut self, ind: usize) {
+        self.chosen_division = self.divisions[ind].id.clone();
     }
 }
-
-
 
 #[cynic::schema_for_derives(file = r#"src/schema.graphql"#, module = "schema")]
 pub mod queries {
@@ -180,8 +252,8 @@ pub mod queries {
         pub points: Option<f64>,
         pub score: Option<f64>, // Tror denna är total score för runda
     }
-    
-    enum RankUpDown {
+    #[derive(Debug)]
+    pub enum RankUpDown {
         Up(i8),
         Down(i8),
         Same,

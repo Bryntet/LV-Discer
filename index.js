@@ -72,7 +72,7 @@ class instance extends instance_skel {
 				label: 'Round',
 				width: 6,
 				min: 1,
-				max: this.rust_main.rounds,
+				max: 10,
 				default: 1,
 			},
 			{
@@ -414,25 +414,36 @@ class instance extends instance_skel {
 			console.log("setting event id")
 			this.rust_main.event_id = this.config.event_id
 			this.rust_main.get_event().then(() => {
+				console.log("here")
+				const divs = this.rust_main.get_div_names()
+				console.log(divs)
+				this.div_names.length = 0
+				this.div_names.push({ id: 'none', label: 'None' })
+				for (const [idx, name] of this.rust_main.get_div_names().entries()) {
+					this.div_names.push({ id: idx, label: name })
+				}
 			}).catch((err) => {
 				console.log(err)
 			})
-			if (Number.isInteger(this.config.div)) {
-				this.rust_main.div = this.config.div
-				this.players.length = 0
-				this.players.push({ id: 'none', label: 'None' })
+		}
+		console.log(this.div_names)
 
-				let ids = []
-				let names = []
-				for (const name of this.rust_main.get_player_names()) {
-					names.push(name)
-				}
-				for (const id of this.rust_main.get_player_ids()) {
-					ids.push(id)
-				}
-				for (const [idx, name] of names.entries()) {
-					this.players.push({ id: ids[idx], label: name })
-				}
+
+		if (Number.isInteger(this.config.div)) {
+			this.rust_main.div = this.config.div
+			this.players.length = 0
+			this.players.push({ id: 'none', label: 'None' })
+
+			let ids = []
+			let names = []
+			for (const name of this.rust_main.get_player_names()) {
+				names.push(name)
+			}
+			for (const id of this.rust_main.get_player_ids()) {
+				ids.push(id)
+			}
+			for (const [idx, name] of names.entries()) {
+				this.players.push({ id: ids[idx], label: name })
 			}
 		}
 		this.focused_players.length = 0
