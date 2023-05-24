@@ -67,6 +67,15 @@ class instance extends instance_skel {
 				default: '1e8955e9-0925-4b54-9e05-69c1b3bbe5ae',
 			},
 			{
+				type: 'number',
+				id: 'round',
+				label: 'Round',
+				width: 6,
+				min: 1,
+				max: this.rust_main.rounds,
+				default: 1,
+			},
+			{
 				type: 'dropdown',
 				id: 'div',
 				label: 'Division',
@@ -405,11 +414,8 @@ class instance extends instance_skel {
 			console.log("setting event id")
 			this.rust_main.event_id = this.config.event_id
 			this.rust_main.get_event().then(() => {
-				// this.div_names.length = 0
-				// this.div_names.push({ id: 'none', label: 'None' })
-				// for (const [idx, name] of this.rust_main.get_div_names().entries()) {
-				// 	this.div_names.push({ id: idx, label: name })
-				// }
+			}).catch((err) => {
+				console.log(err)
 			})
 			if (Number.isInteger(this.config.div)) {
 				this.rust_main.div = this.config.div

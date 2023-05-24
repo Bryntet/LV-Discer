@@ -1,13 +1,13 @@
 use cynic::GraphQlResponse;
 
 use wasm_bindgen::prelude::*;
+
+use self::{queries::PoolLeaderboardDivision, schema::__fields::Pool::round};
 #[wasm_bindgen]
 extern "C" {
     #[wasm_bindgen(js_namespace = console)]
     fn log(s: &str);
 }
-
-
 
 pub async fn post_status(event_id: cynic::Id) -> cynic::GraphQlResponse<queries::EventQuery> {
     use cynic::QueryBuilder;
@@ -15,6 +15,7 @@ pub async fn post_status(event_id: cynic::Id) -> cynic::GraphQlResponse<queries:
     let operation = EventQuery::build(EventQueryVariables {
         event_id: event_id.clone(),
     });
+    println!("operation: {:#?}", event_id);
 
     let response = reqwest::Client::new()
         .post("https://api.tjing.se/graphql")
@@ -28,6 +29,91 @@ pub async fn post_status(event_id: cynic::Id) -> cynic::GraphQlResponse<queries:
         .expect("failed to parse response")
 }
 
+struct Round {
+    divisions: Vec<queries::PoolLeaderboardDivision>,
+}
+impl Round {
+    fn new(event: queries::Event, round_id: cynic::Id, valid_pool_inds: &Vec<usize>) -> Self {
+        let mut divisions: Vec<queries::PoolLeaderboardDivision> = vec![];
+        for round in event.rounds {
+            if round.clone().expect("no round").id == round_id {
+                for ind in valid_pool_inds.clone() {
+                    for div in &round.clone().expect("no round").pools[ind].clone().leaderboard.expect("no leaderboard") {
+                        match div {
+                            Some(queries::PoolLeaderboardDivisionCombined::PLD(division)) => {
+                                divisions.push(division.clone());
+                            },
+                            Some(queries::PoolLeaderboardDivisionCombined::Unknown) => {},
+                            None => {},
+                        }
+                    }
+                }
+                
+            }
+        }
+        
+
+        Self {
+            divisions
+        }
+    }
+    pub fn get_players_in_div(&self, div_id: cynic::Id) -> Vec<queries::PoolLeaderboardPlayer> {
+        for div in self.divisions {
+            if div.id == div_id {
+                return div.players;
+            }
+        }
+        vec![]
+    }
+}
+
+
+struct EventHandler {
+    chosen_division: cynic::Id,
+    event: queries::Event,
+    divisions: Vec<queries::Division>,
+    round_id: cynic::Id,
+    round_ind: usize,
+    valid_pool_inds: Vec<usize>,
+}
+
+impl EventHandler {
+    fn new(chosen_division: cynic::Id, pre_event: GraphQlResponse<queries::EventQuery>) -> Self {
+
+        let event = pre_event.data.expect("no data").event.expect("no event");
+        let mut divisions: Vec<queries::Division> = vec![];
+        for div in &event.divisions {
+            if let Some(div) = div {
+                divisions.push(div.clone());
+            }
+        }
+        
+        Self {
+            chosen_division,
+            event,
+            divisions,
+            round_id: cynic::Id::from(""),
+            round_ind: 0,
+            valid_pool_inds: vec![],
+        }
+    }
+    
+    fn score_before_round(&self, player_id: cynic::Id) -> i16 {
+        for round_ind in 0..self.round_ind {
+            let round_id = self.event.rounds[round_ind].clone().expect("no round").id;
+            let rnd = Round::new(self.event.clone(), round_id, &self.valid_pool_inds);
+            for player in rnd.get_players_in_div(self.chosen_division.clone()) {
+                if player.player_id == player_id {
+                    return player.score.map(|s| s as i16).unwrap_or(0);
+                }
+            }
+        }
+        0
+    }
+}
+
+
+
 #[cynic::schema_for_derives(file = r#"src/schema.graphql"#, module = "schema")]
 pub mod queries {
     use std::default;
@@ -39,7 +125,6 @@ pub mod queries {
         #[wasm_bindgen(js_namespace = console)]
         fn log(s: &str);
     }
-
 
     use super::schema;
 
@@ -57,11 +142,20 @@ pub mod queries {
     #[derive(cynic::QueryFragment, Debug, Clone)]
     pub struct Event {
         pub rounds: Vec<Option<Round>>,
+        pub divisions: Vec<Option<Division>>,
     }
      #[derive(cynic::QueryFragment, Debug, Clone)]
     pub struct Round {
         pub pools: Vec<Pool>,
+        pub id: cynic::Id,
     }
+
+    #[derive(cynic::QueryFragment, Debug, Clone)]
+    pub struct Division {
+        pub id: cynic::Id,
+        pub name: String,
+    }
+
     #[derive(cynic::QueryFragment, Debug, Clone)]
     pub struct PoolLeaderboardDivision {
         pub id: cynic::Id,
@@ -84,7 +178,7 @@ pub mod queries {
         pub player_id: cynic::Id,
         pub results: Vec<SimpleResult>,
         pub points: Option<f64>,
-        pub score: Option<f64>,
+        pub score: Option<f64>, // Tror denna är total score för runda
     }
     
     enum RankUpDown {

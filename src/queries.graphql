@@ -1,13 +1,11 @@
-query StatusPool($poolId: ID = "5be6d127-c72c-471e-ae7d-2a506a23c057") {
-  pool(poolId: $poolId) {
-    status
-  }
-}
-
-query PoolLBAfter($poolId: ID = "5be6d127-c72c-471e-ae7d-2a506a23c057") {
-  pool(poolId: $poolId) {
-    ...PoolLayout
-    ...NotLiveScore
+query EventQuery($eventId: ID = "a57b4ed6-f64a-4710-8f20-f93e82d4fe79") {
+  event(eventId: $eventId) {
+    rounds {
+      pools {
+        ...PoolLayout
+        ...NotLiveScore
+      }
+    }
   }
 }
 

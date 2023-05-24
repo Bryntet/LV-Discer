@@ -332,7 +332,7 @@ pub struct MyApp {
     event: Option<get_data::queries::Event>,
     event_id: String,
     pools: Vec<get_data::queries::Pool>,
-    pool: Option<get_data::queries::Pool>,
+    pool_ind: usize,
 }
 
 impl Default for MyApp {
@@ -355,7 +355,7 @@ impl Default for MyApp {
             ],
             event: None,
             pools: vec![],
-            pool: None,
+            pool_ind: 0,
             event_id: "a57b4ed6-f64a-4710-8f20-f93e82d4fe79".into(),
         }
     }
@@ -379,6 +379,10 @@ impl MyApp {
         self.score_card.all_play_players = self.selected_div.as_ref().unwrap().players.clone();
     }
 
+    #[wasm_bindgen(setter = round)]
+    pub fn set_round(&mut self, idx: usize) {
+        self.pool_ind = idx;
+    }
 
     #[wasm_bindgen]
     pub async fn get_event(&mut self) -> Result<JsValue, JsValue> {
@@ -405,9 +409,9 @@ impl MyApp {
         Ok(result)
     }
     
-    #[wasm_bindgen]
-    pub async fn get_all_rounds(&self) -> usize {
-        self.pools.len()
+    #[wasm_bindgen(getter)]
+    pub fn rounds(&self) -> usize {
+        self.pools.len()+1
     }
 
     // #[wasm_bindgen]
@@ -549,6 +553,7 @@ impl MyApp {
         self.get_focused().throws += 1;
         self.get_focused().set_throw()
     }
+
     #[wasm_bindgen]
     pub fn decrease_throw(&mut self) -> JsString {
         self.get_focused().throws -= 1;
@@ -650,6 +655,7 @@ impl ScoreCard {
 
 #[cfg(test)]
 mod tests {
+    //! Tests need to run with high node version otherwise it fails! 
     use super::*;
     use tokio_test;
     use wasm_bindgen::prelude::*;
@@ -660,12 +666,15 @@ mod tests {
         println!("hi");
         let mut app = MyApp::default();
 
-        //app.set_event_id("a57b4ed6-f64a-4710-8f20-f93e82d4fe79".into());
-        //let _ = app.get_event().await;
         
-        println!("{:?}", app.pools);
+        let _ = app.get_event().await.unwrap();
 
-        // app.set_div(0);
+        
+        println!("{}", app.pools.len());
+
+        
+
+        //app.set_div(0);
         // let ids = app.get_player_ids();
         // for i in 1..5 {
         //     app.set_player(i.clone(), ids[i.clone()].clone().into());
@@ -674,51 +683,28 @@ mod tests {
         app
     }
 
-    // async fn run_from_rust(urls: Vec<JsString>) {
-    //     let client = reqwest::Client::new();
-    //     for url in urls {
-    //         let _ = client.post::<String>(url.into()).send().await;
-    //     }
-    // }
-
-    // #[wasm_bindgen_test]
-    // async fn test_shift_scores() {
-    //     let mut app = generate_app().await;
-    //     app.get_focused().hole = 17;
-    //     run_from_rust(app.get_focused().shift_scores()).await;
-    // }
-
-    // #[wasm_bindgen_test]
-    // async fn delete_scores() {
-    //     run_from_rust(generate_app().await.get_focused().reset_scores()).await;
-    // }
-
-    // #[wasm_bindgen_test]
-    // async fn get_rounds() {
-    //     let mut app = generate_app().await;
-    //     let _ = app.get_event().await;
-    //     log(&app.event_id);
-    //     let _rounds = app.get_all_rounds().await;
-    // }
-
     #[wasm_bindgen_test]
-    async fn my_async_test() {
-        // Create a promise that is ready on the next tick of the micro task queue.
-        let promise = js_sys::Promise::resolve(&JsValue::from(42));
+    async fn get_rounds() {
+        let mut app = generate_app().await;
 
-        // Convert that promise into a future and make the test wait on it.
-        let x = JsFuture::from(promise).await.unwrap();
-        assert_eq!(x, 42);
+        let mut ind = 0;
+        for pool in &app.pools {
+            log(&ind.to_string());
+            ind += 1;
+            if let Some(lb) = pool.leaderboard.clone() {
+                for thing in lb {
+                    if let Some(div) = thing {
+                        
+                        match div {
+                            get_data::queries::PoolLeaderboardDivisionCombined::PLD(d) => {
+                                log(&d.name);
+                                
+                            }
+                            _ => {}
+                        }
+                    }
+                }
+            }   
+        }
     }
-
-    // #[wasm_bindgen_test]
-    // async fn test_event() {
-
-        
-    //     println!("{:#?}",get_data::post_status(cynic::Id::from("a57b4ed6-f64a-4710-8f20-f93e82d4fe79"))
-    //         .await
-    //         .data
-    //         .unwrap());
-    // }
-
 }
