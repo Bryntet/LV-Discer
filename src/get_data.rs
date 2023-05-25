@@ -1,8 +1,11 @@
 use cynic::GraphQlResponse;
 
+use self::{
+    queries::{Division, PoolLeaderboardDivision},
+    schema::__fields::Pool::round,
+};
+use js_sys::JsString;
 use wasm_bindgen::prelude::*;
-
-use self::{queries::{PoolLeaderboardDivision, Division}, schema::__fields::Pool::round};
 #[wasm_bindgen]
 extern "C" {
     #[wasm_bindgen(js_namespace = console)]
@@ -28,44 +31,117 @@ pub async fn post_status(event_id: cynic::Id) -> cynic::GraphQlResponse<queries:
         .await
         .expect("failed to parse response")
 }
-#[derive(Debug)]
+
+const DEFAULT_BG_COL: String = "3F334D".to_string();
+
+#[derive(Debug, Clone)]
 pub struct PlayerRound {
     results: Vec<queries::SimpleResult>,
 }
 impl PlayerRound {
     fn new(results: Vec<queries::SimpleResult>) -> Self {
-        Self {
-            results
-        }
+        Self { results }
     }
 
-    fn get_score(&self, hole: usize) -> i16 {
-        for i in 0..hole+1 {
-            if let Some(par) = self.results[i].hole.par {
-                return self.results[i].actual_score() as i16;
-            }
+    // Gets score up until hole
+    fn score_to_hole(&self, hole: usize) -> i16 {
+        (0..hole + 1).map(|i| self.hole_score(i)).sum()
+    }
+
+    fn hole_score(&self, hole: usize) -> i16 {
+        if let Some(par) = self.results[hole].hole.par {
+            return self.results[hole].actual_score() as i16;
         }
         0
     }
-    
 }
-#[derive(Debug)]
+
+enum VmixFunction {
+    SetText(String, VmixProperty),
+    SetPanX(String, VmixProperty),
+    Restart(VmixProperty),
+    Play(VmixProperty),
+}
+
+impl VmixFunction {
+    fn to_string(&self) -> String {
+        match self {
+            VmixFunction::SetText(value, prop) => format!("FUNCTION SetText Value={}&{}", value, prop.selection()),
+            VmixFunction::SetPanX(value, prop) => format!("FUNCTION SetPanX Value={}&{}", value, prop.selection()),
+            VmixFunction::Restart(prop) => format!("FUNCTION Restart {}", prop.selection()),
+            VmixFunction::Play(prop) => format!("FUNCTION Play {}", prop.selection()),
+        }
+    }
+}
+
+
+
+enum VmixProperty {
+    Score(usize, usize),
+    HoleNumber(usize, usize),
+    Color(usize, usize),
+    Name(usize)
+}
+
+
+impl VmixProperty {
+    fn selection(&self) -> String {
+        match self {
+            VmixProperty::Score(v1, v2) => format!("SelectedName=s{}p{}.Text", v1, v2),
+            VmixProperty::HoleNumber(v1, v2) => format!("SelectedName=HN{}p{}.Text", v1, v2),
+            VmixProperty::Color(v1, v2) => format!("SelectedName=h{}p{}.Fill.Color", v1, v2),
+            VmixProperty::Name(v1) => format!("SelectedName=namep{}.Text", v1),
+        }
+    }
+}
+
+
+
+#[derive(Debug, Clone)]
 pub struct NewPlayer {
     pub player_id: cynic::Id,
     pub name: String,
     rank: queries::RankUpDown,
     best_score: bool,
     through: u8,
-    current_score: i16,
-    round_score: i16,
+    total_score: i16, // Total score for all rounds
+    round_score: i16, // Score for only current round
     round_ind: usize,
     rounds: Vec<PlayerRound>,
     div_id: cynic::Id,
-    hole: usize
+    hole: usize,
+    ind: usize,
+    vmix_id: String,
+}
+
+impl Default for NewPlayer {
+    fn default() -> Self {
+        Self {
+            player_id: cynic::Id::from(""),
+            name: "".to_string(),
+            rank: queries::RankUpDown::Same,
+            best_score: false,
+            through: 0,
+            total_score: 0,
+            round_score: 0,
+            round_ind: 0,
+            rounds: vec![],
+            div_id: cynic::Id::from(""),
+            hole: 0,
+            ind: 0,
+            vmix_id: "".to_string(),
+        }
+    }
 }
 
 impl NewPlayer {
-    pub fn new(id: cynic::Id, f_name: String, l_name: String, event: queries::Event, div_id: cynic::Id, ) -> Self {
+    pub fn new(
+        id: cynic::Id,
+        f_name: String,
+        l_name: String,
+        event: queries::Event,
+        div_id: cynic::Id,
+    ) -> Self {
         let mut rounds: Vec<PlayerRound> = vec![];
         for rnd in event.rounds {
             for pool in rnd.expect("no round").pools {
@@ -79,9 +155,9 @@ impl NewPlayer {
                                     }
                                 }
                             }
-                        },
-                        Some(queries::PoolLeaderboardDivisionCombined::Unknown) => {},
-                        None => {},
+                        }
+                        Some(queries::PoolLeaderboardDivisionCombined::Unknown) => {}
+                        None => {}
                     }
                 }
             }
@@ -90,20 +166,15 @@ impl NewPlayer {
         Self {
             player_id: id,
             name: format!("{} {}", f_name, l_name),
-            rank: queries::RankUpDown::Same,
             best_score: false,
-            through: 0,
-            current_score: 0,
-            round_score: 0,
-            round_ind: 0,
             rounds,
             div_id,
-            hole: 0,
+            ..Default::default()
         }
     }
 
     pub fn get_round_total_score(&self, round_ind: usize) -> i16 {
-        self.rounds[round_ind].get_score(17)
+        self.rounds[round_ind].score_to_hole(17)
     }
 
     fn score_before_round(&self) -> i16 {
@@ -112,6 +183,144 @@ impl NewPlayer {
             total_score += self.get_round_total_score(round_ind)
         }
         total_score
+    }
+
+    fn generate_identifier(&self, s_1: &str, s_2: &str) -> String {
+        format!("{}{}{}{}", s_1, self.hole + 1, s_2, self.ind)
+    }
+
+    // Below goes JS TCP Strings
+
+    pub fn set_name(&mut self) -> JsString {
+        let inner_name = format!("namep{}", self.ind);
+        let selection = format!("Input={}&SelectedName={}.Text", self.vmix_id, inner_name,);
+        format!("FUNCTION SetText Value={}&{}", self.name, &selection).into()
+    }
+
+    fn set_hole_score(&mut self) -> Vec<JsString> {
+        let mut return_vec: Vec<JsString> = vec![];
+        // self.start_score_anim();
+        // wait Xms
+        let selection = format!(
+            "Input={}&{}",
+            self.vmix_id,
+            VmixProperty::Score.selection(self.hole+1, self.ind)
+        );
+        let select_colour = format!(
+            "Input={}&{}",
+            self.vmix_id,
+            VmixProperty::Color.selection(self.hole+1, self.ind)
+        );
+        let selection_hole = format!(
+            "Input={}&{}",
+            self.vmix_id,
+            VmixProperty::HoleNumber.selection(self.hole+1, self.ind)
+        );
+        let result = &player.results[self.hole];
+
+        // Set score
+        return_vec
+            .push(format!("FUNCTION SetText Value={}&{}", &result.score, &selection).into());
+        // Set colour
+        return_vec.push(
+            format!(
+                "FUNCTION SetColor Value=#{}&{}",
+                &result.get_score_colour(),
+                &select_colour
+            )
+            .into(),
+        );
+        // Show score
+        return_vec.push(format!("FUNCTION SetTextVisibleOn {}", &selection).into());
+        return_vec.push(format!("FUNCTION SetTextVisibleOn {}", &selection_hole).into());
+        return_vec.push(
+            format!(
+                "FUNCTION SetText Value={}&{}",
+                &self.hole + 1,
+                &selection_hole
+            )
+            .into(),
+        );
+
+        self.score += result.actual_score();
+        return_vec.push(self.set_tot_score());
+        self.hole += 1;
+        self.throws = 0;
+        return_vec.push(self.set_throw());
+        
+        return_vec
+    }
+
+    fn set_tot_score(&self) -> JsString {
+        let n = format!("scoretotp{}", self.ind);
+        let selection = format!("Input={}&SelectedName={}.Text", self.vmix_id, n);
+        format!("FUNCTION SetText Value={}&{}", self.total_score, &selection).into()
+    }
+
+    fn shift_scores(&mut self) -> Vec<JsString> {
+        let mut return_vec = vec![];
+        let in_hole = self.hole.clone();
+        let diff = self.hole - 8;
+        self.hole = diff;
+        log(&format!("diff: {}", diff));
+        for i in diff..in_hole {
+            log(&format!("i: {}", i));
+            self.shift = diff;
+            log(&format!("hole: {}\nshift: {}", self.hole, self.shift));
+            return_vec.append(&mut self.set_hole_score());
+        }
+        self.rounds[self.round_ind].self.score = score;
+        return_vec.append(&mut self.set_hole_score());
+        return_vec
+    }
+
+    fn del_score(&mut self) -> Vec<JsString> {
+        let mut return_vec: Vec<JsString> = vec![];
+        let selection = format!(
+            "Input={}&SelectedName={}.Text",
+            self.vmix_id,
+            self.generate_identifier("s", "p")
+        );
+        let select_colour = format!(
+            "Input={}&SelectedName={}.Fill.Color",
+            self.vmix_id,
+            self.generate_identifier("h", "p")
+        );
+        let selection_hole = format!(
+            "Input={}&SelectedName={}.Text",
+            self.vmix_id,
+            self.generate_identifier("HN", "p")
+        );
+        return_vec.push(format!("FUNCTION SetText Value={}&{}", "", &selection).into());
+        return_vec.push(
+            format!(
+                "FUNCTION SetColor Value=#{}&{}",
+                DEFAULT_BG_COL, &select_colour
+            )
+            .into(),
+        );
+        return_vec.push(
+            format!(
+                "FUNCTION SetText Value={}&{}",
+                &self.hole + 1,
+                &selection_hole
+            )
+            .into(),
+        );
+        return_vec.push(format!("FUNCTION SetTextVisibleOff {}", &selection).into());
+        return_vec
+    }
+
+    fn reset_scores(&mut self) -> Vec<JsString> {
+        let mut return_vec = vec![];
+        for i in 0..9 {
+            self.hole = i;
+            return_vec.append(&mut self.del_score());
+        }
+        self.hole = 0;
+        self.round_score = 0;
+        return_vec.push(self.set_tot_score());
+        return_vec
     }
 }
 
@@ -127,7 +336,6 @@ pub struct RustHandler {
 
 impl RustHandler {
     pub fn new(pre_event: GraphQlResponse<queries::EventQuery>) -> Self {
-
         let event = pre_event.data.expect("no data").event.expect("no event");
         let mut divisions: Vec<queries::Division> = vec![];
         for div in &event.divisions {
@@ -135,7 +343,7 @@ impl RustHandler {
                 divisions.push(div.clone());
             }
         }
-        
+
         Self {
             chosen_division: divisions[0].id.clone(),
             event,
@@ -145,7 +353,7 @@ impl RustHandler {
             valid_pool_inds: vec![0],
         }
     }
-    
+
     pub fn get_divisions(&self) -> Vec<Division> {
         let mut divs: Vec<Division> = vec![];
         for div in &self.divisions {
@@ -162,7 +370,14 @@ impl RustHandler {
         let mut players: Vec<queries::PoolLeaderboardPlayer> = vec![];
         let mut out_vec: Vec<NewPlayer> = vec![];
         for ind in &self.valid_pool_inds {
-            for div in &self.event.rounds[self.round_ind].clone().expect("no round").pools[*ind].clone().leaderboard.expect("no leaderboard") {
+            for div in &self.event.rounds[self.round_ind]
+                .clone()
+                .expect("no round")
+                .pools[*ind]
+                .clone()
+                .leaderboard
+                .expect("no leaderboard")
+            {
                 match div {
                     Some(queries::PoolLeaderboardDivisionCombined::PLD(division)) => {
                         if division.id == self.chosen_division {
@@ -170,14 +385,20 @@ impl RustHandler {
                                 players.push(player.clone());
                             }
                         }
-                    },
-                    Some(queries::PoolLeaderboardDivisionCombined::Unknown) => {},
-                    None => {},
+                    }
+                    Some(queries::PoolLeaderboardDivisionCombined::Unknown) => {}
+                    None => {}
                 }
             }
         }
         for player in players {
-            out_vec.push(NewPlayer::new(player.player_id, player.first_name, player.last_name, self.event.clone(), self.chosen_division.clone()));
+            out_vec.push(NewPlayer::new(
+                player.player_id,
+                player.first_name,
+                player.last_name,
+                self.event.clone(),
+                self.chosen_division.clone(),
+            ));
         }
         out_vec
     }
@@ -216,7 +437,7 @@ pub mod queries {
         pub rounds: Vec<Option<Round>>,
         pub divisions: Vec<Option<Division>>,
     }
-     #[derive(cynic::QueryFragment, Debug, Clone)]
+    #[derive(cynic::QueryFragment, Debug, Clone)]
     pub struct Round {
         pub pools: Vec<Pool>,
         pub id: cynic::Id,
@@ -252,16 +473,17 @@ pub mod queries {
         pub points: Option<f64>,
         pub score: Option<f64>, // Tror denna är total score för runda
     }
-    #[derive(Debug)]
+    #[derive(Debug, Clone)]
     pub enum RankUpDown {
         Up(i8),
         Down(i8),
         Same,
     }
     impl Default for RankUpDown {
-        fn default() -> Self { RankUpDown::Same }
+        fn default() -> Self {
+            RankUpDown::Same
+        }
     }
-
 
     #[derive(Default)]
     struct LBInformation {
@@ -275,7 +497,6 @@ pub mod queries {
     }
 
     impl PoolLeaderboardPlayer {
-
         fn get_current_round(&self, through: u8) -> LBInformation {
             LBInformation::default()
         }
@@ -287,7 +508,6 @@ pub mod queries {
             }
             total_score
         }
-
     }
 
     #[derive(cynic::QueryFragment, Debug, Clone)]
@@ -351,7 +571,6 @@ pub mod queries {
         pub position: f64,
     }
 
-
     #[derive(cynic::QueryFragment, Debug, Clone)]
     pub struct LayoutVersion {
         pub holes: Vec<Hole>,
@@ -363,7 +582,6 @@ pub mod queries {
         pub number: f64,
         pub length: Option<f64>,
     }
-
 
     #[derive(cynic::InlineFragments, Debug, Clone)]
     pub enum PoolLeaderboardDivisionCombined {
@@ -379,8 +597,6 @@ pub mod queries {
         Open,
         Completed,
     }
-
-    
 }
 #[allow(non_snake_case, non_camel_case_types)]
 mod schema {
