@@ -56,25 +56,29 @@ impl PlayerRound {
     }
 }
 
+struct VmixInfo {
+    id: String,
+    value: String,
+    prop: VmixProperty,
+}
+
 enum VmixFunction {
-    SetText(String, VmixProperty),
-    SetPanX(String, VmixProperty),
-    Restart(VmixProperty),
-    Play(VmixProperty),
+    SetText(VmixInfo),
+    SetPanX(VmixInfo),
+    Restart(String),
+    Play(String),
 }
 
 impl VmixFunction {
-    fn to_string(&self) -> String {
+    pub fn to_string(&self) -> String {
         match self {
-            VmixFunction::SetText(value, prop) => format!("FUNCTION SetText Value={}&{}", value, prop.selection()),
-            VmixFunction::SetPanX(value, prop) => format!("FUNCTION SetPanX Value={}&{}", value, prop.selection()),
-            VmixFunction::Restart(prop) => format!("FUNCTION Restart {}", prop.selection()),
-            VmixFunction::Play(prop) => format!("FUNCTION Play {}", prop.selection()),
+            VmixFunction::SetText(info) => format!("FUNCTION SetText Value={}&Input={}&{}", info.value, info.id, info.prop.selection()),
+            VmixFunction::SetPanX(info) => format!("FUNCTION SetPanX Value={}&Input={}&{}", info.value, info.id, info.prop.selection()),
+            VmixFunction::Restart(id) => format!("FUNCTION Restart Input={}", id),
+            VmixFunction::Play(id) => format!("FUNCTION Play Input={}", id),
         }
     }
 }
-
-
 
 enum VmixProperty {
     Score(usize, usize),
@@ -82,7 +86,6 @@ enum VmixProperty {
     Color(usize, usize),
     Name(usize)
 }
-
 
 impl VmixProperty {
     fn selection(&self) -> String {
