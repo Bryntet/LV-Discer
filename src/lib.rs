@@ -463,7 +463,7 @@ impl MyApp {
         t
     }
 
-    fn get_focused(&mut self) -> &mut Player {
+    fn get_focused(&mut self) -> &mut get_data::NewPlayer {
         match self.foc_play_ind {
             0 => &mut self.score_card.p1,
             1 => &mut self.score_card.p2,
@@ -493,11 +493,7 @@ impl MyApp {
 
     #[wasm_bindgen]
     pub fn get_foc_p_name(&mut self) -> JsString {
-        if let Some(player) = self.get_focused().player.clone() {
-            format!("{} {}", player.first_name, player.last_name).into()
-        } else {
-            "".into()
-        }
+        self.get_focused().name.into()
     }
 
     #[wasm_bindgen]
@@ -545,23 +541,14 @@ impl MyApp {
 
     #[wasm_bindgen]
     pub fn get_focused_player_names(&self) -> Vec<JsString> {
-        let mut return_vec = vec![];
-        for player in vec![
+        vec![
             self.score_card.p1.clone(),
             self.score_card.p2.clone(),
             self.score_card.p3.clone(),
             self.score_card.p4.clone(),
-        ] {
-            if let Some(player) = player.player {
-                return_vec.push(JsString::from(format!(
-                    "{} {}",
-                    &player.first_name, &player.last_name
-                )));
-            } else {
-                return_vec.push(JsString::from(""));
-            }
-        }
-        return_vec
+        ].iter().map(|player| {
+            player.name.into()
+        }).collect()
     }
     #[wasm_bindgen(setter)]
     pub fn set_event_id(&mut self, event_id: JsString) {
@@ -605,10 +592,10 @@ impl ScoreCard {
                 out_vec.push(player.set_name());
                 out_vec.append(&mut player.reset_scores());
                 match player_num {
-                    1 => self.p1 = player,
-                    2 => self.p2 = player,
-                    3 => self.p3 = player,
-                    4 => self.p4 = player,
+                    1 => self.p1 = player.clone(),
+                    2 => self.p2 = player.clone(),
+                    3 => self.p3 = player.clone(),
+                    4 => self.p4 = player.clone(),
                     _ => (),
                 }
             }
@@ -617,7 +604,7 @@ impl ScoreCard {
     }
 
     #[wasm_bindgen]
-    pub fn set_total_score(&mut self, player_num: usize, new_score: i32) {
+    pub fn set_total_score(&mut self, player_num: usize, new_score: i16) {
         match player_num {
             1 => self.p1.total_score = new_score,
             2 => self.p2.total_score = new_score,

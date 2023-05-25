@@ -65,7 +65,9 @@ struct VmixInfo {
 enum VmixFunction {
     SetText(VmixInfo),
     SetPanX(VmixInfo),
+    SetColor(VmixInfo),
     SetTextVisibleOn(VmixInfo),
+    SetTextVisibleOff(VmixInfo),
     Restart(String),
     Play(String),
 }
@@ -82,8 +84,7 @@ impl VmixFunction {
                                 info.id,
                                 info.prop.selection()
                             );
-                        }
-                        else if info.value.parse::<i16>().unwrap_or(0) > 0 {
+                        } else if info.value.parse::<i16>().unwrap_or(0) > 0 {
                             return format!(
                                 "FUNCTION SetText Value=+{}&Input={}&{}",
                                 info.value,
@@ -91,7 +92,7 @@ impl VmixFunction {
                                 info.prop.selection()
                             );
                         }
-                    },
+                    }
                     _ => {}
                 }
                 return format!(
@@ -100,7 +101,7 @@ impl VmixFunction {
                     info.id,
                     info.prop.selection()
                 );
-            },
+            }
             VmixFunction::SetPanX(info) => format!(
                 "FUNCTION SetPanX Value={}&Input={}&{}",
                 info.value,
@@ -114,6 +115,11 @@ impl VmixFunction {
                 info.id,
                 info.prop.selection()
             ),
+            VmixFunction::SetTextVisibleOff(info) => format!(
+                "FUNCTION SetTextVisibleOff Input={}&{}",
+                info.id,
+                info.prop.selection()
+            ),
         }
     }
 }
@@ -124,6 +130,7 @@ enum VmixProperty {
     Color(usize, usize),
     Name(usize),
     TotalScore(usize),
+    Throw(usize),
 }
 
 impl VmixProperty {
@@ -133,7 +140,8 @@ impl VmixProperty {
             VmixProperty::HoleNumber(v1, v2) => format!("SelectedName=HN{}p{}.Text", v1, v2),
             VmixProperty::Color(v1, v2) => format!("SelectedName=h{}p{}.Fill.Color", v1, v2),
             VmixProperty::Name(v1) => format!("SelectedName=namep{}.Text", v1),
-            VmixProperty::TotalScore(v1) => format!("SelectedName=scoretotp{}.Text", v1)
+            VmixProperty::TotalScore(v1) => format!("SelectedName=scoretotp{}.Text", v1),
+            VmixProperty::Throw(ind) => format!("SelectedName=t#p{}.Text", ind),
         }
     }
 }
@@ -145,7 +153,7 @@ pub struct NewPlayer {
     rank: queries::RankUpDown,
     best_score: bool,
     through: u8,
-    total_score: i16, // Total score for all rounds
+    pub total_score: i16, // Total score for all rounds
     round_score: i16, // Score for only current round
     round_ind: usize,
     rounds: Vec<PlayerRound>,
@@ -153,7 +161,8 @@ pub struct NewPlayer {
     hole: usize,
     ind: usize,
     vmix_id: String,
-    throws: u8,
+    pub throws: u8,
+    shift: usize,
 }
 
 impl Default for NewPlayer {
@@ -172,6 +181,8 @@ impl Default for NewPlayer {
             hole: 0,
             ind: 0,
             vmix_id: "".to_string(),
+            throws: 0,
+            shift: 0,
         }
     }
 }
@@ -231,6 +242,12 @@ impl NewPlayer {
         format!("{}{}{}{}", s_1, self.hole + 1, s_2, self.ind)
     }
 
+    fn get_col(&self) -> String {
+        self.rounds[self.round_ind].results[self.hole]
+            .get_score_colour()
+            .into()
+    }
+
     // Below goes JS TCP Strings
 
     pub fn set_name(&mut self) -> JsString {
@@ -241,10 +258,6 @@ impl NewPlayer {
         })
         .to_string()
         .into()
-    }
-
-    fn get_col(&self) -> String {
-        self.rounds[self.round_ind].results[self.hole].get_score_colour().into()     
     }
 
     fn set_hole_score(&mut self) -> Vec<JsString> {
@@ -258,7 +271,7 @@ impl NewPlayer {
             VmixFunction::SetText(VmixInfo {
                 id: self.vmix_id,
                 value: result.to_string(),
-                prop: VmixProperty::Score(self.hole + 1, self.ind),
+                prop: VmixProperty::Score(self.hole + 1 - self.shift, self.ind),
             })
             .to_string()
             .into(),
@@ -268,7 +281,7 @@ impl NewPlayer {
             VmixFunction::SetText(VmixInfo {
                 id: self.vmix_id,
                 value: self.get_col(),
-                prop: VmixProperty::Color(self.hole + 1, self.ind),
+                prop: VmixProperty::Color(self.hole + 1 - self.shift, self.ind),
             })
             .to_string()
             .into(),
@@ -278,12 +291,12 @@ impl NewPlayer {
             VmixFunction::SetTextVisibleOn(VmixInfo {
                 id: self.vmix_id,
                 value: self.get_col(),
-                prop: VmixProperty::Score(self.hole + 1, self.ind),
+                prop: VmixProperty::Score(self.hole + 1 - self.shift, self.ind),
             })
             .to_string()
             .into(),
         );
-        
+
         // HoleNumber
         return_vec.push(
             VmixFunction::SetText(VmixInfo {
@@ -303,7 +316,6 @@ impl NewPlayer {
             .to_string()
             .into(),
         );
-        
 
         return_vec.push(self.set_tot_score());
         self.hole += 1;
@@ -314,9 +326,13 @@ impl NewPlayer {
     }
 
     fn set_tot_score(&self) -> JsString {
-        let n = format!("scoretotp{}", self.ind);
-        let selection = format!("Input={}&SelectedName={}.Text", self.vmix_id, n);
-        format!("FUNCTION SetText Value={}&{}", self.total_score, &selection).into()
+        VmixFunction::SetText(VmixInfo {
+            id: self.vmix_id,
+            value: self.total_score.to_string(),
+            prop: VmixProperty::TotalScore(self.ind),
+        })
+        .to_string()
+        .into()
     }
 
     fn shift_scores(&mut self) -> Vec<JsString> {
@@ -331,49 +347,57 @@ impl NewPlayer {
             log(&format!("hole: {}\nshift: {}", self.hole, self.shift));
             return_vec.append(&mut self.set_hole_score());
         }
-        self.rounds[self.round_ind].self.score = score;
         return_vec.append(&mut self.set_hole_score());
         return_vec
     }
 
     fn del_score(&mut self) -> Vec<JsString> {
         let mut return_vec: Vec<JsString> = vec![];
-        let selection = format!(
-            "Input={}&SelectedName={}.Text",
-            self.vmix_id,
-            self.generate_identifier("s", "p")
-        );
-        let select_colour = format!(
-            "Input={}&SelectedName={}.Fill.Color",
-            self.vmix_id,
-            self.generate_identifier("h", "p")
-        );
-        let selection_hole = format!(
-            "Input={}&SelectedName={}.Text",
-            self.vmix_id,
-            self.generate_identifier("HN", "p")
-        );
-        return_vec.push(format!("FUNCTION SetText Value={}&{}", "", &selection).into());
+        let score_prop = VmixProperty::Score(self.hole + 1, self.ind);
+        let col_prop = VmixProperty::Color(self.hole + 1, self.ind);
+        let h_num_prop = VmixProperty::HoleNumber(self.hole + 1, self.ind);
         return_vec.push(
-            format!(
-                "FUNCTION SetColor Value=#{}&{}",
-                DEFAULT_BG_COL, &select_colour
-            )
+            VmixFunction::SetText(VmixInfo {
+                id: self.vmix_id,
+                value: "".to_string(),
+                prop: score_prop,
+            })
+            .to_string()
+            .into(),
+        );
+
+        return_vec.push(
+            VmixFunction::SetColor(VmixInfo {
+                id: self.vmix_id,
+                value: format!("#{}", DEFAULT_BG_COL),
+                prop: col_prop,
+            })
+            .to_string()
+            .into(),
+        );
+
+        return_vec.push(
+            VmixFunction::SetText(VmixInfo {
+                id: self.vmix_id,
+                value: (self.hole + 1).to_string(),
+                prop: h_num_prop,
+            })
+            .to_string()
             .into(),
         );
         return_vec.push(
-            format!(
-                "FUNCTION SetText Value={}&{}",
-                &self.hole + 1,
-                &selection_hole
-            )
+            VmixFunction::SetTextVisibleOff(VmixInfo {
+                id: self.vmix_id,
+                value: "".to_string(),
+                prop: score_prop,
+            })
+            .to_string()
             .into(),
         );
-        return_vec.push(format!("FUNCTION SetTextVisibleOff {}", &selection).into());
         return_vec
     }
 
-    fn reset_scores(&mut self) -> Vec<JsString> {
+    pub fn reset_scores(&mut self) -> Vec<JsString> {
         let mut return_vec = vec![];
         for i in 0..9 {
             self.hole = i;
@@ -383,6 +407,16 @@ impl NewPlayer {
         self.round_score = 0;
         return_vec.push(self.set_tot_score());
         return_vec
+    }
+
+    pub fn set_throw(&self) -> JsString {
+        VmixFunction::SetText(VmixInfo {
+            id: self.vmix_id,
+            value: self.throws.to_string(),
+            prop: VmixProperty::Throw(self.ind),
+        })
+        .to_string()
+        .into()
     }
 }
 
