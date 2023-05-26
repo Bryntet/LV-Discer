@@ -122,8 +122,9 @@ class instance extends instance_skel {
 	beConnected() {
 		if (!this.isConnected) {
 			this.client.connect({ port: 8099, host: this.config.vmix_ip }, () => {
-				this.isConnected = true
 				console.log('Connected to vMix')
+				this.isConnected = true
+				return true
 			})
 		}
 	}
@@ -132,7 +133,7 @@ class instance extends instance_skel {
 		if (!this.isConnected) {
 			console.log("Not connected to vMix, connecting...")
 			this.beConnected()
-		} 
+		}
 		console.log(msg.join('\r\n'))
 		this.client.write(msg.join("\r\n")+ "\r\n")
 		this.client.on('data', (data) => {
@@ -211,7 +212,39 @@ class instance extends instance_skel {
 					
 				}, 
 			},
+			match_regex: {
+				label: 'Match variable against regex',
+				description: 'Checks if a variable matches a provided regex',
+				options: [
+					{
+						type: 'textwithvariables',
+						label: 'Variable',
+						tooltip: 'What variable to act on?',
+						id: 'variable',
+					},
+					{
+						type: 'textinput',
+						label: 'Regex',
+						id: 'regex',
+						default: ''
+					}
+				],
+				callback: function (feedback, bank) {
+					const { variable, regex } = feedback.options;
 
+					// Retrieve the actual variable value from the state
+					
+					// Check if the variable matches the regex
+					const regexObj = new RegExp(regex);
+					if (regexObj.test(variable)) {
+						console.log("success!")
+						return true;
+					} else {
+						console.log("BOOO")
+						return false;
+					}
+				}
+			}
 		}
 		this.setFeedbackDefinitions(feedbacks)
 	}
@@ -366,34 +399,14 @@ class instance extends instance_skel {
 		this.setActions(actions)
 	}
 
-	async runCommands(url_list) {
-		for (const url of url_list) {
-			try {await fetch(url)} 
-			catch (err) {
-				for (let i = 0; i < 3; i++) {
-					try {
-						await fetch(url)
-						break
-					} catch (err) {
-						console.log(err)
-					}
-				}
-			}
-		}
-	}
+
 
 	sendCommand(cmd) {
 		if (cmd !== undefined && cmd != '') {
 			console.log('sending command', cmd)
 		}
 	}
-	wrapRunCommands(cmd) {
-		this.runCommands(cmd).then(() => {
-			console.log('done')
-		}).catch((err) => {
-			console.log(err)
-		})
-	}
+
 	updateConfig(config) {
 		this.client.destroy()
 		this.isConnected = false
@@ -452,7 +465,7 @@ class instance extends instance_skel {
 		for (const [idx, player] of list.entries()) {
 			console.log(player)
 			if (typeof player === 'string' && player !== 'none') {
-				console.log("setting p1")
+				console.log("setting p"+(idx+1))
 				this.vmixTCP(this.rust_main.set_player(idx + 1, player))
 			}
 		}
@@ -467,7 +480,7 @@ class instance extends instance_skel {
 			this.setVariable("p"+(index+1), name)
 		});
 		console.log("hereeee")
-		console.log(this.rust_main.get_all_rounds())
+		//console.log(this.rust_main.get_all_rounds())
 	}
 }
 
