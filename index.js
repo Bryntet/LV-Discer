@@ -29,6 +29,7 @@ class instance extends instance_skel {
 		this.client = new net.Socket()
 		this.client.setMaxListeners(40)
 		this.isConnected = false
+		this.isConnecting = false
 		this.second_one_running = false
 		this.initActions()
 		this.initFeedbacks()
@@ -120,39 +121,64 @@ class instance extends instance_skel {
 
 
 	beConnected() {
-		if (!this.isConnected) {
-			this.client.connect({ port: 8099, host: this.config.vmix_ip }, () => {
-				console.log('Connected to vMix')
-				this.isConnected = true
-				return true
-			})
-		}
+		return new Promise((resolve, reject) => {
+			if (!this.isConnected && !this.isConnecting) {
+				this.isConnecting = true
+				this.client.connect({ port: 8099, host: this.config.vmix_ip }, () => {
+					console.log('Connected to vMix')
+					this.isConnected = true
+					this.isConnecting = false
+					resolve()
+				})
+				this.client.on('error', (error) => {
+					console.error('Connection error:', error)
+					this.isConnecting = false
+					reject(error)
+				})
+			} else {
+				resolve()
+			}
+		})
 	}
 
 	vmixTCP(msg) {
-		if (!this.isConnected) {
+		if (!this.isConnected && !this.isConnecting) {
 			console.log("Not connected to vMix, connecting...")
-			this.beConnected()
+			this.beConnected().then(() => {
+				console.log('Connection established!')
+				this.stuff(msg)
+			})
+			.catch((error) => {
+				console.error('Failed to establish connection:', error)
+				//this.vmixTCP(msg)
+				// Handle connection failure here.
+			})
+		} else {
+			console.log("Probably connected already")
+			this.stuff(msg)
 		}
-		console.log(msg.join('\r\n'))
+		
+	}
+	stuff(msg) {
+		console.log("gonna write now")
+		
 		this.client.write(msg.join("\r\n")+ "\r\n")
 		this.client.on('data', (data) => {
 			if (data.includes("ERR")) {
 				console.log('Received error: \n' + data)
-				//this.client.destroy()
+				
 			}
 		})
 		this.client.on('close', () => {
 			console.log('Connection closed')
-			this.destroy()
 			this.isConnected = false
 		})
 
 		this.client.on('error', (err) => {
 			console.error('There was an error with the connection: ', err)
+			this.client.destroy()
 		})
 	}
-	
 
 	destroy() {
 
@@ -172,6 +198,8 @@ class instance extends instance_skel {
 		this.config.p3 = 'none'
 		this.config.p4 = 'none'
 		this.config.div = 'none'
+		this.config.round = 1
+		this.saveConfig();
 		this.div_names.push({ id: 'none', label: 'None'})
 		this.foc_player_ind = 0
 		this.setVariable('player_name', "")
@@ -393,6 +421,28 @@ class instance extends instance_skel {
 					}
 				},
 			},
+			increment_round: {
+				label: 'Increment Round',
+				callback: () => {
+					if (this.config.round !== undefined) {
+						this.config.round++;
+						this.vmixTCP(this.rust_main.set_round(this.config.round - 1));
+						this.saveConfig();
+						this.checkFeedbacks('increment_round');
+					}
+				}
+			},
+			decrement_round: {
+				label: 'Decrement Round',
+				callback: () => {
+					if (this.config.round !== undefined && this.config.round > 0) {
+						this.config.round--;
+						this.vmixTCP(this.rust_main.set_round(this.config.round - 1));
+						this.saveConfig();
+						this.checkFeedbacks('decrement_round');
+					}
+				}
+			},
 		}
 		
 		
@@ -462,13 +512,16 @@ class instance extends instance_skel {
 		this.focused_players.length = 0
 		this.focused_players.push({ id: 'none', label: 'None' })
 		let list = [this.config.p1, this.config.p2, this.config.p3, this.config.p4]
+		let p_list = []
 		for (const [idx, player] of list.entries()) {
 			console.log(player)
 			if (typeof player === 'string' && player !== 'none') {
-				console.log("setting p"+(idx+1))
-				this.vmixTCP(this.rust_main.set_player(idx + 1, player))
+				p_list.push(this.rust_main.set_player(idx + 1, player).join("\r\n"))
 			}
 		}
+		console.log(p_list.join("\r\n"))
+		this.vmixTCP(p_list)
+
 		for (const [idx, name] of this.rust_main.get_focused_player_names().entries()) {
 			this.focused_players.push({ id: idx, label: name })
 		}
@@ -479,6 +532,11 @@ class instance extends instance_skel {
 		this.rust_main.get_focused_player_names().forEach((name, index) => {
 			this.setVariable("p"+(index+1), name)
 		});
+		if (this.rust_main.round != this.config.round-1) {
+			this.vmixTCP(this.rust_main.set_round(this.config.round-1))
+			console.log("Round increased")
+			
+		}
 		console.log("hereeee")
 		//console.log(this.rust_main.get_all_rounds())
 	}

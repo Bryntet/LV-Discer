@@ -62,9 +62,9 @@ pub struct MyApp {
     event: Option<get_data::queries::Event>,
     event_id: String,
     pools: Vec<get_data::queries::Pool>,
-    pool_ind: usize,
     handler: Option<get_data::RustHandler>,
     available_players: Vec<get_data::NewPlayer>,
+    round_ind: usize,
 }
 
 impl Default for MyApp {
@@ -87,10 +87,10 @@ impl Default for MyApp {
             ],
             event: None,
             pools: vec![],
-            pool_ind: 0,
             event_id: "a57b4ed6-f64a-4710-8f20-f93e82d4fe79".into(),
             handler: None,
             available_players: vec![],
+            round_ind: 0,
         }
     }
 }
@@ -119,9 +119,15 @@ impl MyApp {
         // self.score_card.all_play_players = self.selected_div.as_ref().unwrap().players.clone();
     }
 
-    #[wasm_bindgen(setter = round)]
-    pub fn set_round(&mut self, idx: usize) {
-        self.pool_ind = idx;
+    #[wasm_bindgen(getter = round)]
+    pub fn get_round(&self) -> usize {
+        self.round_ind
+    }
+
+    #[wasm_bindgen]
+    pub fn set_round(&mut self, idx: usize) -> Vec<JsString> {
+        self.round_ind = idx;
+        self.score_card.set_round(idx)
     }
 
     #[wasm_bindgen]
@@ -226,6 +232,16 @@ impl MyApp {
     }
 
     #[wasm_bindgen]
+    pub fn reset_scores(&mut self) -> Vec<JsString> {
+        let mut return_vec: Vec<JsString> = vec![];
+        return_vec.append(&mut self.score_card.p1.reset_scores());
+        return_vec.append(&mut self.score_card.p2.reset_scores());
+        return_vec.append(&mut self.score_card.p3.reset_scores());
+        return_vec.append(&mut self.score_card.p4.reset_scores());
+        return_vec
+    }
+
+    #[wasm_bindgen]
     pub fn get_foc_p_name(&mut self) -> JsString {
         self.get_focused().name.clone().into()
     }
@@ -281,9 +297,10 @@ impl MyApp {
             self.score_card.p2.clone(),
             self.score_card.p3.clone(),
             self.score_card.p4.clone(),
-        ].iter().map(|player| {
-            player.name.clone().into()
-        }).collect()
+        ]
+        .iter()
+        .map(|player| player.name.clone().into())
+        .collect()
     }
     #[wasm_bindgen(setter)]
     pub fn set_event_id(&mut self, event_id: JsString) {
@@ -324,17 +341,20 @@ impl ScoreCard {
         let mut out_vec: Vec<JsString> = vec![];
         for player in self.all_play_players.clone() {
             if player.player_id == cynic::Id::from(&player_id) {
-                out_vec.push(player.clone().set_name());
-                out_vec.append(&mut player.clone().reset_scores());
+                let mut p = player.clone();
+                p.ind = player_num - 1;
+                out_vec.push(p.clone().set_name());
+                out_vec.append(&mut p.clone().reset_scores());
                 match player_num {
-                    1 => self.p1 = player.clone(),
-                    2 => self.p2 = player.clone(),
-                    3 => self.p3 = player.clone(),
-                    4 => self.p4 = player.clone(),
+                    1 => self.p1 = p.clone(),
+                    2 => self.p2 = p.clone(),
+                    3 => self.p3 = p.clone(),
+                    4 => self.p4 = p.clone(),
                     _ => (),
                 }
             }
         }
+        log(&format!("player_id: {}", player_id));
         out_vec
     }
 
@@ -347,6 +367,16 @@ impl ScoreCard {
             4 => self.p4.total_score = new_score,
             _ => panic!("Invalid player number"),
         }
+    }
+
+    
+    pub fn set_round(&mut self, round: usize) -> Vec<JsString> {
+        let mut return_vec: Vec<JsString> = vec![];
+        return_vec.append(&mut self.p1.set_round(round));
+        return_vec.append(&mut self.p2.set_round(round));
+        return_vec.append(&mut self.p3.set_round(round));
+        return_vec.append(&mut self.p4.set_round(round));
+        return_vec
     }
 }
 
@@ -370,7 +400,6 @@ mod tests {
         app.set_player(3, players[2].clone().into());
         app.set_player(4, players[3].clone().into());
         app.set_foc(1);
-        
 
         //app.set_div(0);
         // let ids = app.get_player_ids();
@@ -409,12 +438,11 @@ mod tests {
     #[wasm_bindgen_test]
     async fn score_increases() {
         let mut app = generate_app().await;
-        
-        
+
         for _ in 0..18 {
             //log(&app.get_focused().total_score.to_string());
-            log(&format!("{:#?}",app.get_focused().hole));
-            log(&format!("{:#?}",app.increase_score()));
+            log(&format!("{:#?}", app.get_focused().hole));
+            log(&format!("{:#?}", app.increase_score()));
         }
         log(&app.get_focused().total_score.to_string());
     }
