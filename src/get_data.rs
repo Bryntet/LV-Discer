@@ -164,7 +164,7 @@ pub struct NewPlayer {
     pub total_score: i16, // Total score for all rounds
     round_score: i16,     // Score for only current round
     round_ind: usize,
-    rounds: Vec<PlayerRound>,
+    pub rounds: Vec<PlayerRound>,
     div_id: cynic::Id,
     pub hole: usize,
     pub ind: usize,
@@ -468,7 +468,7 @@ impl NewPlayer {
     }
 
     fn set_input_pan(&mut self) -> JsString {
-        let pan = match self.ind {
+        let pan = match self.ind+1 {
             1 => -0.628,
             2 => -0.628 + 0.419,
             3 => -0.628 + 0.4185 * 2.0,

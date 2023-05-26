@@ -130,6 +130,11 @@ impl MyApp {
         self.score_card.set_round(idx)
     }
 
+    #[wasm_bindgen(getter = rounds)]
+    pub fn get_rounds(&mut self) -> usize {
+        self.get_focused().rounds.len()
+    }
+
     #[wasm_bindgen]
     pub async fn get_event(&mut self) -> Result<JsValue, JsValue> {
         self.pools = vec![];
@@ -143,10 +148,7 @@ impl MyApp {
         Ok(result)
     }
 
-    #[wasm_bindgen(getter)]
-    pub fn rounds(&self) -> usize {
-        self.pools.len() + 1
-    }
+
 
     // #[wasm_bindgen]
     // pub async fn get_divs(&mut self) -> Result<JsValue, JsValue> {

@@ -424,7 +424,7 @@ class instance extends instance_skel {
 			increment_round: {
 				label: 'Increment Round',
 				callback: () => {
-					if (this.config.round !== undefined) {
+					if (this.config.round !== undefined && this.config.round < this.rust_main.rounds) {
 						this.config.round++;
 						this.vmixTCP(this.rust_main.set_round(this.config.round - 1));
 						this.saveConfig();
@@ -435,7 +435,7 @@ class instance extends instance_skel {
 			decrement_round: {
 				label: 'Decrement Round',
 				callback: () => {
-					if (this.config.round !== undefined && this.config.round > 0) {
+					if (this.config.round !== undefined && this.config.round > 1) {
 						this.config.round--;
 						this.vmixTCP(this.rust_main.set_round(this.config.round - 1));
 						this.saveConfig();
