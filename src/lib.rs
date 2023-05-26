@@ -44,45 +44,6 @@ impl Default for Constants {
     }
 }
 
-#[derive(Clone, Debug)]
-pub struct Player {
-    div: get_data::queries::PoolLeaderboardDivision,
-    selected: usize,
-    player: Option<get_data::queries::PoolLeaderboardPlayer>,
-    hole: usize,
-    num: String,
-    consts: Constants,
-    throws: u8,
-    score: f64,
-    shift: usize,
-    ob: bool,
-    total_score: i32,
-}
-
-impl Default for Player {
-    fn default() -> Self {
-        Self {
-            div: get_data::queries::PoolLeaderboardDivision {
-                id: cynic::Id::from(""),
-                name: "".to_owned(),
-                players: vec![],
-                type_: "".to_owned(),
-            },
-            selected: 0,
-            player: None,
-            hole: 0,
-            num: "0".to_string(),
-            consts: Constants::default(),
-            throws: 0,
-            score: 0.0,
-            shift: 0,
-            ob: false,
-            total_score: 0,
-        }
-    }
-}
-
-impl Player {
     fn player_selector(&mut self, player: get_data::queries::PoolLeaderboardPlayer) {
         self.player = Some(player);
         self.set_name();
