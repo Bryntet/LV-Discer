@@ -32,7 +32,7 @@ pub async fn post_status(event_id: cynic::Id) -> cynic::GraphQlResponse<queries:
         .expect("failed to parse response")
 }
 
-const DEFAULT_BG_COL: String = "3F334D".to_string();
+const DEFAULT_BG_COL: &'static str = "3F334D";
 
 #[derive(Debug, Clone)]
 pub struct PlayerRound {
@@ -56,23 +56,25 @@ impl PlayerRound {
     }
 }
 
-struct VmixInfo {
-    id: String,
+struct VmixInfo<'a> {
+    id: &'a str,
     value: String,
     prop: VmixProperty,
 }
 
-enum VmixFunction {
-    SetText(VmixInfo),
-    SetPanX(VmixInfo),
-    SetColor(VmixInfo),
-    SetTextVisibleOn(VmixInfo),
-    SetTextVisibleOff(VmixInfo),
+enum VmixFunction<'a> {
+    SetText(VmixInfo<'a>),
+    SetPanX(VmixInfo<'a>),
+    SetColor(VmixInfo<'a>),
+    SetTextVisibleOn(VmixInfo<'a>),
+    SetTextVisibleOff(VmixInfo<'a>),
     Restart(String),
     Play(String),
+    OverlayInput4Off,
+    OverlayInput4(VmixInfo<'a>)
 }
 
-impl VmixFunction {
+impl VmixFunction<'_> {
     pub fn to_string(&self) -> String {
         match self {
             VmixFunction::SetText(info) => {
@@ -120,10 +122,23 @@ impl VmixFunction {
                 info.id,
                 info.prop.selection()
             ),
+            VmixFunction::SetColor(info) => format!(
+                "FUNCTION SetColor Value={}&Input={}&{}",
+                info.value,
+                info.id,
+                info.prop.selection()
+            ),
+            VmixFunction::OverlayInput4Off => "FUNCTION OverlayInput4Off".to_string(),
+            VmixFunction::OverlayInput4(info) => format!(
+                "FUNCTION OverlayInput4 Input={}&{}",
+                info.id,
+                info.prop.selection()
+            ),
+
         }
     }
 }
-
+#[derive(Clone)]
 enum VmixProperty {
     Score(usize, usize),
     HoleNumber(usize, usize),
@@ -131,6 +146,7 @@ enum VmixProperty {
     Name(usize),
     TotalScore(usize),
     Throw(usize),
+    Mov(String),
 }
 
 impl VmixProperty {
@@ -142,6 +158,7 @@ impl VmixProperty {
             VmixProperty::Name(v1) => format!("SelectedName=namep{}.Text", v1),
             VmixProperty::TotalScore(v1) => format!("SelectedName=scoretotp{}.Text", v1),
             VmixProperty::Throw(ind) => format!("SelectedName=t#p{}.Text", ind),
+            VmixProperty::Mov(id) => format!("SelectedName={}", id),
         }
     }
 }
@@ -158,11 +175,12 @@ pub struct NewPlayer {
     round_ind: usize,
     rounds: Vec<PlayerRound>,
     div_id: cynic::Id,
-    hole: usize,
+    pub hole: usize,
     ind: usize,
     vmix_id: String,
     pub throws: u8,
     shift: usize,
+    pub ob: bool,
 }
 
 impl Default for NewPlayer {
@@ -183,6 +201,7 @@ impl Default for NewPlayer {
             vmix_id: "".to_string(),
             throws: 0,
             shift: 0,
+            ob: false
         }
     }
 }
@@ -250,17 +269,17 @@ impl NewPlayer {
 
     // Below goes JS TCP Strings
 
-    pub fn set_name(&mut self) -> JsString {
+    pub fn set_name(&self) -> JsString {
         VmixFunction::SetText(VmixInfo {
-            id: self.vmix_id,
-            value: self.name,
+            id: &self.vmix_id,
+            value: self.name.clone(),
             prop: VmixProperty::Name(self.ind),
         })
         .to_string()
         .into()
     }
 
-    fn set_hole_score(&mut self) -> Vec<JsString> {
+    pub fn set_hole_score(&mut self) -> Vec<JsString> {
         let mut return_vec: Vec<JsString> = vec![];
         let result = self.rounds[self.round_ind].hole_score(self.hole);
 
@@ -269,7 +288,7 @@ impl NewPlayer {
         // Set score
         return_vec.push(
             VmixFunction::SetText(VmixInfo {
-                id: self.vmix_id,
+                id: &self.vmix_id,
                 value: result.to_string(),
                 prop: VmixProperty::Score(self.hole + 1 - self.shift, self.ind),
             })
@@ -279,7 +298,7 @@ impl NewPlayer {
         // Set colour
         return_vec.push(
             VmixFunction::SetText(VmixInfo {
-                id: self.vmix_id,
+                id: &self.vmix_id,
                 value: self.get_col(),
                 prop: VmixProperty::Color(self.hole + 1 - self.shift, self.ind),
             })
@@ -289,7 +308,7 @@ impl NewPlayer {
         // Show score
         return_vec.push(
             VmixFunction::SetTextVisibleOn(VmixInfo {
-                id: self.vmix_id,
+                id: &self.vmix_id,
                 value: self.get_col(),
                 prop: VmixProperty::Score(self.hole + 1 - self.shift, self.ind),
             })
@@ -300,7 +319,7 @@ impl NewPlayer {
         // HoleNumber
         return_vec.push(
             VmixFunction::SetText(VmixInfo {
-                id: self.vmix_id,
+                id: &self.vmix_id,
                 value: self.hole.to_string(),
                 prop: VmixProperty::HoleNumber(self.hole + 1, self.ind),
             })
@@ -309,7 +328,7 @@ impl NewPlayer {
         );
         return_vec.push(
             VmixFunction::SetTextVisibleOn(VmixInfo {
-                id: self.vmix_id,
+                id: &self.vmix_id,
                 value: self.get_col(),
                 prop: VmixProperty::HoleNumber(self.hole + 1, self.ind),
             })
@@ -325,9 +344,31 @@ impl NewPlayer {
         return_vec
     }
 
+    pub fn revert_hole_score(&mut self) -> Vec<JsString> {
+        let mut return_vec = vec![];
+        if self.hole > 0 {
+            self.hole -= 1;
+            return_vec.append(&mut self.del_score());
+            log(&format!("{}", self.hole));
+            let result = self.rounds[self.round_ind].hole_score(self.hole);
+            self.round_score -= result;
+            self.total_score -= result;
+            if self.hole > 8 {
+                self.hole -= 1;
+                self.round_score -= result;
+                self.total_score -= result;
+                return_vec.append(&mut self.shift_scores());
+            } else {
+                return_vec.push(self.set_tot_score());
+            }
+            
+        }
+        return_vec
+    }
+
     fn set_tot_score(&self) -> JsString {
         VmixFunction::SetText(VmixInfo {
-            id: self.vmix_id,
+            id: &self.vmix_id,
             value: self.total_score.to_string(),
             prop: VmixProperty::TotalScore(self.ind),
         })
@@ -335,7 +376,7 @@ impl NewPlayer {
         .into()
     }
 
-    fn shift_scores(&mut self) -> Vec<JsString> {
+    pub fn shift_scores(&mut self) -> Vec<JsString> {
         let mut return_vec = vec![];
         let in_hole = self.hole.clone();
         let diff = self.hole - 8;
@@ -358,9 +399,9 @@ impl NewPlayer {
         let h_num_prop = VmixProperty::HoleNumber(self.hole + 1, self.ind);
         return_vec.push(
             VmixFunction::SetText(VmixInfo {
-                id: self.vmix_id,
+                id: &self.vmix_id,
                 value: "".to_string(),
-                prop: score_prop,
+                prop: score_prop.clone()
             })
             .to_string()
             .into(),
@@ -368,7 +409,7 @@ impl NewPlayer {
 
         return_vec.push(
             VmixFunction::SetColor(VmixInfo {
-                id: self.vmix_id,
+                id: &self.vmix_id,
                 value: format!("#{}", DEFAULT_BG_COL),
                 prop: col_prop,
             })
@@ -378,7 +419,7 @@ impl NewPlayer {
 
         return_vec.push(
             VmixFunction::SetText(VmixInfo {
-                id: self.vmix_id,
+                id: &self.vmix_id,
                 value: (self.hole + 1).to_string(),
                 prop: h_num_prop,
             })
@@ -387,7 +428,7 @@ impl NewPlayer {
         );
         return_vec.push(
             VmixFunction::SetTextVisibleOff(VmixInfo {
-                id: self.vmix_id,
+                id: &self.vmix_id,
                 value: "".to_string(),
                 prop: score_prop,
             })
@@ -411,13 +452,57 @@ impl NewPlayer {
 
     pub fn set_throw(&self) -> JsString {
         VmixFunction::SetText(VmixInfo {
-            id: self.vmix_id,
+            id: &self.vmix_id,
             value: self.throws.to_string(),
             prop: VmixProperty::Throw(self.ind),
         })
         .to_string()
         .into()
     }
+
+    pub fn start_score_anim(&mut self) -> Vec<JsString> {
+        let mut return_vec: Vec<JsString> = vec![];
+        return_vec.push(VmixFunction::OverlayInput4Off.to_string().into());
+        
+        return_vec.push(self.set_input_pan());
+        return_vec.push(VmixFunction::OverlayInput4(VmixInfo { id: &self.vmix_id, value: "".to_string(), prop: VmixProperty::Mov(self.get_mov()) }).to_string().into());
+        self.ob = false;
+        //return_vec.append(&mut self.play_anim());
+        return_vec
+    }
+
+    fn set_input_pan(&mut self) -> JsString {
+        let pan = match self.ind {
+            1 => -0.628,
+            2 => -0.628 + 0.419,
+            3 => -0.628 + 0.4185 * 2.0,
+            4 => -0.628 + 0.419 * 3.0,
+            _ => -0.628,
+        };
+        VmixFunction::SetPanX(VmixInfo {
+            id: &self.vmix_id,
+            value: pan.to_string(),
+            prop: VmixProperty::Mov(self.get_mov()),
+        }).to_string().into()
+    }
+
+    fn play_anim(&mut self) -> Vec<JsString> {
+        vec![
+            VmixFunction::Restart(self.get_mov()).to_string().into(),
+            VmixFunction::Play(self.get_mov()).to_string().into(),
+        ]
+    }
+
+    fn get_mov(&self) -> String {
+        if self.ob {
+            "50 ob.mov".to_string()
+        } else  {
+            self.rounds[self.round_ind].results[self.hole].get_mov().to_string()
+        } 
+    }
+
+
+
 }
 
 #[derive(Clone)]

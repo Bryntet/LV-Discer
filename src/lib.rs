@@ -493,7 +493,7 @@ impl MyApp {
 
     #[wasm_bindgen]
     pub fn get_foc_p_name(&mut self) -> JsString {
-        self.get_focused().name.into()
+        self.get_focused().name.clone().into()
     }
 
     #[wasm_bindgen]
@@ -547,7 +547,7 @@ impl MyApp {
             self.score_card.p3.clone(),
             self.score_card.p4.clone(),
         ].iter().map(|player| {
-            player.name.into()
+            player.name.clone().into()
         }).collect()
     }
     #[wasm_bindgen(setter)]
@@ -586,11 +586,11 @@ impl ScoreCard {
     #[wasm_bindgen]
     pub fn set_player(&mut self, player_num: usize, player_id: JsString) -> Vec<JsString> {
         //let player_id = player_id.trim_start_matches("\"").trim_end_matches("\"").to_string();
-        let mut out_vec = vec![];
-        for player in &self.all_play_players {
+        let mut out_vec: Vec<JsString> = vec![];
+        for player in self.all_play_players.clone() {
             if player.player_id == cynic::Id::from(&player_id) {
-                out_vec.push(player.set_name());
-                out_vec.append(&mut player.reset_scores());
+                out_vec.push(player.clone().set_name());
+                out_vec.append(&mut player.clone().reset_scores());
                 match player_num {
                     1 => self.p1 = player.clone(),
                     2 => self.p2 = player.clone(),
