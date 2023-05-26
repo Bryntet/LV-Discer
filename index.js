@@ -240,39 +240,6 @@ class instance extends instance_skel {
 					
 				}, 
 			},
-			match_regex: {
-				label: 'Match variable against regex',
-				description: 'Checks if a variable matches a provided regex',
-				options: [
-					{
-						type: 'textwithvariables',
-						label: 'Variable',
-						tooltip: 'What variable to act on?',
-						id: 'variable',
-					},
-					{
-						type: 'textinput',
-						label: 'Regex',
-						id: 'regex',
-						default: ''
-					}
-				],
-				callback: function (feedback, bank) {
-					const { variable, regex } = feedback.options;
-
-					// Retrieve the actual variable value from the state
-					
-					// Check if the variable matches the regex
-					const regexObj = new RegExp(regex);
-					if (regexObj.test(variable)) {
-						console.log("success!")
-						return true;
-					} else {
-						console.log("BOOO")
-						return false;
-					}
-				}
-			}
 		}
 		this.setFeedbackDefinitions(feedbacks)
 	}
