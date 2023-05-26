@@ -114,6 +114,7 @@ impl MyApp {
             .expect("handler!")
             .set_chosen_by_ind(idx);
         log(&format!("div set to {}", idx));
+        self.get_players();
         // self.selected_div = Some(self.all_divs[idx].clone());
         // self.score_card.all_play_players = self.selected_div.as_ref().unwrap().players.clone();
     }
@@ -129,6 +130,7 @@ impl MyApp {
         let promise: usize = 0;
         self.handler = Some(get_data::RustHandler::new(
             get_data::post_status(cynic::Id::from(&self.event_id)).await,
+            self.consts.vmix_id.clone(),
         ));
         let promise = js_sys::Promise::resolve(&JsValue::from_str(&promise.to_string()));
         let result = wasm_bindgen_futures::JsFuture::from(promise).await?;
@@ -163,9 +165,8 @@ impl MyApp {
 
     #[wasm_bindgen]
     pub fn increase_score(&mut self) -> Vec<JsString> {
-        log("increase_score");
         let hole = self.get_focused().hole;
-        log(format!("hole: {}", hole).as_str());
+        //log(format!("hole: {}", hole).as_str());
         if hole <= 17 {
             if hole <= 8 {
                 self.get_focused().set_hole_score()
@@ -242,6 +243,7 @@ impl MyApp {
     #[wasm_bindgen]
     pub fn get_players(&mut self) {
         self.available_players = self.handler.clone().expect("handler!").get_players();
+        self.score_card.all_play_players = self.available_players.clone();
     }
 
     #[wasm_bindgen]
@@ -358,12 +360,17 @@ mod tests {
     use wasm_bindgen_test::*;
 
     async fn generate_app() -> MyApp {
-        println!("hi");
         let mut app = MyApp::default();
 
         let _ = app.get_event().await.unwrap();
         app.get_players();
-        println!("{}", app.pools.len());
+        let players = app.get_player_ids();
+        app.set_player(1, players[0].clone().into());
+        app.set_player(2, players[1].clone().into());
+        app.set_player(3, players[2].clone().into());
+        app.set_player(4, players[3].clone().into());
+        app.set_foc(1);
+        
 
         //app.set_div(0);
         // let ids = app.get_player_ids();
@@ -400,8 +407,15 @@ mod tests {
     // }
 
     #[wasm_bindgen_test]
-    async fn test_new_system() {
+    async fn score_increases() {
         let mut app = generate_app().await;
-        log(&format!("{:#?}", app.get_player_ids()));
+        
+        
+        for _ in 0..18 {
+            //log(&app.get_focused().total_score.to_string());
+            log(&format!("{:#?}",app.get_focused().hole));
+            log(&format!("{:#?}",app.increase_score()));
+        }
+        log(&app.get_focused().total_score.to_string());
     }
 }

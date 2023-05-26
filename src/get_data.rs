@@ -123,7 +123,7 @@ impl VmixFunction<'_> {
                 info.prop.selection()
             ),
             VmixFunction::SetColor(info) => format!(
-                "FUNCTION SetColor Value={}&Input={}&{}",
+                "FUNCTION SetColor Value=#{}&Input={}&{}",
                 info.value,
                 info.id,
                 info.prop.selection()
@@ -152,12 +152,12 @@ enum VmixProperty {
 impl VmixProperty {
     fn selection(&self) -> String {
         match self {
-            VmixProperty::Score(v1, v2) => format!("SelectedName=s{}p{}.Text", v1, v2),
-            VmixProperty::HoleNumber(v1, v2) => format!("SelectedName=HN{}p{}.Text", v1, v2),
-            VmixProperty::Color(v1, v2) => format!("SelectedName=h{}p{}.Fill.Color", v1, v2),
-            VmixProperty::Name(v1) => format!("SelectedName=namep{}.Text", v1),
-            VmixProperty::TotalScore(v1) => format!("SelectedName=scoretotp{}.Text", v1),
-            VmixProperty::Throw(ind) => format!("SelectedName=t#p{}.Text", ind),
+            VmixProperty::Score(v1, v2) => format!("SelectedName=s{}p{}.Text", v1, v2+1),
+            VmixProperty::HoleNumber(v1, v2) => format!("SelectedName=HN{}p{}.Text", v1, v2+1),
+            VmixProperty::Color(v1, v2) => format!("SelectedName=h{}p{}.Fill.Color", v1, v2+1),
+            VmixProperty::Name(ind) => format!("SelectedName=namep{}.Text", ind+1),
+            VmixProperty::TotalScore(ind) => format!("SelectedName=scoretotp{}.Text", ind+1),
+            VmixProperty::Throw(ind) => format!("SelectedName=t#p{}.Text", ind+1),
             VmixProperty::Mov(id) => format!("SelectedName={}", id),
         }
     }
@@ -213,6 +213,7 @@ impl NewPlayer {
         l_name: String,
         event: queries::Event,
         div_id: cynic::Id,
+        vmix_id: String
     ) -> Self {
         let mut rounds: Vec<PlayerRound> = vec![];
         for rnd in event.rounds {
@@ -234,19 +235,19 @@ impl NewPlayer {
                 }
             }
         }
-
         Self {
             player_id: id,
             name: format!("{} {}", f_name, l_name),
             best_score: false,
             rounds,
             div_id,
+            vmix_id,
             ..Default::default()
         }
     }
 
     pub fn get_round_total_score(&self, round_ind: usize) -> i16 {
-        self.rounds[round_ind].score_to_hole(17)
+        self.current_round().score_to_hole(17)
     }
 
     fn score_before_round(&self) -> i16 {
@@ -257,14 +258,14 @@ impl NewPlayer {
         total_score
     }
 
-    fn generate_identifier(&self, s_1: &str, s_2: &str) -> String {
-        format!("{}{}{}{}", s_1, self.hole + 1, s_2, self.ind)
-    }
-
     fn get_col(&self) -> String {
-        self.rounds[self.round_ind].results[self.hole]
+        self.current_round().results[self.hole]
             .get_score_colour()
             .into()
+    }
+
+    fn current_round(&self) -> &PlayerRound {
+        &self.rounds[self.round_ind]
     }
 
     // Below goes JS TCP Strings
@@ -281,10 +282,12 @@ impl NewPlayer {
 
     pub fn set_hole_score(&mut self) -> Vec<JsString> {
         let mut return_vec: Vec<JsString> = vec![];
-        let result = self.rounds[self.round_ind].hole_score(self.hole);
+        // log(&format!("{}", self.round_ind));
+        // log(&format!("{:#?}", self.rounds));
+        let result = self.current_round().hole_score(self.hole);
 
         self.total_score =
-            self.score_before_round() + self.rounds[self.round_ind].score_to_hole(self.hole);
+            self.score_before_round() + self.current_round().score_to_hole(self.hole);
         // Set score
         return_vec.push(
             VmixFunction::SetText(VmixInfo {
@@ -297,7 +300,7 @@ impl NewPlayer {
         );
         // Set colour
         return_vec.push(
-            VmixFunction::SetText(VmixInfo {
+            VmixFunction::SetColor(VmixInfo {
                 id: &self.vmix_id,
                 value: self.get_col(),
                 prop: VmixProperty::Color(self.hole + 1 - self.shift, self.ind),
@@ -349,8 +352,7 @@ impl NewPlayer {
         if self.hole > 0 {
             self.hole -= 1;
             return_vec.append(&mut self.del_score());
-            log(&format!("{}", self.hole));
-            let result = self.rounds[self.round_ind].hole_score(self.hole);
+            let result = self.current_round().hole_score(self.hole);
             self.round_score -= result;
             self.total_score -= result;
             if self.hole > 8 {
@@ -381,11 +383,8 @@ impl NewPlayer {
         let in_hole = self.hole.clone();
         let diff = self.hole - 8;
         self.hole = diff;
-        log(&format!("diff: {}", diff));
         for i in diff..in_hole {
-            log(&format!("i: {}", i));
             self.shift = diff;
-            log(&format!("hole: {}\nshift: {}", self.hole, self.shift));
             return_vec.append(&mut self.set_hole_score());
         }
         return_vec.append(&mut self.set_hole_score());
@@ -410,7 +409,7 @@ impl NewPlayer {
         return_vec.push(
             VmixFunction::SetColor(VmixInfo {
                 id: &self.vmix_id,
-                value: format!("#{}", DEFAULT_BG_COL),
+                value: DEFAULT_BG_COL.to_string(),
                 prop: col_prop,
             })
             .to_string()
@@ -467,7 +466,7 @@ impl NewPlayer {
         return_vec.push(self.set_input_pan());
         return_vec.push(VmixFunction::OverlayInput4(VmixInfo { id: &self.vmix_id, value: "".to_string(), prop: VmixProperty::Mov(self.get_mov()) }).to_string().into());
         self.ob = false;
-        //return_vec.append(&mut self.play_anim());
+        return_vec.append(&mut self.play_anim());
         return_vec
     }
 
@@ -497,7 +496,7 @@ impl NewPlayer {
         if self.ob {
             "50 ob.mov".to_string()
         } else  {
-            self.rounds[self.round_ind].results[self.hole].get_mov().to_string()
+            self.current_round().results[self.hole].get_mov().to_string()
         } 
     }
 
@@ -513,10 +512,11 @@ pub struct RustHandler {
     round_id: cynic::Id,
     round_ind: usize,
     valid_pool_inds: Vec<usize>,
+    vmix_id: String,
 }
 
 impl RustHandler {
-    pub fn new(pre_event: GraphQlResponse<queries::EventQuery>) -> Self {
+    pub fn new(pre_event: GraphQlResponse<queries::EventQuery>, vmix_id: String) -> Self {
         let event = pre_event.data.expect("no data").event.expect("no event");
         let mut divisions: Vec<queries::Division> = vec![];
         for div in &event.divisions {
@@ -532,6 +532,7 @@ impl RustHandler {
             round_id: cynic::Id::from(""),
             round_ind: 0,
             valid_pool_inds: vec![0],
+            vmix_id
         }
     }
 
@@ -579,6 +580,7 @@ impl RustHandler {
                 player.last_name,
                 self.event.clone(),
                 self.chosen_division.clone(),
+                self.vmix_id.clone(),
             ));
         }
         out_vec
