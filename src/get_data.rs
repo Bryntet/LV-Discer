@@ -76,21 +76,22 @@ impl VmixFunction<'_> {
         match self {
             VmixFunction::SetText(info) => {
                 match info.prop {
-                    VmixProperty::Score(_, _) | VmixProperty::TotalScore(_) => {
-                        if info.value == "0" {
-                            return format!(
-                                "FUNCTION SetText Value=E&Input={}&{}",
-                                info.id,
-                                info.prop.selection()
-                            );
-                        } else if info.value.parse::<i16>().unwrap_or(0) > 0 {
-                            return format!(
-                                "FUNCTION SetText Value=%2b{}&Input={}&{}",
-                                info.value,
-                                info.id,
-                                info.prop.selection()
-                            );
-                        }
+                    VmixProperty::Score(_, _) => {
+                        return format!(
+                            "FUNCTION SetText Value={}&Input={}&{}",
+                            fix_score(info.value.parse::<i16>().unwrap_or(0)),
+                            info.id,
+                            info.prop.selection()
+                        );
+                    },
+                    VmixProperty::TotalScore(_, rs, ts) => {
+                        return format!(
+                            "FUNCTION SetText Value=({}) {}()&Input={}&{}",
+                            fix_score(rs),
+                            fix_score(ts),
+                            info.id,
+                            info.prop.selection()
+                        );
                     },
                     _ => {}
                 }
@@ -127,13 +128,24 @@ impl VmixFunction<'_> {
         }
     }
 }
+
+fn fix_score(score: i16) -> String {
+    if score == 0 {
+        return "E".to_string();
+    } else if score > 0 {
+        return format!("+{}", score);
+    } else {
+        return format!("{}", score);
+    }
+}
+
 #[derive(Clone)]
 enum VmixProperty {
     Score(usize, usize),
     HoleNumber(usize, usize),
     Color(usize, usize),
     Name(usize),
-    TotalScore(usize),
+    TotalScore(usize, i16, i16),
     Throw(usize),
     Mov(String),
 }
@@ -147,7 +159,7 @@ impl VmixProperty {
             }
             VmixProperty::Color(v1, v2) => format!("SelectedName=h{}p{}.Fill.Color", v1, v2 + 1),
             VmixProperty::Name(ind) => format!("SelectedName=namep{}.Text", ind + 1),
-            VmixProperty::TotalScore(ind) => format!("SelectedName=scoretotp{}.Text", ind + 1),
+            VmixProperty::TotalScore(ind, ..) => format!("SelectedName=scoretotp{}.Text", ind + 1),
             VmixProperty::Throw(ind) => format!("SelectedName=t#p{}.Text", ind + 1),
             VmixProperty::Mov(id) => format!("SelectedName={}", id),
         }
@@ -364,10 +376,11 @@ impl NewPlayer {
         VmixFunction::SetText(VmixInfo {
             id: &self.vmix_id,
             value: self.total_score.to_string(),
-            prop: VmixProperty::TotalScore(self.ind),
+            prop: VmixProperty::TotalScore(self.ind, self.round_score, self.total_score),
         })
         .to_string()
         .into()
+        
     }
 
     pub fn shift_scores(&mut self) -> Vec<JsString> {
