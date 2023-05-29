@@ -76,7 +76,7 @@ impl VmixFunction<'_> {
         match self {
             VmixFunction::SetText(info) => {
                 match info.prop {
-                    VmixProperty::Score(_, _) => {
+                    VmixProperty::Score(_, _) | VmixProperty::TotalScore(_) => {
                         if info.value == "0" {
                             return format!(
                                 "FUNCTION SetText Value=E&Input={}&{}",
@@ -91,7 +91,7 @@ impl VmixFunction<'_> {
                                 info.prop.selection()
                             );
                         }
-                    }
+                    },
                     _ => {}
                 }
                 return format!(
