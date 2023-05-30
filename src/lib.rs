@@ -153,6 +153,7 @@ impl MyApp {
             self.set_hot_round();
         }
         for player in &mut self.available_players {
+            player.hot_round = false;
             player.lb_even = false;
             player.old_pos = player.lb_pos;
             player.set_round(self.round_ind);
