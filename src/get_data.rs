@@ -139,7 +139,7 @@ impl VmixFunction<'_> {
                     }
                     VmixProperty::TotalScore(_, rs, ts) => {
                         return format!(
-                            "FUNCTION SetText Value=({}) {}()&Input={}&{}",
+                            "FUNCTION SetText Value=({}) {}&Input={}&{}",
                             fix_score(rs),
                             fix_score(ts),
                             info.id,
@@ -351,7 +351,7 @@ impl NewPlayer {
         }
     }
 
-    pub fn get_round_total_score(&self, round_ind: usize) -> i16 {
+    pub fn get_round_total_score(&self) -> i16 {
         self.current_round().score_to_hole(17)
     }
 
@@ -489,6 +489,7 @@ impl NewPlayer {
     }
 
     fn set_tot_score(&self) -> JsString {
+        
         VmixFunction::SetText(VmixInfo {
             id: &self.vmix_id,
             value: self.total_score.to_string(),
