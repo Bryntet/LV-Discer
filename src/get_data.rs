@@ -36,9 +36,9 @@ const DEFAULT_BG_COL: &'static str = "3F334D";
 
 #[derive(Debug, Clone)]
 pub enum RankUpDown {
-        Up(i16),
-        Down(i16),
-        Same,
+    Up(i16),
+    Down(i16),
+    Same,
 }
 impl Default for RankUpDown {
     fn default() -> Self {
@@ -47,7 +47,10 @@ impl Default for RankUpDown {
 }
 impl RankUpDown {
     fn get_tcps(&self, pos: u16, id: &str) -> Vec<JsString> {
-        let the_vec = vec![self.make_move(pos, id).into(), self.make_arrow(pos, id).into()];
+        let the_vec = vec![
+            self.make_move(pos, id).into(),
+            self.make_arrow(pos, id).into(),
+        ];
         //log(&format!("{:#?}", the_vec));
         the_vec
     }
@@ -63,7 +66,8 @@ impl RankUpDown {
             id: id,
             value: movement,
             prop: VmixProperty::LBMove(pos),
-        }).to_string()
+        })
+        .to_string()
     }
 
     fn make_arrow(&self, pos: u16, id: &str) -> String {
@@ -77,7 +81,8 @@ impl RankUpDown {
             id: id,
             value: img.to_string(),
             prop: VmixProperty::LBArrow(pos),
-        }).to_string()
+        })
+        .to_string()
     }
 }
 
@@ -131,7 +136,7 @@ impl VmixFunction<'_> {
                             info.id,
                             info.prop.selection()
                         );
-                    },
+                    }
                     VmixProperty::TotalScore(_, rs, ts) => {
                         return format!(
                             "FUNCTION SetText Value=({}) {}()&Input={}&{}",
@@ -140,7 +145,7 @@ impl VmixFunction<'_> {
                             info.id,
                             info.prop.selection()
                         );
-                    },
+                    }
                     VmixProperty::LBPosition(_, _, _) => {
                         return format!(
                             "FUNCTION SetText Input={}&{}",
@@ -186,7 +191,6 @@ impl VmixFunction<'_> {
             ),
             VmixFunction::OverlayInput4Off => "FUNCTION OverlayInput4Off".to_string(),
             VmixFunction::OverlayInput4(mov) => format!("FUNCTION OverlayInput4 Input={}", mov),
-            
         }
     }
 }
@@ -200,8 +204,6 @@ fn fix_score(score: i16) -> String {
         return format!("{}", score);
     }
 }
-
-
 
 #[derive(Clone)]
 pub enum VmixProperty {
@@ -223,7 +225,6 @@ pub enum VmixProperty {
     LBCheckinText(),
 }
 
-
 impl VmixProperty {
     fn selection(&self) -> String {
         match self {
@@ -242,7 +243,7 @@ impl VmixProperty {
                 } else {
                     format!("SelectedName=pos#{}.Text&Value={}", pos, lb_pos)
                 }
-            },
+            }
             VmixProperty::LBName(pos) => format!("SelectedName=name#{}.Text", pos),
             VmixProperty::LBHotRound(pos) => format!("SelectedName=hrp{}.Source", pos),
             VmixProperty::LBRS(pos) => format!("SelectedName=rs#{}.Text", pos),
@@ -262,7 +263,7 @@ pub struct NewPlayer {
     pub rank: RankUpDown,
     best_score: bool,
     pub total_score: i16, // Total score for all rounds
-    pub round_score: i16,     // Score for only current round
+    pub round_score: i16, // Score for only current round
     round_ind: usize,
     pub rounds: Vec<PlayerRound>,
     div_id: cynic::Id,
@@ -279,8 +280,6 @@ pub struct NewPlayer {
     pub lb_pos: u16,
     pub old_pos: u16,
 }
-
-
 
 impl Default for NewPlayer {
     fn default() -> Self {
@@ -375,21 +374,19 @@ impl NewPlayer {
         &self.rounds[self.round_ind]
     }
 
-
     pub fn make_tot_score(&mut self) {
         self.round_score = self.current_round().score_to_hole(self.hole);
         self.total_score = self.score_before_round() + self.round_score;
     }
 
     pub fn check_pos(&mut self) {
-        if self.old_pos < self.lb_pos && self.round_ind != 0{
+        if self.old_pos < self.lb_pos && self.round_ind != 0 {
             self.rank = RankUpDown::Down((self.old_pos as i16 - self.lb_pos as i16).abs());
-        } else if self.old_pos > self.lb_pos && self.round_ind != 0{
+        } else if self.old_pos > self.lb_pos && self.round_ind != 0 {
             self.rank = RankUpDown::Up((self.lb_pos as i16 - self.old_pos as i16).abs());
         } else {
             self.rank = RankUpDown::Same;
         }
-
     }
 
     // Below goes JS TCP Strings
@@ -447,7 +444,7 @@ impl NewPlayer {
         return_vec.push(
             VmixFunction::SetText(VmixInfo {
                 id: &self.vmix_id,
-                value: (self.hole+1).to_string(),
+                value: (self.hole + 1).to_string(),
                 prop: VmixProperty::HoleNumber(self.hole + 1 - self.shift, self.ind),
             })
             .to_string()
@@ -499,7 +496,6 @@ impl NewPlayer {
         })
         .to_string()
         .into()
-        
     }
 
     pub fn shift_scores(&mut self) -> Vec<JsString> {
@@ -600,7 +596,7 @@ impl NewPlayer {
     }
 
     fn set_input_pan(&mut self) -> JsString {
-        let pan = match self.ind+1 {
+        let pan = match self.ind + 1 {
             1 => -0.628,
             2 => -0.628 + 0.419,
             3 => -0.628 + 0.4185 * 2.0,
@@ -635,7 +631,7 @@ impl NewPlayer {
 
     pub fn set_round(&mut self, round_ind: usize) -> Vec<JsString> {
         //log(&format!("round_ind pre {}", round_ind));
-        self.round_ind = round_ind;        
+        self.round_ind = round_ind;
         let t = self.reset_scores();
         //log(&format!("round_ind post {}", self.round_ind));
         t
@@ -643,12 +639,13 @@ impl NewPlayer {
 
     // LB TCP
     fn set_lb_pos(&mut self) -> JsString {
-
         let thing: JsString = VmixFunction::SetText(VmixInfo {
             id: &self.lb_vmix_id,
             value: self.position.to_string(),
             prop: VmixProperty::LBPosition(self.position, self.lb_pos, self.lb_even),
-        }).to_string().into();
+        })
+        .to_string()
+        .into();
         log(&String::from(thing.clone()));
         thing
     }
@@ -658,7 +655,9 @@ impl NewPlayer {
             id: &self.lb_vmix_id,
             value: self.name.clone(),
             prop: VmixProperty::LBName(self.position),
-        }).to_string().into()
+        })
+        .to_string()
+        .into()
     }
 
     fn set_lb_hr(&self) -> JsString {
@@ -671,7 +670,9 @@ impl NewPlayer {
             id: &self.lb_vmix_id,
             value: value.to_string(),
             prop: VmixProperty::LBHotRound(self.position),
-        }).to_string().into()
+        })
+        .to_string()
+        .into()
     }
 
     fn set_rs(&self) -> JsString {
@@ -679,7 +680,9 @@ impl NewPlayer {
             id: &self.lb_vmix_id,
             value: self.round_score.to_string(),
             prop: VmixProperty::LBRS(self.position),
-        }).to_string().into()
+        })
+        .to_string()
+        .into()
     }
 
     fn set_ts(&self) -> JsString {
@@ -687,7 +690,9 @@ impl NewPlayer {
             id: &self.lb_vmix_id,
             value: self.total_score.to_string(),
             prop: VmixProperty::LBTS(self.position),
-        }).to_string().into()
+        })
+        .to_string()
+        .into()
     }
 
     fn set_moves(&self) -> Vec<JsString> {
@@ -697,9 +702,11 @@ impl NewPlayer {
     fn set_thru(&self) -> JsString {
         VmixFunction::SetText(VmixInfo {
             id: &self.lb_vmix_id,
-            value: (self.hole+1).to_string(),
+            value: (self.hole + 1).to_string(),
             prop: VmixProperty::LBThru(self.position),
-        }).to_string().into()
+        })
+        .to_string()
+        .into()
     }
 
     pub fn set_lb(&mut self) -> Vec<JsString> {
@@ -713,7 +720,6 @@ impl NewPlayer {
         return_vec.push(self.set_thru());
         return_vec
     }
-
 }
 
 #[derive(Clone)]
@@ -729,7 +735,11 @@ pub struct RustHandler {
 }
 
 impl RustHandler {
-    pub fn new(pre_event: GraphQlResponse<queries::EventQuery>, vmix_id: String, lb_vmix_id: String) -> Self {
+    pub fn new(
+        pre_event: GraphQlResponse<queries::EventQuery>,
+        vmix_id: String,
+        lb_vmix_id: String,
+    ) -> Self {
         let event = pre_event.data.expect("no data").event.expect("no event");
         let mut divisions: Vec<queries::Division> = vec![];
         for div in &event.divisions {
@@ -803,7 +813,6 @@ impl RustHandler {
     pub fn set_chosen_by_ind(&mut self, ind: usize) {
         self.chosen_division = self.divisions[ind].id.clone();
     }
-
 
     fn assign_position(players: &mut Vec<NewPlayer>) {
         // Sort players in descending order by total_score
@@ -893,8 +902,6 @@ pub mod queries {
         pub points: Option<f64>,
         pub score: Option<f64>, // Tror denna är total score för runda
     }
-    
-
 
     #[derive(Default)]
     struct LBInformation {
