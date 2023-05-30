@@ -209,7 +209,7 @@ fn fix_score(score: i16) -> String {
     if score == 0 {
         return "E".to_string();
     } else if score > 0 {
-        return format!("+{}", score);
+        return format!("%2B{}", score);
     } else {
         return format!("{}", score);
     }
