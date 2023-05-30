@@ -137,14 +137,24 @@ impl VmixFunction<'_> {
                             info.prop.selection()
                         );
                     }
-                    VmixProperty::TotalScore(_, rs, ts) => {
-                        return format!(
-                            "FUNCTION SetText Value=({}) {}&Input={}&{}",
-                            fix_score(rs),
-                            fix_score(ts),
-                            info.id,
-                            info.prop.selection()
-                        );
+                    VmixProperty::TotalScore(_, rs, ts, rnd_ind) => {
+                        if rnd_ind != 0 {
+                            return format!(
+                                "FUNCTION SetText Value=({}) {}&Input={}&{}",
+                                fix_score(rs),
+                                fix_score(ts),
+                                info.id,
+                                info.prop.selection()
+                            );
+                        } else {
+                            return format!(
+                                "FUNCTION SetText Value={}&Input={}&{}",
+                                fix_score(rs),
+                                info.id,
+                                info.prop.selection()
+                            );
+                        }
+                       
                     }
                     VmixProperty::LBPosition(_, _, _) => {
                         return format!(
@@ -211,7 +221,7 @@ pub enum VmixProperty {
     HoleNumber(usize, usize),
     Color(usize, usize),
     Name(usize),
-    TotalScore(usize, i16, i16),
+    TotalScore(usize, i16, i16, usize),
     Throw(usize),
     Mov(String),
     LBPosition(u16, u16, bool),
@@ -493,7 +503,7 @@ impl NewPlayer {
         VmixFunction::SetText(VmixInfo {
             id: &self.vmix_id,
             value: self.total_score.to_string(),
-            prop: VmixProperty::TotalScore(self.ind, self.round_score, self.total_score),
+            prop: VmixProperty::TotalScore(self.ind, self.round_score, self.total_score, self.round_ind),
         })
         .to_string()
         .into()
