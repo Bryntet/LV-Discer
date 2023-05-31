@@ -59,6 +59,7 @@ class instance extends instance_skel {
 				label: 'Event ID',
 				width: 6,
 				default: 'a57b4ed6-f64a-4710-8f20-f93e82d4fe79',
+				required: true
 			},
 			{
 				type: 'textinput',
@@ -66,6 +67,16 @@ class instance extends instance_skel {
 				label: 'vMix input ID',
 				width: 6,
 				default: '1e8955e9-0925-4b54-9e05-69c1b3bbe5ae',
+				required: true
+			},
+			{
+				type: 'number',
+				id: 'pool_ind',
+				label: 'Pool index',
+				min: 1,
+				max: this.rust_main.pool_len,
+				required: true,
+				default: 1,
 			},
 			{
 				type: 'number',
@@ -410,6 +421,8 @@ class instance extends instance_skel {
 					}
 				}
 			},
+			
+			
 		}
 		
 		
@@ -457,7 +470,9 @@ class instance extends instance_skel {
 			})
 		}
 		console.log(this.div_names)
-
+		if (this.config.pool_ind) {
+			this.rust_main.pool_ind = this.config.pool_ind - 1
+		}
 
 		if (Number.isInteger(this.config.div)) {
 			this.rust_main.div = this.config.div

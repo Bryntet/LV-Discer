@@ -154,7 +154,6 @@ impl VmixFunction<'_> {
                                 info.prop.selection()
                             );
                         }
-                       
                     }
                     VmixProperty::LBPosition(_, _, _) => {
                         return format!(
@@ -499,11 +498,15 @@ impl NewPlayer {
     }
 
     fn set_tot_score(&self) -> JsString {
-        
         VmixFunction::SetText(VmixInfo {
             id: &self.vmix_id,
             value: self.total_score.to_string(),
-            prop: VmixProperty::TotalScore(self.ind, self.round_score, self.total_score, self.round_ind),
+            prop: VmixProperty::TotalScore(
+                self.ind,
+                self.round_score,
+                self.total_score,
+                self.round_ind,
+            ),
         })
         .to_string()
         .into()
@@ -740,7 +743,7 @@ pub struct RustHandler {
     divisions: Vec<queries::Division>,
     round_id: cynic::Id,
     round_ind: usize,
-    valid_pool_inds: Vec<usize>,
+    pub valid_pool_inds: Vec<usize>,
     vmix_id: String,
     lb_vmix_id: String,
 }
@@ -750,6 +753,7 @@ impl RustHandler {
         pre_event: GraphQlResponse<queries::EventQuery>,
         vmix_id: String,
         lb_vmix_id: String,
+        valid_pool_inds: Vec<usize>,
     ) -> Self {
         let event = pre_event.data.expect("no data").event.expect("no event");
         let mut divisions: Vec<queries::Division> = vec![];
@@ -765,7 +769,7 @@ impl RustHandler {
             divisions,
             round_id: cynic::Id::from(""),
             round_ind: 0,
-            valid_pool_inds: vec![0],
+            valid_pool_inds,
             vmix_id,
             lb_vmix_id,
         }
@@ -781,6 +785,14 @@ impl RustHandler {
 
     pub fn get_round(&self) -> queries::Round {
         self.event.rounds[self.round_ind].clone().expect("no round")
+    }
+
+    pub fn get_pool_len(&self) -> usize {
+        self.event.rounds[self.round_ind]
+            .clone()
+            .expect("no round")
+            .pools
+            .len()
     }
 
     pub fn get_players(&self) -> Vec<NewPlayer> {
