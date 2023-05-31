@@ -405,8 +405,8 @@ impl MyApp {
 
     #[wasm_bindgen(getter = pool_len)]
     pub fn get_pool_len(&self) -> usize {
-        if let Some(handler) = self.handler{
-            handler.pool_len()
+        if let Some(handler) = &self.handler{
+            handler.get_pool_len()
         } else {
             1
         }
