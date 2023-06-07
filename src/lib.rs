@@ -68,7 +68,6 @@ pub struct MyApp {
     lb_div_ind: usize,
     lb_thru: usize,
     lb_vmix_id: String,
-    valid_pool_inds: Vec<usize>,
 }
 
 impl Default for MyApp {
@@ -98,7 +97,6 @@ impl Default for MyApp {
             lb_div_ind: 0,
             lb_thru: 0,
             lb_vmix_id: "0f4767d1-8279-4535-aa68-c623aeea8444".into(),
-            valid_pool_inds: vec![0],
         }
     }
 }
@@ -117,11 +115,11 @@ impl MyApp {
     }
     #[wasm_bindgen(setter = div)]
     pub fn set_div(&mut self, idx: usize) {
-        self.handler
-            .clone()
-            .expect("handler!")
-            .set_chosen_by_ind(idx);
         log(&format!("div set to {}", idx));
+        if let Some(handler) = &mut self.handler {
+            handler.set_chosen_by_ind(idx);
+        }
+            
         self.get_players(false);
         // self.selected_div = Some(self.all_divs[idx].clone());
         // self.score_card.all_play_players = self.selected_div.as_ref().unwrap().players.clone();
@@ -275,7 +273,6 @@ impl MyApp {
             get_data::post_status(cynic::Id::from(&self.event_id)).await,
             self.consts.vmix_id.clone(),
             self.lb_vmix_id.clone(),
-            self.valid_pool_inds.clone(),
         ));
         let promise = js_sys::Promise::resolve(&JsValue::from_str(&promise.to_string()));
         let result = wasm_bindgen_futures::JsFuture::from(promise).await?;
@@ -395,20 +392,6 @@ impl MyApp {
         self.available_players = self.handler.clone().expect("handler!").get_players();
         if !lb {
             self.score_card.all_play_players = self.available_players.clone();
-        }
-    }
-
-    #[wasm_bindgen(setter = pool_ind)]
-    pub fn set_pool_ind(&mut self, idx: usize) {
-        self.valid_pool_inds = vec![idx];
-    }
-
-    #[wasm_bindgen(getter = pool_len)]
-    pub fn get_pool_len(&self) -> usize {
-        if let Some(handler) = &self.handler{
-            handler.get_pool_len()
-        } else {
-            1
         }
     }
 
