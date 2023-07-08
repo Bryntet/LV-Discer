@@ -1,52 +1,52 @@
 query EventQuery($eventId: ID = "a57b4ed6-f64a-4710-8f20-f93e82d4fe79") {
-  event(eventId: $eventId) {
-    rounds {
-      pools {
-        ...PoolLayout
-        ...NotLiveScore
-      }
-    }
-  }
+	event(eventId: $eventId) {
+		rounds {
+			pools {
+				...PoolLayout
+				...NotLiveScore
+			}
+		}
+	}
 }
 
 fragment PoolLayout on Pool {
-  status
-  layoutVersion {
-    holes {
-      number
-      par
-      length
-    }
-  }
+	status
+	layoutVersion {
+		holes {
+			number
+			par
+			length
+		}
+	}
 }
 
 fragment NotLiveScore on Pool {
-  leaderboard {
-    ... on PoolLeaderboardDivision {
-      id
-      name
-      players {
-        firstName
-        isDnf
-        isDns
-        lastName
-        par
-        pdgaNumber
-        pdgaRating
-        place
-        playerId
-        results {
-          score
-          isCircleHit
-          isInsidePutt
-          isOutOfBounds
-          isOutsidePutt
-        }
-        points
-        score
-      }
-      type
-    }
-  }
-  position
+	leaderboard {
+		... on PoolLeaderboardDivision {
+			id
+			name
+			players {
+				firstName
+				isDnf
+				isDns
+				lastName
+				par
+				pdgaNumber
+				pdgaRating
+				place
+				playerId
+				results {
+					score
+					isCircleHit
+					isInsidePutt
+					isOutOfBounds
+					isOutsidePutt
+				}
+				points
+				score
+			}
+			type
+		}
+	}
+	position
 }

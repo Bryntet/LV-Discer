@@ -1,45 +1,79 @@
-const deasync = require('deasync');
-const instance_skel = require('../../instance_skel')
-const wasm = require("./pkg")
-const fetch = require('node-fetch')
+const { InstanceBase, Regex, TCPHelper, InstanceStatus, runEntrypoint, combineRgb} = require('@companion-module/base')
+const wasm = require('./rust_pkg')
 const net = require('net')
+const upgradeScripts = require('./upgrades')
 
 
-// @ts-ignore
-global.fetch = fetch;
-// @ts-ignore
-global.Headers = fetch.Headers;
-// @ts-ignore
-global.Request = fetch.Request;
-// @ts-ignore
-global.Response = fetch.Response;
-global.AbortController = require('abort-controller')
-class instance extends instance_skel {
-	constructor(system, id, config) {
-		super(system, id, config)
-		
-		this.rust_main = new wasm.MyApp
+
+class ModuleInstance extends InstanceBase {
+	constructor(internal) {
+		super(internal)
+	}
+
+	async init(config) {
+		console.log('HIII')
+		this.updateStatus(InstanceStatus.Ok)
+		this.rust_main = new wasm.MyApp()
+		console.log('Rust module initialized')
+		this.config = config
+
 		this.setVariableDefinitions([
 			{
-				label: 'Focused player name',
-				name: 'player_name',
+				name: 'Focused player name',
+				variableId: 'player_name',
 				default: 'z',
 			},
 		])
-		this.client = new net.Socket()
-		this.client.setMaxListeners(40)
-		this.isConnected = false
-		this.isConnecting = false
-		this.second_one_running = false
 		this.initActions()
 		this.initFeedbacks()
+		if (typeof this.players === 'undefined') {
+			this.players = []
+		}
+		this.players.push({
+			id: 'none',
+			label: 'None',
+		})
+		if (typeof this.div_names === 'undefined') {
+			this.div_names = []
+		}
+		this.config.p1 = 'none'
+		this.config.p2 = 'none'
+		this.config.p3 = 'none'
+		this.config.p4 = 'none'
+		this.config.div = 'none'
+		this.config.round = 1
+		this.saveConfig(config)
+		
+		this.div_names.push({
+			id: 'none',
+			label: 'None',
+		})
+		this.foc_player_ind = 0
+		this.setVariableValues({
+			player_name: '',
+			p1: '',
+			p2: '',
+			p3: '',
+			p4: '',
+		})
 
+		this.hole = 0
+		if (typeof this.focused_players === 'undefined') {
+			this.focused_players = []
+		}
+		this.focused_players = [
+			{
+				id: 'none',
+				label: 'None',
+			},
+		]
 	}
 
-	config_fields() {
+
+	getConfigFields() {
 		return [
 			{
-				type: 'text',
+				type: 'static-text',
 				id: 'info',
 				width: 12,
 				label: 'Information',
@@ -59,7 +93,7 @@ class instance extends instance_skel {
 				label: 'Event ID',
 				width: 6,
 				default: 'a57b4ed6-f64a-4710-8f20-f93e82d4fe79',
-				required: true
+				required: true,
 			},
 			{
 				type: 'textinput',
@@ -67,14 +101,15 @@ class instance extends instance_skel {
 				label: 'vMix input ID',
 				width: 6,
 				default: '1e8955e9-0925-4b54-9e05-69c1b3bbe5ae',
-				required: true
+				required: true,
 			},
 			{
 				type: 'number',
 				id: 'pool_ind',
 				label: 'Pool index',
+				width: 6,
 				min: 1,
-				max: this.rust_main.pool_len,
+				max: 1000,
 				required: true,
 				default: 1,
 			},
@@ -130,134 +165,45 @@ class instance extends instance_skel {
 		]
 	}
 
-
-	beConnected() {
-		return new Promise((resolve, reject) => {
-			if (!this.isConnected && !this.isConnecting) {
-				this.isConnecting = true
-				this.client.connect({ port: 8099, host: this.config.vmix_ip }, () => {
-					console.log('Connected to vMix')
-					this.isConnected = true
-					this.isConnecting = false
-					resolve()
-				})
-				this.client.on('error', (error) => {
-					console.error('Connection error:', error)
-					this.isConnecting = false
-					reject(error)
-				})
-			} else {
-				resolve()
-			}
-		})
-	}
-
-	vmixTCP(msg) {
-		if (!this.isConnected && !this.isConnecting) {
-			console.log("Not connected to vMix, connecting...")
-			this.beConnected().then(() => {
-				console.log('Connection established!')
-				this.stuff(msg)
-			})
-			.catch((error) => {
-				console.error('Failed to establish connection:', error)
-				//this.vmixTCP(msg)
-				// Handle connection failure here.
-			})
-		} else {
-			console.log("Probably connected already")
-			this.stuff(msg)
-		}
-		
-	}
-	stuff(msg) {
-		console.log("gonna write now")
-		
-		this.client.write(msg.join("\r\n")+ "\r\n")
-		this.client.on('data', (data) => {
-			if (data.includes("ERR")) {
-				console.log('Received error: \n' + data)
-				
-			}
-		})
-		this.client.on('close', () => {
-			console.log('Connection closed')
-			this.isConnected = false
-		})
-
-		this.client.on('error', (err) => {
-			console.error('There was an error with the connection: ', err)
-			this.client.destroy()
-		})
-	}
+	
 
 	destroy() {
-
 		this.debug('destroy', this.id)
 	}
 
-	init() {
-		if (typeof this.players === 'undefined') {
-			this.players = []
-		}
-		this.players.push({ id: 'none', label: 'None' })
-		if (typeof this.div_names === 'undefined') {
-			this.div_names = []
-		}
-		this.config.p1 = 'none'
-		this.config.p2 = 'none'
-		this.config.p3 = 'none'
-		this.config.p4 = 'none'
-		this.config.div = 'none'
-		this.config.round = 1
-		this.saveConfig();
-		this.div_names.push({ id: 'none', label: 'None'})
-		this.foc_player_ind = 0
-		this.setVariable('player_name', "")
-		this.setVariable('p1', "")
-		this.setVariable('p2', "")
-		this.setVariable('p3', "")
-		this.setVariable('p4', "")
-		
-		this.hole = 0
-		if (typeof this.focused_players === 'undefined') {
-			this.focused_players = []
-		}
-		this.focused_players = [{ id: 'none', label: 'None'}]
-		
-	}
 	initFeedbacks() {
 		const feedbacks = {
 			display_variable: {
 				type: 'boolean',
-				label: 'Display variable',
+				name: 'Display variable',
 				description: 'Displays the exposed variable on the button',
-				style: {
-					color: this.rgb(255, 255, 255),
-					bgcolor: this.rgb(0, 0, 255),
+				defaultStyle: {
+					color: combineRgb(255, 255, 255),
+					bgcolor: combineRgb(0, 0, 255),
 				},
-				options:  [{
-					type: 'dropdown',
-					label: 'Choose an option',
-					id: 'chosen_player',
-					default: 'none',
-					choices:this.focused_players
-				}],
+				options: [
+					{
+						type: 'dropdown',
+						label: 'Choose an option',
+						id: 'chosen_player',
+						default: 'none',
+						choices: this.focused_players,
+					},
+				],
 				callback: (feedback) => {
 					const chosen_player = feedback.options.chosen_player
 					console.log(chosen_player)
 					console.log(this.foc_player_ind)
-					return chosen_player == this.foc_player_ind;
-					
-				}, 
+					return chosen_player == this.foc_player_ind
+				},
 			},
 		}
 		this.setFeedbackDefinitions(feedbacks)
 	}
 	initActions() {
-		let actions = {
+		this.setActionDefinitions({
 			increase_score: {
-				label: 'Increase score',
+				name: 'Increase score',
 				options: [
 					{
 						type: 'dropdown',
@@ -279,18 +225,19 @@ class instance extends instance_skel {
 						this.rust_main.set_foc(this.foc_player_ind)
 					}
 					console.log(inc)
-					this.vmixTCP(inc)
+					TCPHelper.send(inc)
 				},
 			},
 			revert_score_increase: {
-				label: 'Revert score increase',
+				name: 'Revert score increase',
+				options: [],
 				callback: () => {
 					let inc = this.rust_main.revert_score()
-					this.vmixTCP(inc)
+					TCPHelper.send(inc)
 				},
 			},
 			change_focused_player: {
-				label: 'Change focused player',
+				name: 'Change focused player',
 				options: [
 					{
 						type: 'dropdown',
@@ -307,19 +254,22 @@ class instance extends instance_skel {
 					if (foc_player != 'none') {
 						this.rust_main.set_foc(foc_player)
 						// TODO: Impl change throw popup
-						this.setVariable('player_name', this.rust_main.get_foc_p_name())
+						this.setVariableValues({
+							player_name: this.rust_main.get_foc_p_name(),
+						})
 						this.checkFeedbacks()
 					}
 				},
 			},
 			reset_score: {
-				label: 'Reset score',
+				name: 'Reset score',
+				options: [],
 				callback: () => {
-					this.vmixTCP(this.rust_main.reset_score())
+					TCPHelper.send(this.rust_main.reset_score())
 				},
 			},
 			increase_throw: {
-				label: 'Increase throw',
+				name: 'Increase throw',
 				options: [
 					{
 						type: 'dropdown',
@@ -335,12 +285,12 @@ class instance extends instance_skel {
 						this.rust_main.set_foc(foc_player)
 					}
 					let inc = [this.rust_main.increase_throw()]
-					this.vmixTCP(inc)
+					TCPHelper.send(inc)
 					if (foc_player != 'none') {
 						this.rust_main.set_foc(this.foc_player_ind)
 					}
 					console.log(inc)
-					this.vmixTCP(inc)
+					TCPHelper.send(inc)
 				},
 			},
 			decrease_throw: {
@@ -360,23 +310,24 @@ class instance extends instance_skel {
 						this.rust_main.set_foc(foc_player)
 					}
 					let inc = [this.rust_main.decrease_throw()]
-					this.vmixTCP(inc)
+					TCPHelper.send(inc)
 					if (foc_player != 'none') {
 						this.rust_main.set_foc(this.foc_player_ind)
 					}
 					console.log(inc)
 					console.log()
-					this.vmixTCP(inc)
+					TCPHelper.send(inc)
 				},
 			},
 			ob: {
-				label: 'OB',
+				name: 'OB',
+				options: [],
 				callback: () => {
-					this.vmixTCP(this.rust_main.ob_anim())
+					TCPHelper.send(this.rust_main.ob_anim())
 				},
 			},
 			run_animation: {
-				label: 'Run animation',
+				name: 'Run animation',
 				options: [
 					{
 						type: 'dropdown',
@@ -393,43 +344,39 @@ class instance extends instance_skel {
 					}
 					let thing = this.rust_main.play_animation()
 					console.log(thing)
-					this.vmixTCP(thing)
+					TCPHelper.send(thing)
 					if (foc_player != 'none') {
 						this.rust_main.set_foc(this.foc_player_ind)
 					}
 				},
 			},
 			increment_round: {
-				label: 'Increment Round',
+				name: 'Increment Round',
+				options: [],
 				callback: () => {
 					if (this.config.round !== undefined && this.config.round < this.rust_main.rounds) {
-						this.config.round++;
-						this.vmixTCP(this.rust_main.set_round(this.config.round - 1));
-						this.saveConfig();
-						this.checkFeedbacks('increment_round');
+						this.config.round++
+						TCPHelper.send(this.rust_main.set_round(this.config.round + 1))
+						this.saveConfig()
+						this.checkFeedbacks('increment_round')
 					}
-				}
+				},
 			},
 			decrement_round: {
-				label: 'Decrement Round',
+				name: 'Decrement Round',
+				options: [],
 				callback: () => {
 					if (this.config.round !== undefined && this.config.round > 1) {
-						this.config.round--;
-						this.vmixTCP(this.rust_main.set_round(this.config.round - 1));
-						this.saveConfig();
-						this.checkFeedbacks('decrement_round');
+						this.config.round--
+						TCPHelper.send(this.rust_main.set_round(this.config.round - 1))
+						this.saveConfig()
+						this.checkFeedbacks('decrement_round')
 					}
-				}
+				},
 			},
-			
-			
-		}
-		
-		
-		this.setActions(actions)
+		})
+
 	}
-
-
 
 	sendCommand(cmd) {
 		if (cmd !== undefined && cmd != '') {
@@ -437,37 +384,44 @@ class instance extends instance_skel {
 		}
 	}
 
-	updateConfig(config) {
-		this.client.destroy()
-		this.isConnected = false
-		let resetConnection = false
+	async configUpdated(config) {
+		this.log('debug', 'Config updated')
 		console.log(config.vmix_ip, this.config.vmix_ip)
-		
+
 		console.log(config)
 		this.config = config
 		if (this.config.vmix_input_id) {
-			console.log("setting id")
+			console.log('setting id')
 			this.rust_main.id = this.config.vmix_input_id
 		}
 		if (this.config.vmix_ip) {
-			console.log("setting ip")
+			console.log('setting ip')
 			this.rust_main.ip = this.config.vmix_ip
 		}
 		if (this.config.event_id) {
-			console.log("setting event id")
+			console.log('setting event id')
 			this.rust_main.event_id = this.config.event_id
-			this.rust_main.get_event().then(() => {
-				console.log("here")
-				const divs = this.rust_main.get_div_names()
-				console.log(divs)
-				this.div_names.length = 0
-				this.div_names.push({ id: 'none', label: 'None' })
-				for (const [idx, name] of this.rust_main.get_div_names().entries()) {
-					this.div_names.push({ id: idx, label: name })
-				}
-			}).catch((err) => {
-				console.log(err)
-			})
+			this.rust_main
+				.get_event()
+				.then(() => {
+					console.log('here')
+					const divs = this.rust_main.get_div_names()
+					console.log(divs)
+					this.div_names.length = 0
+					this.div_names.push({
+						id: 'none',
+						label: 'None',
+					})
+					for (const [idx, name] of this.rust_main.get_div_names().entries()) {
+						this.div_names.push({
+							id: idx,
+							label: name,
+						})
+					}
+				})
+				.catch((err) => {
+					console.log(err)
+				})
 		}
 		console.log(this.div_names)
 		if (this.config.pool_ind) {
@@ -477,7 +431,10 @@ class instance extends instance_skel {
 		if (Number.isInteger(this.config.div)) {
 			this.rust_main.div = this.config.div
 			this.players.length = 0
-			this.players.push({ id: 'none', label: 'None' })
+			this.players.push({
+				id: 'none',
+				label: 'None',
+			})
 
 			let ids = []
 			let names = []
@@ -488,40 +445,51 @@ class instance extends instance_skel {
 				ids.push(id)
 			}
 			for (const [idx, name] of names.entries()) {
-				this.players.push({ id: ids[idx], label: name })
+				this.players.push({
+					id: ids[idx],
+					label: name,
+				})
 			}
 		}
 		this.focused_players.length = 0
-		this.focused_players.push({ id: 'none', label: 'None' })
+		this.focused_players.push({
+			id: 'none',
+			label: 'None',
+		})
 		let list = [this.config.p1, this.config.p2, this.config.p3, this.config.p4]
 		let p_list = []
 		for (const [idx, player] of list.entries()) {
 			console.log(player)
 			if (typeof player === 'string' && player !== 'none') {
-				p_list.push(this.rust_main.set_player(idx + 1, player).join("\r\n"))
+				p_list.push(this.rust_main.set_player(idx + 1, player).join('\r\n'))
 			}
 		}
-		console.log(p_list.join("\r\n"))
-		this.vmixTCP(p_list)
+		console.log(p_list.join('\r\n'))
+		TCPHelper.send(p_list)
 
 		for (const [idx, name] of this.rust_main.get_focused_player_names().entries()) {
-			this.focused_players.push({ id: idx, label: name })
+			this.focused_players.push({
+				id: idx,
+				label: name,
+			})
 		}
 		this.initActions()
 		this.initFeedbacks()
 
 		// Set variable for focused players
 		this.rust_main.get_focused_player_names().forEach((name, index) => {
-			this.setVariable("p"+(index+1), name)
-		});
-		if (this.rust_main.round != this.config.round-1) {
-			this.vmixTCP(this.rust_main.set_round(this.config.round-1))
-			console.log("Round increased")
-			
+			let name_thing = 'p' + (index + 1)
+			let dict = {}
+			dict[name_thing] = name
+			this.setVariableValues(dict)
+		})
+		if (this.rust_main.round != this.config.round - 1) {
+			TCPHelper.send(this.rust_main.set_round(this.config.round - 1))
+			console.log('Round increased')
 		}
-		console.log("hereeee")
+		console.log('hereeee')
 		//console.log(this.rust_main.get_all_rounds())
 	}
 }
 
-exports = module.exports = instance
+runEntrypoint(ModuleInstance, upgradeScripts)

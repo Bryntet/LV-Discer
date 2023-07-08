@@ -180,7 +180,7 @@ impl MyApp {
             if i != 0 {
                 prev_play = Some(self.available_players[i - 1].clone());
             }
-            if i + 1 < play_len.clone() {
+            if i + 1 < play_len {
                 next_play = Some(self.available_players[i + 1].clone());
             }
 
@@ -242,8 +242,7 @@ impl MyApp {
         let mut r_vec: Vec<JsString> = self
             .available_players
             .iter()
-            .map(|player| player.clone().set_lb())
-            .flatten()
+            .flat_map(|player| player.clone().set_lb())
             .collect();
         r_vec.push(self.make_checkin_text());
         r_vec

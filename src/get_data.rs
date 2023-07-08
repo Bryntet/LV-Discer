@@ -1,4 +1,5 @@
 use cynic::GraphQlResponse;
+use syn::token::Or;
 
 use self::{
     queries::{Division, PoolLeaderboardDivision},
@@ -34,17 +35,14 @@ pub async fn post_status(event_id: cynic::Id) -> cynic::GraphQlResponse<queries:
 
 const DEFAULT_BG_COL: &'static str = "3F334D";
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub enum RankUpDown {
     Up(i16),
     Down(i16),
+    #[default]
     Same,
 }
-impl Default for RankUpDown {
-    fn default() -> Self {
-        RankUpDown::Same
-    }
-}
+
 impl RankUpDown {
     fn get_tcps(&self, pos: u16, id: &str) -> Vec<JsString> {
         let the_vec = vec![
@@ -206,13 +204,14 @@ impl VmixFunction<'_> {
 }
 
 fn fix_score(score: i16) -> String {
-    if score == 0 {
-        return "E".to_string();
-    } else if score > 0 {
-        return format!("%2B{}", score);
-    } else {
-        return format!("{}", score);
+    use std::cmp::Ordering;
+
+    match score.cmp(&0) {
+        Ordering::Less => format!("{}", score),
+        Ordering::Equal => "E".to_string(),
+        Ordering::Greater => format!("%2B{}", score),
     }
+    
 }
 
 #[derive(Clone)]

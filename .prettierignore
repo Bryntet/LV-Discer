@@ -1,0 +1,10 @@
+pkg
+package.json
+target/*
+src/*
+rust_pkg/*
+companion/*
+README.md
+schema.json
+TODO.md
+.github/*

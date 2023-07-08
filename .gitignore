@@ -5,3 +5,7 @@ target
 pkg
 pkg/*
 .git.bak
+/pkg
+/pkg.tgz
+rust_pkg
+rust_pkg/*

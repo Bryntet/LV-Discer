@@ -1,0 +1,26 @@
+{
+	"id": "levandevideo-vmix",
+	"name": "levandevideo-vmix",
+	"shortname": "lvvmix",
+	"description": "Vmix module for Levande Video",
+	"version": "0.0.0",
+	"license": "MIT",
+	"repository": "git+https://github.com/bitfocus/companion-module-bitfocus-companion.git",
+	"bugs": "https://github.com/bitfocus/companion-module-bitfocus-companion/issues",
+	"maintainers": [
+		{
+			"name": "Edvin Bryntesson",
+			"email": "epost@edvinbryntesson.se"
+		}
+	],
+	"legacyIds": [],
+	"runtime": {
+		"type": "node18",
+		"api": "nodejs-ipc",
+		"apiVersion": "0.0.0",
+		"entrypoint": "../index.js"
+	},
+	"manufacturer": "Levande Video",
+	"products": ["Vmix"],
+	"keywords": []
+}
