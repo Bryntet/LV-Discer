@@ -39,12 +39,13 @@ impl Default for Constants {
             ip: "192.168.120.135".to_string(),
             pool_id: "a592cf05-095c-439f-b69c-66511b6ce9c6".to_string(),
             default_bg_col: "3F334D".to_string(),
-            vmix_id: "1e8955e9-0925-4b54-9e05-69c1b3bbe5ae".to_string(),
+            vmix_id: "506fbd14-52fc-495b-8d17-5b924fba64f3".to_string(),
         }
     }
 }
 
 #[wasm_bindgen]
+#[derive(Clone)]
 pub struct MyApp {
     id: String,
     name: String,
@@ -73,7 +74,7 @@ pub struct MyApp {
 impl Default for MyApp {
     fn default() -> MyApp {
         MyApp {
-            id: "1e8955e9-0925-4b54-9e05-69c1b3bbe5ae".into(),
+            id: "506fbd14-52fc-495b-8d17-5b924fba64f3".into(),
             name: "TextBlock3.Text".into(),
             text: "".into(),
             score_card: ScoreCard::default(),
@@ -83,10 +84,10 @@ impl Default for MyApp {
             foc_play_ind: 0,
             consts: Constants::default(),
             input_ids: vec![
-                "1e8955e9-0925-4b54-9e05-69c1b3bbe5ae".to_string(),
-                "1e8955e9-0925-4b54-9e05-69c1b3bbe5ae".to_string(),
-                "1e8955e9-0925-4b54-9e05-69c1b3bbe5ae".to_string(),
-                "1e8955e9-0925-4b54-9e05-69c1b3bbe5ae".to_string(),
+                "506fbd14-52fc-495b-8d17-5b924fba64f3".to_string(),
+                "506fbd14-52fc-495b-8d17-5b924fba64f3".to_string(),
+                "506fbd14-52fc-495b-8d17-5b924fba64f3".to_string(),
+                "506fbd14-52fc-495b-8d17-5b924fba64f3".to_string(),
             ],
             event: None,
             pools: vec![],
@@ -96,7 +97,7 @@ impl Default for MyApp {
             round_ind: 0,
             lb_div_ind: 0,
             lb_thru: 0,
-            lb_vmix_id: "0f4767d1-8279-4535-aa68-c623aeea8444".into(),
+            lb_vmix_id: "2ef7178b-61ab-445c-9bbd-2f1c2c781e86".into(),
         }
     }
 }
@@ -119,26 +120,39 @@ impl MyApp {
         if let Some(handler) = &mut self.handler {
             handler.set_chosen_by_ind(idx);
         }
-            
+
         self.get_players(false);
         // self.selected_div = Some(self.all_divs[idx].clone());
         // self.score_card.all_play_players = self.selected_div.as_ref().unwrap().players.clone();
     }
 
-    #[wasm_bindgen(setter = lb_div)]
-    pub fn set_lb_div(&mut self, idx: usize) {
-        self.lb_div_ind = idx;
-        self.handler
-            .clone()
-            .expect("handler!")
-            .set_chosen_by_ind(idx);
-        self.get_players(true);
-        self.fix_players();
+    #[wasm_bindgen]
+    pub fn set_leaderboard(&self) -> Vec<JsString> {
+        let mut lb_copy = self.clone();
+        lb_copy.lb_div_ind = self.selected_div_ind;
+        lb_copy.set_lb_thru();
+        lb_copy.get_players(true);
+        lb_copy.fix_players();
+        lb_copy.make_lb()
     }
 
-    #[wasm_bindgen(setter = lb_thru)]
-    pub fn set_lb_thru(&mut self, idx: usize) {
-        self.lb_thru = idx;
+    // #[wasm_bindgen(setter = lb_div)]
+    // pub fn set_lb_div(&mut self, idx: usize) {
+    //     self.lb_div_ind = idx;
+    //     self.handler
+    //         .clone()
+    //         .expect("handler!")
+    //         .set_chosen_by_ind(idx);
+    //     self.get_players(true);
+    //     self.fix_players();
+    // }
+
+    fn set_lb_thru(&mut self) {
+        let focused_players = vec![&self.score_card.p1, &self.score_card.p2, &self.score_card.p3, &self.score_card.p4];
+        self.lb_thru = focused_players.iter().map(|p|{
+            log(&format!("{}: {}", p.name, p.hole));
+            p.hole
+        }).min().unwrap_or(0);
     }
 
     fn fix_players(&mut self) {
@@ -220,7 +234,7 @@ impl MyApp {
                 + "LEADERBOARD CHECK-IN",
             prop: get_data::VmixProperty::LBCheckinText(),
         })
-        .to_string()
+        .to_cmd()
         .into()
     }
 
@@ -304,7 +318,7 @@ impl MyApp {
         let hole = self.get_focused().hole;
         //log(format!("hole: {}", hole).as_str());
         if hole <= 17 {
-            if hole <= 8 {
+            if hole <= 7 {
                 self.get_focused().set_hole_score()
             } else {
                 self.get_focused().shift_scores()
@@ -345,7 +359,7 @@ impl MyApp {
 
     #[wasm_bindgen]
     pub fn set_player(&mut self, idx: usize, player: JsString) -> Vec<JsString> {
-        self.score_card.set_player(idx, player)
+        self.score_card.set_player(idx, player, self.round_ind)
     }
 
     #[wasm_bindgen]
@@ -393,7 +407,6 @@ impl MyApp {
             self.score_card.all_play_players = self.available_players.clone();
         }
     }
-
     #[wasm_bindgen]
     pub fn get_player_names(&self) -> Vec<JsString> {
         self.available_players
@@ -468,7 +481,12 @@ impl ScoreCard {
     }
 
     #[wasm_bindgen]
-    pub fn set_player(&mut self, player_num: usize, player_id: JsString) -> Vec<JsString> {
+    pub fn set_player(
+        &mut self,
+        player_num: usize,
+        player_id: JsString,
+        rnd: usize,
+    ) -> Vec<JsString> {
         //let player_id = player_id.trim_start_matches("\"").trim_end_matches("\"").to_string();
         let mut out_vec: Vec<JsString> = vec![];
         for player in self.all_play_players.clone() {
@@ -476,7 +494,7 @@ impl ScoreCard {
                 let mut p = player.clone();
                 p.ind = player_num - 1;
                 out_vec.push(p.clone().set_name());
-                out_vec.append(&mut p.clone().reset_scores());
+                out_vec.append(&mut p.clone().set_round(rnd)); // resets score and sets round
                 match player_num {
                     1 => self.p1 = p.clone(),
                     2 => self.p2 = p.clone(),
@@ -531,10 +549,10 @@ mod tests {
         let _ = app.get_event().await.unwrap();
         app.get_players(false);
         let players = app.get_player_ids();
-        app.set_player(1, players[0].clone().into());
-        app.set_player(2, players[1].clone().into());
-        app.set_player(3, players[2].clone().into());
-        app.set_player(4, players[3].clone().into());
+        app.set_player(1, players[0].clone());
+        app.set_player(2, players[1].clone());
+        app.set_player(3, players[2].clone());
+        app.set_player(4, players[3].clone());
         app.set_foc(1);
 
         //app.set_div(0);
@@ -557,11 +575,9 @@ mod tests {
     //         if let Some(lb) = pool.leaderboard.clone() {
     //             for thing in lb {
     //                 if let Some(div) = thing {
-
     //                     match div {
     //                         get_data::queries::PoolLeaderboardDivisionCombined::PLD(d) => {
     //                             log(&d.name);
-
     //                         }
     //                         _ => {}
     //                     }
@@ -572,59 +588,131 @@ mod tests {
     // }
 
     // #[wasm_bindgen_test]
+    // async fn make_players() {
+    //     let mut app = generate_app().await;
+    //     let mut out_cmds: Vec<JsString> = vec![];
+    //     app.set_div(0);
+    //     sendData(
+    //         "192.168.120.135",
+    //         8099,
+    //         app.set_player(1, app.available_players[0].player_id.inner().into())
+    //             .iter()
+    //             .map(|s| String::from(s) + "\r\n")
+    //             .collect::<Vec<String>>()
+    //             .join("")
+    //             .as_str(),
+    //     );
+    //     sendData(
+    //         "192.168.120.135",
+    //         8099,
+    //         app.set_player(2, app.available_players[1].player_id.inner().into())
+    //             .iter()
+    //             .map(|s| String::from(s) + "\r\n")
+    //             .collect::<Vec<String>>()
+    //             .join("")
+    //             .as_str(),
+    //     );
+    //     sendData(
+    //         "192.168.120.135",
+    //         8099,
+    //         app.set_player(3, app.available_players[2].player_id.inner().into())
+    //             .iter()
+    //             .map(|s| String::from(s) + "\r\n")
+    //             .collect::<Vec<String>>()
+    //             .join("")
+    //             .as_str(),
+    //     );
+    //     sendData(
+    //         "192.168.120.135",
+    //         8099,
+    //         app.set_player(4, app.available_players[3].player_id.inner().into())
+    //         .iter()
+    //         .map(|s| String::from(s) + "\r\n")
+    //         .collect::<Vec<String>>()
+    //         .join("")
+    //         .as_str(),
+    //     );
+    // }
+
+    // #[wasm_bindgen_test]
     // async fn score_increases() {
     //     let mut app = generate_app().await;
 
     //     for _ in 0..18 {
-    //         //log(&app.get_focused().total_score.to_string());
-    //         log(&format!("{:#?}", app.get_focused().hole));
-    //         log(&format!("{:#?}", app.increase_score()));
+    //         log("hi");
+    //         sendData(
+    //             "192.168.120.135",
+    //             8099,
+    //             app.increase_score()
+    //                 .iter()
+    //                 .map(|s| String::from(s) + "\r\n")
+    //                 .collect::<Vec<String>>()
+    //                 .join("")
+    //                 .as_str(),
+    //         );
     //     }
-    //     log(&app.get_focused().total_score.to_string());
     // }
 
     #[wasm_bindgen_test]
-    async fn lb_test() {
+    async fn lb_test_two() {
         let mut app = generate_app().await;
-        let round = 3;
-        let thru = 18;
-        let div_ind = 1;
-
-        app.round_ind = round - 1;
-        app.lb_thru = thru - 1;
-        app.set_lb_div(div_ind - 1);
-        // for player in &app.available_players {
-        //     if player.hot_round {
-        //         log(&format!("{}: {}", player.name, player.round_score));
-        //     }
-        // }
-
-        let all_commands = app
-            .make_lb()
-            .iter()
-            .map(|s| s.into())
-            .collect::<Vec<String>>()
-            .join("\r\n");
-
-        sendData("192.168.120.135", 8099, &all_commands);
-
-        log(format!(
-            "{:#?}",
-            app.available_players
-                .iter()
-                .map(|player| player.name.clone()
-                    + ": "
-                    + &player.round_score.to_string()
-                    + ", "
-                    + &player.total_score.to_string()
-                    + ", "
-                    + &player.position.to_string()
-                    + ", "
-                    + &player.lb_even.to_string()
-                    + ", "
-                    + &player.lb_pos.to_string())
-                .collect::<Vec<String>>()
-        )
-        .as_str());
+        
+        send(&handle_js_vec(app.set_round(0)));
+        send(&handle_js_vec(app.get_focused().set_hole_score()));
+        send(&handle_js_vec(app.set_leaderboard()));
+        
     }
+
+    fn send(data: &str) {
+        sendData("192.168.120.135", 8099, data);
+    }
+    fn handle_js_vec(js_vec: Vec<JsString>) -> String {
+        js_vec.iter().map(|s| String::from(s)+"\r\n").collect::<Vec<String>>().join("")
+    }
+    // #[wasm_bindgen_test]
+    // async fn lb_test() {
+    //     let mut app = generate_app().await;
+    //     let round = 3;
+    //     let thru = 18;
+    //     let div_ind = 1;
+
+    //     app.round_ind = round - 1;
+    //     app.lb_thru = thru - 1;
+    //     log("here");
+    //     app.set_lb_div(div_ind - 1);
+    //     log("not here");
+    //     // for player in &app.available_players {
+    //     //     if player.hot_round {
+    //     //         log(&format!("{}: {}", player.name, player.round_score));
+    //     //     }
+    //     // }
+
+    //     let all_commands = app
+    //         .make_lb()
+    //         .iter()
+    //         .map(|s| String::from(s)+"\r\n")
+    //         .collect::<Vec<String>>()
+    //         .join("");
+
+    //     sendData("192.168.120.135", 8099, &all_commands);
+
+    //     log(format!(
+    //         "{:#?}",
+    //         app.available_players
+    //             .iter()
+    //             .map(|player| player.name.clone()
+    //                 + ": "
+    //                 + &player.round_score.to_string()
+    //                 + ", "
+    //                 + &player.total_score.to_string()
+    //                 + ", "
+    //                 + &player.position.to_string()
+    //                 + ", "
+    //                 + &player.lb_even.to_string()
+    //                 + ", "
+    //                 + &player.lb_pos.to_string())
+    //             .collect::<Vec<String>>()
+    //     )
+    //     .as_str());
+    // }
 }

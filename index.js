@@ -5,6 +5,7 @@ const upgradeScripts = require('./upgrades')
 
 
 
+
 class ModuleInstance extends InstanceBase {
 	constructor(internal) {
 		super(internal)
@@ -22,6 +23,26 @@ class ModuleInstance extends InstanceBase {
 				name: 'Focused player name',
 				variableId: 'player_name',
 				default: 'z',
+			},
+			{
+				name: 'Player 1 name',
+				variableId: 'p1',
+				default: 'None',
+			},
+			{
+				name: 'Player 2 name',
+				variableId: 'p2',
+				default: 'None',
+			},
+			{
+				name: 'Player 3 name',
+				variableId: 'p3',
+				default: 'None',
+			},
+			{
+				name: 'Player 4 name',
+				variableId: 'p4',
+				default: 'None',
 			},
 		])
 		this.initActions()
@@ -43,19 +64,13 @@ class ModuleInstance extends InstanceBase {
 		this.config.div = 'none'
 		this.config.round = 1
 		this.saveConfig(config)
-		
+
 		this.div_names.push({
 			id: 'none',
 			label: 'None',
 		})
 		this.foc_player_ind = 0
-		this.setVariableValues({
-			player_name: '',
-			p1: '',
-			p2: '',
-			p3: '',
-			p4: '',
-		})
+		this.setVariableValues(this.varValues())
 
 		this.hole = 0
 		if (typeof this.focused_players === 'undefined') {
@@ -69,6 +84,15 @@ class ModuleInstance extends InstanceBase {
 		]
 	}
 
+	varValues() {
+		return {
+			player_name: this.foc_player,
+			p1: this.config.p1,
+			p2: this.config.p2.label,
+			p3: this.config.p3.label,
+			p4: this.config.p4.label
+		}
+	}
 
 	getConfigFields() {
 		return [
@@ -100,7 +124,7 @@ class ModuleInstance extends InstanceBase {
 				id: 'vmix_input_id',
 				label: 'vMix input ID',
 				width: 6,
-				default: '1e8955e9-0925-4b54-9e05-69c1b3bbe5ae',
+				default: '506fbd14-52fc-495b-8d17-5b924fba64f3',
 				required: true,
 			},
 			{
@@ -165,10 +189,12 @@ class ModuleInstance extends InstanceBase {
 		]
 	}
 
-	
-
-	destroy() {
-		this.debug('destroy', this.id)
+	async destroy() {
+		if (this.socket) {
+			this.socket.destroy()
+		} else {
+			this.updateStatus(InstanceStatus.Disconnected)
+		}
 	}
 
 	initFeedbacks() {
@@ -200,8 +226,18 @@ class ModuleInstance extends InstanceBase {
 		}
 		this.setFeedbackDefinitions(feedbacks)
 	}
+
+	
+
 	initActions() {
 		this.setActionDefinitions({
+			leaderboard_update: {
+				name: 'Leaderboard update',
+				options: [],
+				callback: () => {
+					this.sendCommand(this.rust_main.set_leaderboard().join('\r\n') + '\r\n')
+				}
+			},
 			increase_score: {
 				name: 'Increase score',
 				options: [
@@ -224,8 +260,8 @@ class ModuleInstance extends InstanceBase {
 					if (foc_player != 'none') {
 						this.rust_main.set_foc(this.foc_player_ind)
 					}
-					console.log(inc)
-					TCPHelper.send(inc)
+
+					this.sendCommand(inc.join('\r\n') + '\r\n')
 				},
 			},
 			revert_score_increase: {
@@ -233,7 +269,7 @@ class ModuleInstance extends InstanceBase {
 				options: [],
 				callback: () => {
 					let inc = this.rust_main.revert_score()
-					TCPHelper.send(inc)
+					this.sendCommand(inc.join('\r\n') + '\r\n')
 				},
 			},
 			change_focused_player: {
@@ -265,7 +301,7 @@ class ModuleInstance extends InstanceBase {
 				name: 'Reset score',
 				options: [],
 				callback: () => {
-					TCPHelper.send(this.rust_main.reset_score())
+					this.sendCommand(this.rust_main.reset_score().join('\r\n') + '\r\n')
 				},
 			},
 			increase_throw: {
@@ -285,12 +321,12 @@ class ModuleInstance extends InstanceBase {
 						this.rust_main.set_foc(foc_player)
 					}
 					let inc = [this.rust_main.increase_throw()]
-					TCPHelper.send(inc)
+					this.sendCommand(inc.join('\r\n') + '\r\n')
 					if (foc_player != 'none') {
 						this.rust_main.set_foc(this.foc_player_ind)
 					}
 					console.log(inc)
-					TCPHelper.send(inc)
+					this.sendCommand(inc.join('\r\n') + '\r\n')
 				},
 			},
 			decrease_throw: {
@@ -310,20 +346,18 @@ class ModuleInstance extends InstanceBase {
 						this.rust_main.set_foc(foc_player)
 					}
 					let inc = [this.rust_main.decrease_throw()]
-					TCPHelper.send(inc)
+					this.sendCommand(inc.join('\r\n') + '\r\n')
 					if (foc_player != 'none') {
 						this.rust_main.set_foc(this.foc_player_ind)
 					}
-					console.log(inc)
-					console.log()
-					TCPHelper.send(inc)
+					this.sendCommand(inc.join('\r\n') + '\r\n')
 				},
 			},
 			ob: {
 				name: 'OB',
 				options: [],
 				callback: () => {
-					TCPHelper.send(this.rust_main.ob_anim())
+					this.sendCommand(this.rust_main.ob_anim().join('\r\n') + '\r\n')
 				},
 			},
 			run_animation: {
@@ -344,7 +378,7 @@ class ModuleInstance extends InstanceBase {
 					}
 					let thing = this.rust_main.play_animation()
 					console.log(thing)
-					TCPHelper.send(thing)
+					this.sendCommand(thing.join('\r\n') + '\r\n')
 					if (foc_player != 'none') {
 						this.rust_main.set_foc(this.foc_player_ind)
 					}
@@ -356,7 +390,7 @@ class ModuleInstance extends InstanceBase {
 				callback: () => {
 					if (this.config.round !== undefined && this.config.round < this.rust_main.rounds) {
 						this.config.round++
-						TCPHelper.send(this.rust_main.set_round(this.config.round + 1))
+						this.sendCommand(this.rust_main.set_round(this.config.round - 1).join('\r\n') + '\r\n')
 						this.saveConfig()
 						this.checkFeedbacks('increment_round')
 					}
@@ -368,25 +402,56 @@ class ModuleInstance extends InstanceBase {
 				callback: () => {
 					if (this.config.round !== undefined && this.config.round > 1) {
 						this.config.round--
-						TCPHelper.send(this.rust_main.set_round(this.config.round - 1))
+						this.sendCommand(this.rust_main.set_round(this.config.round - 1).join('\r\n') + '\r\n')
 						this.saveConfig()
 						this.checkFeedbacks('decrement_round')
 					}
 				},
 			},
 		})
-
 	}
 
+	
+
 	sendCommand(cmd) {
-		if (cmd !== undefined && cmd != '') {
-			console.log('sending command', cmd)
+		if (this.config.vmix_ip) {
+			let socket = new TCPHelper(this.config.vmix_ip, 8099)
+
+			socket.on('error', (err) => {
+				console.log(err)
+				this.updateStatus(InstanceStatus.ConnectionFailure, err.message)
+				this.log('error', 'Network error: ' + err.message)
+			})
+
+			socket.on('data', (data) => {
+				if (data.toString().includes('VERSION')) {
+					socket.send('PING\r\n')
+					socket.send(cmd)
+					socket.send('QUIT\r\n')
+				} 
+				if (data.toString().includes("QUIT OK Bye")) {
+					socket.destroy()
+				}
+			})
+			console.log('Trying to send command')
+			
+		} else {
+			this.updateStatus(InstanceStatus.BadConfig)
 		}
+
+		
 	}
 
 	async configUpdated(config) {
-		this.log('debug', 'Config updated')
-		console.log(config.vmix_ip, this.config.vmix_ip)
+		
+		if (config.vmix_ip != this.config.vmix_ip) {
+			
+			console.log('setting ip')
+			this.rust_main.ip = config.vmix_ip
+			this.config.vmix_ip = config.vmix_ip
+		}
+
+		this.log('debug', 'Config updating')
 
 		console.log(config)
 		this.config = config
@@ -394,10 +459,7 @@ class ModuleInstance extends InstanceBase {
 			console.log('setting id')
 			this.rust_main.id = this.config.vmix_input_id
 		}
-		if (this.config.vmix_ip) {
-			console.log('setting ip')
-			this.rust_main.ip = this.config.vmix_ip
-		}
+		
 		if (this.config.event_id) {
 			console.log('setting event id')
 			this.rust_main.event_id = this.config.event_id
@@ -461,11 +523,23 @@ class ModuleInstance extends InstanceBase {
 		for (const [idx, player] of list.entries()) {
 			console.log(player)
 			if (typeof player === 'string' && player !== 'none') {
-				p_list.push(this.rust_main.set_player(idx + 1, player).join('\r\n'))
+				let cmd = this.rust_main.set_player(idx + 1, player, this.config.round - 1)
+				for (const c of cmd) {
+					p_list.push(c + '\r\n')
+				}
 			}
 		}
-		console.log(p_list.join('\r\n'))
-		TCPHelper.send(p_list)
+		
+		console.log(list)
+		console.log("Gonna try p_list")
+		console.log(p_list.length)
+		if (p_list.length != 0) {
+			console.log("Sending p_list")
+			console.log(p_list)
+			this.sendCommand(p_list.join(''))
+			
+		}
+
 
 		for (const [idx, name] of this.rust_main.get_focused_player_names().entries()) {
 			this.focused_players.push({
@@ -484,7 +558,7 @@ class ModuleInstance extends InstanceBase {
 			this.setVariableValues(dict)
 		})
 		if (this.rust_main.round != this.config.round - 1) {
-			TCPHelper.send(this.rust_main.set_round(this.config.round - 1))
+			this.sendCommand(this.rust_main.set_round(this.config.round - 1).join('\r\n') + '\r\n')
 			console.log('Round increased')
 		}
 		console.log('hereeee')
