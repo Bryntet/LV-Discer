@@ -127,13 +127,33 @@ impl MyApp {
     }
 
     #[wasm_bindgen]
-    pub fn set_leaderboard(&self) -> Vec<JsString> {
-        let mut lb_copy = self.clone();
-        lb_copy.lb_div_ind = self.selected_div_ind;
-        lb_copy.set_lb_thru();
-        lb_copy.get_players(true);
-        lb_copy.fix_players();
-        lb_copy.make_lb()
+    pub fn set_leaderboard(&mut self) -> Vec<JsString> {
+        let mut return_vec: Vec<JsString> = vec![];
+        //let mut lb_copy = self.clone();
+        self.lb_div_ind = self.selected_div_ind;
+        self.set_lb_thru();
+        self.get_players(true);
+        self.fix_players();
+        return_vec.append(&mut self.make_lb());
+        return_vec.push(self.find_same(&self.score_card.p1).unwrap().set_pos());
+        return_vec.push(self.find_same(&self.score_card.p2).unwrap().set_pos());
+        return_vec.push(self.find_same(&self.score_card.p3).unwrap().set_pos());
+        return_vec.push(self.find_same(&self.score_card.p4).unwrap().set_pos());
+        log(&format!("{:#?}", return_vec));
+        return_vec
+    }
+
+    fn find_same(&self, player: &get_data::NewPlayer) -> Option<get_data::NewPlayer> {
+        for p in &self.available_players {
+            if p.player_id == player.player_id {
+                return Some({
+                    let mut cl = p.clone();
+                    cl.ind = player.ind;
+                    cl
+                });
+            }
+        }
+        None
     }
 
     // #[wasm_bindgen(setter = lb_div)]
@@ -171,7 +191,7 @@ impl MyApp {
             player.lb_even = false;
             player.old_pos = player.lb_pos;
             player.set_round(self.round_ind);
-            player.hole = self.lb_thru;
+            player.hole = self.lb_thru - 1;
             player.make_tot_score();
         }
         self.assign_position();
@@ -252,11 +272,11 @@ impl MyApp {
         }
     }
 
-    pub fn make_lb(&self) -> Vec<JsString> {
+    pub fn make_lb(&mut self) -> Vec<JsString> {
         let mut r_vec: Vec<JsString> = self
             .available_players
-            .iter()
-            .flat_map(|player| player.clone().set_lb())
+            .iter_mut()
+            .flat_map(|player| player.set_lb())
             .collect();
         r_vec.push(self.make_checkin_text());
         r_vec

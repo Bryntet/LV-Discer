@@ -204,6 +204,7 @@ pub enum VmixProperty {
     RoundScore(usize),
     Throw(usize),
     Mov(String),
+    PlayerPosition(u16),
     LBPosition(u16, u16, bool),
     LBName(u16),
     LBHotRound(u16),
@@ -228,6 +229,7 @@ impl VmixProperty {
             VmixProperty::RoundScore(ind) => format!("SelectedName=scorerndp{}.Text", ind + 1),
             VmixProperty::Throw(ind) => format!("SelectedName=t#p{}.Text", ind + 1),
             VmixProperty::Mov(id) => format!("SelectedName={}", id),
+            VmixProperty::PlayerPosition(pos) => format!("SelectedName=posp{}.Text", pos + 1),
             VmixProperty::LBPosition(pos, lb_pos, tied) => {
                 if *tied {
                     format!("SelectedName=pos#{}.Text&Value=T{}", pos, lb_pos)
@@ -450,6 +452,7 @@ impl NewPlayer {
         //     .to_string()
         //     .into(),
         // );
+        
 
         return_vec.push(self.set_tot_score());
         if self.round_ind > 0 {
@@ -517,6 +520,7 @@ impl NewPlayer {
             self.show_round_score(),
         ]
     }
+
     fn show_round_score(&self) -> JsString {
         VmixFunction::SetTextVisibleOn(VmixInfo {
             id: &self.vmix_id,
@@ -525,6 +529,21 @@ impl NewPlayer {
         })
         .to_cmd()
         .into()
+    }
+
+    pub fn set_pos(&self) -> JsString {
+
+        let value_string = if self.lb_even {
+            "T".to_string()
+        } else {"".to_string()} + &self.lb_pos.to_string();
+        
+        
+        VmixFunction::SetText(VmixInfo {
+            id: &self.vmix_id,
+            value: value_string,
+            prop: VmixProperty::PlayerPosition(self.ind as u16),
+        })
+        .to_cmd().into()
     }
 
     pub fn shift_scores(&mut self) -> Vec<JsString> {
