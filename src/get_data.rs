@@ -33,8 +33,8 @@ pub async fn post_status(event_id: cynic::Id) -> cynic::GraphQlResponse<queries:
         .expect("failed to parse response")
 }
 
-const DEFAULT_BG_COL: &'static str = "3F334D";
-
+const DEFAULT_FOREGROUND_COL: &'static str = "3F334D";
+const DEFAULT_BACKGROUND_COL: &'static str = "574B60";
 #[derive(Debug, Clone, Default)]
 pub enum RankUpDown {
     Up(i16),
@@ -198,7 +198,9 @@ fn fix_score(score: i16) -> String {
 pub enum VmixProperty {
     Score(usize, usize),
     HoleNumber(usize, usize),
-    Color(usize, usize),
+    ScoreColor(usize, usize),
+    PosRightTriColor(usize),
+    PosSquareColor(usize),
     Name(usize),
     TotalScore(usize),
     RoundScore(usize),
@@ -223,7 +225,9 @@ impl VmixProperty {
             VmixProperty::HoleNumber(v1, v2) => {
                 format!("SelectedName=HN{}p{}.Text", v1, v2 + 1)
             }
-            VmixProperty::Color(v1, v2) => format!("SelectedName=h{}p{}.Fill.Color", v1, v2 + 1),
+            VmixProperty::ScoreColor(v1, v2) => format!("SelectedName=h{}p{}.Fill.Color", v1, v2 + 1),
+            VmixProperty::PosRightTriColor(v1) => format!("SelectedName=rghtri{}.Fill.Color", v1 + 1),
+            VmixProperty::PosSquareColor(v1) => format!("SelectedName=rekt{}.Fill.Color", v1 + 1),
             VmixProperty::Name(ind) => format!("SelectedName=namep{}.Text", ind + 1),
             VmixProperty::TotalScore(ind) => format!("SelectedName=scoretotp{}.Text", ind + 1),
             VmixProperty::RoundScore(ind) => format!("SelectedName=scorerndp{}.Text", ind + 1),
@@ -272,6 +276,7 @@ pub struct NewPlayer {
     lb_vmix_id: String,
     pub lb_pos: u16,
     pub old_pos: u16,
+    pos_visible: bool,
 }
 
 impl Default for NewPlayer {
@@ -298,6 +303,7 @@ impl Default for NewPlayer {
             lb_vmix_id: "".to_string(),
             lb_pos: 0,
             old_pos: 0,
+            pos_visible: true,
         }
     }
 }
@@ -417,7 +423,7 @@ impl NewPlayer {
             VmixFunction::SetColor(VmixInfo {
                 id: &self.vmix_id,
                 value: self.get_col(),
-                prop: VmixProperty::Color(self.hole + 1 - self.shift, self.ind),
+                prop: VmixProperty::ScoreColor(self.hole + 1 - self.shift, self.ind),
             })
             .to_cmd()
             .into(),
@@ -477,7 +483,7 @@ impl NewPlayer {
                 self.hole -= 1;
                 self.round_score -= result;
                 self.total_score -= result;
-                return_vec.append(&mut self.shift_scores());
+                return_vec.append(&mut self.shift_scores(true));
             } else {
                 return_vec.push(self.set_tot_score());
                 if self.round_ind > 0 {
@@ -546,24 +552,70 @@ impl NewPlayer {
         .to_cmd().into()
     }
 
-    pub fn shift_scores(&mut self) -> Vec<JsString> {
+    pub fn hide_pos(&mut self) -> Vec<JsString> {
+        self.pos_visible = false;
+        vec![VmixFunction::SetTextVisibleOff(VmixInfo {
+            id: &self.vmix_id,
+            value: "".to_string(),
+            prop: VmixProperty::PlayerPosition(self.ind as u16),
+        })
+        .to_cmd()
+        .into(), VmixFunction::SetColor(VmixInfo {
+            id: &self.vmix_id,
+            value: "00000000".to_string(),
+            prop: VmixProperty::PosRightTriColor(self.ind),
+        }).to_cmd().into(), VmixFunction::SetColor(VmixInfo {
+            id: &self.vmix_id,
+            value: "00000000".to_string(),
+            prop: VmixProperty::PosSquareColor(self.ind),
+        }).to_cmd().into()]
+    }
+
+    pub fn show_pos(&mut self) -> Vec<JsString> {
+        self.pos_visible = true;
+        vec![VmixFunction::SetTextVisibleOn(VmixInfo {
+            id: &self.vmix_id,
+            value: "".to_string(),
+            prop: VmixProperty::PlayerPosition(self.ind as u16),
+        })
+        .to_cmd()
+        .into(), VmixFunction::SetColor(VmixInfo {
+            id: &self.vmix_id,
+            value: DEFAULT_BACKGROUND_COL.to_string(),
+            prop: VmixProperty::PosRightTriColor(self.ind),
+        }).to_cmd().into(), VmixFunction::SetColor(VmixInfo {
+            id: &self.vmix_id,
+            value: DEFAULT_BACKGROUND_COL.to_string(),
+            prop: VmixProperty::PosSquareColor(self.ind),
+        }).to_cmd().into()]
+    }
+
+    pub fn toggle_pos(&mut self) -> Vec<JsString> {
+        if self.pos_visible {
+            self.hide_pos()
+        } else {
+            self.show_pos()
+        }
+    }
+
+    pub fn shift_scores(&mut self, last_blank: bool) -> Vec<JsString> {
         let mut return_vec = vec![];
         let in_hole = self.hole.clone();
 
         let diff = self.hole - 8 + {
-            if self.hole == 17 {
-                0
-            } else {
+            if last_blank && self.hole != 17 {
                 1
+            } else {
+                0
             }
         };
 
         self.hole = diff;
         self.shift = diff;
-        for _ in diff..in_hole {
+        for _ in diff..=in_hole {
             return_vec.append(&mut self.set_hole_score());
         }
-        if self.hole != 17 {
+        if last_blank && self.hole != 17 {
             return_vec.push(
                 VmixFunction::SetText(VmixInfo {
                     id: &self.vmix_id,
@@ -573,15 +625,32 @@ impl NewPlayer {
                 .to_cmd()
                 .into(),
             );
+            return_vec.push(
+                VmixFunction::SetTextVisibleOff(VmixInfo {
+                    id: &self.vmix_id,
+                    value: "".to_string(),
+                    prop: VmixProperty::Score(9, self.ind),
+                })
+                .to_cmd()
+                .into(),
+            );
+            return_vec.push(
+                VmixFunction::SetColor(VmixInfo {
+                    id: &self.vmix_id,
+                    value: DEFAULT_FOREGROUND_COL.to_string(),
+                    prop: VmixProperty::ScoreColor(9, self.ind),
+                })
+                .to_cmd()
+                .into(),
+            );
         }
-        return_vec.append(&mut self.set_hole_score());
         return_vec
     }
 
     fn del_score(&mut self) -> Vec<JsString> {
         let mut return_vec: Vec<JsString> = vec![];
         let score_prop = VmixProperty::Score(self.hole + 1, self.ind);
-        let col_prop = VmixProperty::Color(self.hole + 1, self.ind);
+        let col_prop = VmixProperty::ScoreColor(self.hole + 1, self.ind);
         let h_num_prop = VmixProperty::HoleNumber(self.hole + 1, self.ind);
         return_vec.push(
             VmixFunction::SetText(VmixInfo {
@@ -596,7 +665,7 @@ impl NewPlayer {
         return_vec.push(
             VmixFunction::SetColor(VmixInfo {
                 id: &self.vmix_id,
-                value: DEFAULT_BG_COL.to_string(),
+                value: DEFAULT_FOREGROUND_COL.to_string(),
                 prop: col_prop,
             })
             .to_cmd()
@@ -631,9 +700,12 @@ impl NewPlayer {
             return_vec.append(&mut self.del_score());
         }
         self.hole = 0;
+        self.shift = 0;
         self.round_score = 0;
         self.total_score = self.score_before_round();
+        
         return_vec.push(self.set_tot_score());
+        return_vec.append(&mut self.show_pos());
         if self.round_ind > 0 {
             return_vec.append(&mut self.set_round_score());
         } else {
@@ -727,9 +799,11 @@ impl NewPlayer {
 
     fn set_lb_hr(&self) -> JsString {
         let value = if self.hot_round && self.round_ind != 0 {
-            r"x:\FLIPUP\grafik\fire.png"
+            log("hot round");
+            r"X:\FLIPUP\grafik\fire.png"
         } else {
-            r"x:\FLIPUP\grafik\alpha.png"
+            log("not hot round");
+            r"X:\FLIPUP\grafik\alpha.png"
         };
         VmixFunction::SetImage(VmixInfo {
             id: &self.lb_vmix_id,
@@ -743,7 +817,7 @@ impl NewPlayer {
     fn set_rs(&self) -> JsString {
         VmixFunction::SetText(VmixInfo {
             id: &self.lb_vmix_id,
-            value: self.round_score.to_string(),
+            value: fix_score(self.round_score),
             prop: VmixProperty::LBRS(self.position),
         })
         .to_cmd()
@@ -753,7 +827,7 @@ impl NewPlayer {
     fn set_ts(&self) -> JsString {
         VmixFunction::SetText(VmixInfo {
             id: &self.lb_vmix_id,
-            value: self.total_score.to_string(),
+            value: fix_score(self.total_score),
             prop: VmixProperty::LBTS(self.position),
         })
         .to_cmd()

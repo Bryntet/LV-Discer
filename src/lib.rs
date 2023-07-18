@@ -135,12 +135,46 @@ impl MyApp {
         self.get_players(true);
         self.fix_players();
         return_vec.append(&mut self.make_lb());
+
+
+        for player in [&self.score_card.p1, &self.score_card.p2, &self.score_card.p3, &self.score_card.p4] {
+            return_vec.push(self.find_same(player).unwrap().set_pos());
+            let mut cloned_player = player.clone();
+            if cloned_player.hole > 7 {
+                cloned_player.hole -= 1;
+                return_vec.append(&mut cloned_player.shift_scores(true));
+            }
+            
+        }
+
         return_vec.push(self.find_same(&self.score_card.p1).unwrap().set_pos());
         return_vec.push(self.find_same(&self.score_card.p2).unwrap().set_pos());
         return_vec.push(self.find_same(&self.score_card.p3).unwrap().set_pos());
         return_vec.push(self.find_same(&self.score_card.p4).unwrap().set_pos());
+
+        
         log(&format!("{:#?}", return_vec));
         return_vec
+    }
+
+    #[wasm_bindgen]
+    pub fn set_all_to_hole(&mut self, hole: usize) -> Vec<JsString> {
+        vec![&mut self.score_card.p1, &mut self.score_card.p2, &mut self.score_card.p3, &mut self.score_card.p4]
+            .iter_mut()
+            .flat_map(|player| {
+                player.hole = hole - 1;
+                if player.hole > 7 {
+                    player.shift_scores(true)
+                } else {
+                    let mut r_vec: Vec<JsString> = vec![];
+                    for x in 0..hole {
+                        player.hole = x;
+                        r_vec.append(&mut player.set_hole_score());
+                    }
+                    r_vec
+                }
+            })
+            .collect()
     }
 
     fn find_same(&self, player: &get_data::NewPlayer) -> Option<get_data::NewPlayer> {
@@ -173,6 +207,11 @@ impl MyApp {
             log(&format!("{}: {}", p.name, p.hole));
             p.hole
         }).min().unwrap_or(0);
+    }
+
+    #[wasm_bindgen(getter = hole)]
+    pub fn get_hole(&self) -> usize {
+        self.lb_thru + 1
     }
 
     fn fix_players(&mut self) {
@@ -336,17 +375,56 @@ impl MyApp {
     #[wasm_bindgen]
     pub fn increase_score(&mut self) -> Vec<JsString> {
         let hole = self.get_focused().hole;
+        let mut out: Vec<JsString> = self.hide_pos();
         //log(format!("hole: {}", hole).as_str());
         if hole <= 17 {
             if hole <= 7 {
-                self.get_focused().set_hole_score()
+                out.append(&mut self.get_focused().set_hole_score());
+                out
             } else {
-                self.get_focused().shift_scores()
+                out.append(&mut self.get_focused().shift_scores(false));
+                out
             }
         } else {
             vec![]
         }
     }
+
+    #[wasm_bindgen]
+    pub fn show_pos(&mut self) -> Vec<JsString> {
+        self.get_focused().show_pos()
+    }
+
+    #[wasm_bindgen]
+    pub fn show_all_pos(&mut self) -> Vec<JsString> {
+        let mut return_vec: Vec<JsString> = vec![];
+        return_vec.append(&mut self.score_card.p1.show_pos());
+        return_vec.append(&mut self.score_card.p2.show_pos());
+        return_vec.append(&mut self.score_card.p3.show_pos());
+        return_vec.append(&mut self.score_card.p4.show_pos());
+        return_vec
+    }
+
+    #[wasm_bindgen]
+    pub fn hide_pos(&mut self) -> Vec<JsString> {
+        self.get_focused().hide_pos()
+    }
+
+    #[wasm_bindgen]
+    pub fn hide_all_pos(&mut self) -> Vec<JsString> {
+        let mut return_vec: Vec<JsString> = vec![];
+        return_vec.append(&mut self.score_card.p1.hide_pos());
+        return_vec.append(&mut self.score_card.p2.hide_pos());
+        return_vec.append(&mut self.score_card.p3.hide_pos());
+        return_vec.append(&mut self.score_card.p4.hide_pos());
+        return_vec
+    }
+
+    pub fn toggle_pos(&mut self) -> Vec<JsString> {
+        self.get_focused().toggle_pos()
+    }
+
+
 
     #[wasm_bindgen]
     pub fn play_animation(&mut self) -> Vec<JsString> {
@@ -362,9 +440,7 @@ impl MyApp {
     pub fn ob_anim(&mut self) -> Vec<JsString> {
         log("ob_anim");
         self.get_focused().ob = true;
-        let mut t = self.get_focused().start_score_anim();
-        t.push(self.increase_throw());
-        t
+        self.get_focused().start_score_anim()
     }
 
     fn get_focused(&mut self) -> &mut get_data::NewPlayer {
@@ -392,6 +468,7 @@ impl MyApp {
     }
     #[wasm_bindgen]
     pub fn reset_score(&mut self) -> Vec<JsString> {
+        self.lb_thru = 0;
         self.get_focused().reset_scores()
     }
 
@@ -475,6 +552,9 @@ impl MyApp {
     pub fn set_pool_id(&mut self, pool_id: JsString) {
         self.consts.pool_id = String::from(pool_id);
     }
+
+
+ 
 }
 
 #[wasm_bindgen]
@@ -673,14 +753,20 @@ mod tests {
     //     }
     // }
 
+    // #[wasm_bindgen_test]
+    // async fn lb_test_two() {
+    //     let mut app = generate_app().await;
+        
+    //     send(&handle_js_vec(app.set_round(0)));
+    //     send(&handle_js_vec(app.get_focused().set_hole_score()));
+    //     send(&handle_js_vec(app.set_leaderboard()));
+        
+    // }
+
     #[wasm_bindgen_test]
-    async fn lb_test_two() {
+    async fn test_set_all_to_hole() {
         let mut app = generate_app().await;
-        
-        send(&handle_js_vec(app.set_round(0)));
-        send(&handle_js_vec(app.get_focused().set_hole_score()));
-        send(&handle_js_vec(app.set_leaderboard()));
-        
+        send(&handle_js_vec(app.set_all_to_hole(13)));
     }
 
     fn send(data: &str) {

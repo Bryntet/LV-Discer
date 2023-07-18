@@ -44,6 +44,11 @@ class ModuleInstance extends InstanceBase {
 				variableId: 'p4',
 				default: 'None',
 			},
+			{
+				name: "Current hole",
+				variableId: "hole",
+				default: 1
+			}
 		])
 		this.initActions()
 		this.initFeedbacks()
@@ -90,7 +95,8 @@ class ModuleInstance extends InstanceBase {
 			p1: this.config.p1,
 			p2: this.config.p2.label,
 			p3: this.config.p3.label,
-			p4: this.config.p4.label
+			p4: this.config.p4.label,
+			hole: this.rust_main.hole
 		}
 	}
 
@@ -107,7 +113,7 @@ class ModuleInstance extends InstanceBase {
 				type: 'textinput',
 				id: 'vmix_ip',
 				label: 'vMix IP Adress',
-				width: 6,
+				width: 3,
 				regex: this.REGEX_IP,
 				default: '192.168.120.135',
 			},
@@ -131,7 +137,7 @@ class ModuleInstance extends InstanceBase {
 				type: 'number',
 				id: 'pool_ind',
 				label: 'Pool index',
-				width: 6,
+				width: 2,
 				min: 1,
 				max: 1000,
 				required: true,
@@ -141,16 +147,25 @@ class ModuleInstance extends InstanceBase {
 				type: 'number',
 				id: 'round',
 				label: 'Round',
-				width: 6,
+				width: 2,
 				min: 1,
 				max: 10,
 				default: 1,
 			},
 			{
+				type: 'number',
+				id: 'hole',
+				label: 'Hole',
+				width: 2,
+				min: 0,
+				max: 18,
+				default: 0,
+			},
+			{
 				type: 'dropdown',
 				id: 'div',
 				label: 'Division',
-				width: 6,
+				width: 12,
 				default: 'none',
 				choices: this.div_names,
 			},
@@ -186,6 +201,7 @@ class ModuleInstance extends InstanceBase {
 				default: 'none',
 				choices: this.players,
 			},
+			
 		]
 	}
 
@@ -201,8 +217,8 @@ class ModuleInstance extends InstanceBase {
 		const feedbacks = {
 			display_variable: {
 				type: 'boolean',
-				name: 'Display variable',
-				description: 'Displays the exposed variable on the button',
+				name: 'Focused player',
+				description: 'Shows if current player is focused',
 				defaultStyle: {
 					color: combineRgb(255, 255, 255),
 					bgcolor: combineRgb(0, 0, 255),
@@ -236,7 +252,10 @@ class ModuleInstance extends InstanceBase {
 				options: [],
 				callback: () => {
 					this.sendCommand(this.rust_main.set_leaderboard().join('\r\n') + '\r\n')
-				}
+					this.setVariableValues({
+						hole: this.rust_main.hole,
+					})
+				},
 			},
 			increase_score: {
 				name: 'Increase score',
@@ -260,7 +279,9 @@ class ModuleInstance extends InstanceBase {
 					if (foc_player != 'none') {
 						this.rust_main.set_foc(this.foc_player_ind)
 					}
-
+					this.setVariableValues({
+						hole: this.rust_main.hole,
+					})
 					this.sendCommand(inc.join('\r\n') + '\r\n')
 				},
 			},
@@ -292,6 +313,7 @@ class ModuleInstance extends InstanceBase {
 						// TODO: Impl change throw popup
 						this.setVariableValues({
 							player_name: this.rust_main.get_foc_p_name(),
+							hole: this.rust_main.hole,
 						})
 						this.checkFeedbacks()
 					}
@@ -302,6 +324,9 @@ class ModuleInstance extends InstanceBase {
 				options: [],
 				callback: () => {
 					this.sendCommand(this.rust_main.reset_score().join('\r\n') + '\r\n')
+					this.setVariableValues({
+						hole: this.rust_main.hole,
+					})
 				},
 			},
 			increase_throw: {
@@ -407,6 +432,86 @@ class ModuleInstance extends InstanceBase {
 						this.checkFeedbacks('decrement_round')
 					}
 				},
+			},
+			show_all_pos: {
+				name: 'Show all positions',
+				options: [],
+				callback: () => {
+					this.sendCommand(this.rust_main.show_all_pos().join('\r\n') + '\r\n')
+				},
+			},
+			hide_all_pos: {
+				name: 'Hide all positions',
+				options: [],
+				callback: () => {
+					this.sendCommand(this.rust_main.hide_all_pos().join('\r\n') + '\r\n')
+				},
+			},
+			toggle_pos: {
+				name: 'Toggle current position',
+				options: [
+					{
+						type: 'dropdown',
+						label: 'Choose an option',
+						id: 'focused_player',
+						default: 'none', // Set the default value to 'none'
+						choices: this.focused_players,
+					},
+				],
+				callback: () => {
+					const foc_player = action.options.focused_player
+					if (foc_player != 'none') {
+						this.rust_main.set_foc(foc_player)
+					}
+					this.sendCommand(this.rust_main.toggle_pos().join('\r\n') + '\r\n')
+					if (foc_player != 'none') {
+						this.rust_main.set_foc(this.foc_player_ind)
+					}
+				},
+			},
+			hide_pos: {
+				name: 'Hide position',
+				options: [
+					{
+						type: 'dropdown',
+						label: 'Choose an option',
+						id: 'focused_player',
+						default: 'none', // Set the default value to 'none'
+						choices: this.focused_players,
+					},
+				],
+				callback: (action) => {
+					const foc_player = action.options.focused_player
+					if (foc_player != 'none') {
+						this.rust_main.set_foc(foc_player)
+					}
+					this.sendCommand(this.rust_main.hide_pos().join('\r\n') + '\r\n')
+					if (foc_player != 'none') {
+						this.rust_main.set_foc(this.foc_player_ind)
+					}
+				},
+			},
+			show_pos: {
+				name: 'Show position',
+				options: [
+					{
+						type: 'dropdown',
+						label: 'Choose an option',
+						id: 'focused_player',
+						default: 'none', // Set the default value to 'none'
+						choices: this.focused_players,
+					},
+				],
+				callback: (action) => {
+					const foc_player = action.options.focused_player
+					if (foc_player != 'none') {
+						this.rust_main.set_foc(foc_player)
+					}
+					this.sendCommand(this.rust_main.show_pos().join('\r\n') + '\r\n')
+					if (foc_player != 'none') {
+						this.rust_main.set_foc(this.foc_player_ind)
+					}
+				}
 			},
 		})
 	}
@@ -562,7 +667,21 @@ class ModuleInstance extends InstanceBase {
 			console.log('Round increased')
 		}
 		console.log('hereeee')
+		console.log(this.config.hole)
+		console.log(p_list.length)
 		//console.log(this.rust_main.get_all_rounds())
+
+		if (this.config.hole != 0 && p_list.length != 0) {
+			console.log('setting hole')
+			console.log(this.config.hole)
+			setTimeout(() => {
+				this.sendCommand(this.rust_main.set_all_to_hole(this.config.hole).join('\r\n') + '\r\n')
+			}, 1000)
+			this.setVariableValues({
+				hole: this.config.hole,
+			})
+			
+		}
 	}
 }
 
