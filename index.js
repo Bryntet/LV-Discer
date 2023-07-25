@@ -513,6 +513,15 @@ class ModuleInstance extends InstanceBase {
 					}
 				}
 			},
+			set_hole_info: {
+				name: 'Set hole info',
+				options: [],
+				callback: () => {
+					let info = this.rust_main.make_hole_info().join('\r\n') + '\r\n'
+					console.log(info)
+					this.sendCommand(info)
+				}
+			}
 		})
 	}
 

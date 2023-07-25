@@ -101,6 +101,64 @@ impl PlayerRound {
     fn hole_score(&self, hole: usize) -> i16 {
         self.results[hole].actual_score() as i16
     }
+
+    pub fn get_hole_info(&self, hole: usize) -> Vec<JsString> {
+        log("hello");
+        let id = "0e76d38f-6e8d-4f7d-b1a6-e76f695f2094";
+
+        let mut r_vec: Vec<JsString> = vec![];
+        let hole = &self.results[hole].hole;
+        r_vec.push(
+            VmixFunction::SetText(VmixInfo {
+                id,
+                value: hole.number.to_string(),
+                prop: VmixProperty::Hole,
+            })
+            .to_cmd()
+            .into(),
+        );
+        
+        log(format!("{:#?}", r_vec).as_str());
+        r_vec.push(
+            VmixFunction::SetText(VmixInfo {
+                id,
+                value: hole.par.unwrap().to_string(),
+                prop: VmixProperty::HolePar,
+            })
+            .to_cmd()
+            .into(),
+        );
+        log(format!("{:#?}", r_vec).as_str());
+        let meters = if hole.measure_in_meters.unwrap_or(false) {
+            hole.length.unwrap_or(0.0)
+        } else {
+            hole.length.unwrap_or(0.0) * 0.9144
+        };
+        
+        r_vec.push(
+            VmixFunction::SetText(VmixInfo {
+                id,
+                value: (meters as u64).to_string() + "M",
+                prop: VmixProperty::HoleMeters,
+            })
+            .to_cmd()
+            .into(),
+        );
+
+        log(format!("{:#?}", r_vec).as_str());
+        let feet = (meters * 3.28084) as u64;
+        r_vec.push(
+            VmixFunction::SetText(VmixInfo {
+                id,
+                value: feet.to_string() + "FT",
+                prop: VmixProperty::HoleFeet,
+            })
+            .to_cmd()
+            .into(),
+        );
+        log(format!("{:#?}", r_vec).as_str());
+        r_vec
+    }
 }
 
 pub struct VmixInfo<'a> {
@@ -215,7 +273,11 @@ pub enum VmixProperty {
     LBMove(u16),
     LBArrow(u16),
     LBThru(u16),
-    LBCheckinText(),
+    LBCheckinText,
+    HoleMeters,
+    HoleFeet,
+    HolePar,
+    Hole,
 }
 
 impl VmixProperty {
@@ -248,7 +310,11 @@ impl VmixProperty {
             VmixProperty::LBMove(pos) => format!("SelectedName=move{}.Text", pos),
             VmixProperty::LBArrow(pos) => format!("SelectedName=arw{}.Source", pos),
             VmixProperty::LBThru(pos) => format!("SelectedName=thru#{}.Text", pos),
-            VmixProperty::LBCheckinText() => "SelectedName=checkintext.Text".to_string(),
+            VmixProperty::LBCheckinText => "SelectedName=checkintext.Text".to_string(),
+            VmixProperty::HoleMeters => "SelectedName=meternr.Text".to_string(),
+            VmixProperty::HoleFeet => "SelectedName=feetnr.Text".to_string(),
+            VmixProperty::HolePar => "SelectedName=parnr.Text".to_string(),
+            VmixProperty::Hole => "SelectedName=hole.Text".to_string(),
         }
     }
 }
@@ -405,7 +471,7 @@ impl NewPlayer {
         // log(&format!("{}", self.round_ind));
         // log(&format!("{:#?}", self.rounds));
         let result = self.current_round().hole_score(self.hole);
-
+        
         self.make_tot_score();
         // Set score
         return_vec.push(
@@ -705,7 +771,7 @@ impl NewPlayer {
         self.total_score = self.score_before_round();
         
         return_vec.push(self.set_tot_score());
-        return_vec.append(&mut self.show_pos());
+        return_vec.append(&mut self.hide_pos());
         if self.round_ind > 0 {
             return_vec.append(&mut self.set_round_score());
         } else {
@@ -1148,6 +1214,7 @@ pub mod queries {
         pub par: Option<f64>,
         pub number: f64,
         pub length: Option<f64>,
+        pub measure_in_meters: Option<bool>,
     }
 
     #[derive(cynic::InlineFragments, Debug, Clone)]

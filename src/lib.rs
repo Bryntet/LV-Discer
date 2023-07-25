@@ -291,7 +291,7 @@ impl MyApp {
             value: String::from(self.get_div_names()[self.lb_div_ind].to_string()).to_uppercase()
                 + " "
                 + "LEADERBOARD CHECK-IN",
-            prop: get_data::VmixProperty::LBCheckinText(),
+            prop: get_data::VmixProperty::LBCheckinText,
         })
         .to_cmd()
         .into()
@@ -309,6 +309,11 @@ impl MyApp {
                 player.hot_round = true;
             }
         }
+    }
+
+    #[wasm_bindgen]
+    pub fn make_hole_info(&self) -> Vec<JsString> {
+        self.score_card.p1.current_round().get_hole_info(self.lb_thru)
     }
 
     pub fn make_lb(&mut self) -> Vec<JsString> {
