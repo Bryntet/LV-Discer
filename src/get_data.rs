@@ -681,7 +681,7 @@ impl NewPlayer {
         for _ in diff..=in_hole {
             return_vec.append(&mut self.set_hole_score());
         }
-        if last_blank && self.hole != 17 {
+        if last_blank && self.hole != 18 {
             return_vec.push(
                 VmixFunction::SetText(VmixInfo {
                     id: &self.vmix_id,
