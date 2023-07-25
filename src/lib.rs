@@ -130,30 +130,32 @@ impl MyApp {
     pub fn set_leaderboard(&mut self) -> Vec<JsString> {
         let mut return_vec: Vec<JsString> = vec![];
         //let mut lb_copy = self.clone();
-        self.lb_div_ind = self.selected_div_ind;
-        self.set_lb_thru();
-        self.get_players(true);
-        self.fix_players();
-        return_vec.append(&mut self.make_lb());
+        if self.get_hole() <= 18 {
+            self.lb_div_ind = self.selected_div_ind;
+            self.set_lb_thru();
+            self.get_players(true);
+            self.fix_players();
+            return_vec.append(&mut self.make_lb());
 
 
-        for player in [&self.score_card.p1, &self.score_card.p2, &self.score_card.p3, &self.score_card.p4] {
-            return_vec.push(self.find_same(player).unwrap().set_pos());
-            let mut cloned_player = player.clone();
-            if cloned_player.hole > 7 {
-                cloned_player.hole -= 1;
-                return_vec.append(&mut cloned_player.shift_scores(true));
+            for player in [&self.score_card.p1, &self.score_card.p2, &self.score_card.p3, &self.score_card.p4] {
+                return_vec.push(self.find_same(player).unwrap().set_pos());
+                let mut cloned_player = player.clone();
+                if cloned_player.hole > 7 {
+                    cloned_player.hole -= 1;
+                    return_vec.append(&mut cloned_player.shift_scores(true));
+                }
+                
             }
+
+            return_vec.push(self.find_same(&self.score_card.p1).unwrap().set_pos());
+            return_vec.push(self.find_same(&self.score_card.p2).unwrap().set_pos());
+            return_vec.push(self.find_same(&self.score_card.p3).unwrap().set_pos());
+            return_vec.push(self.find_same(&self.score_card.p4).unwrap().set_pos());
+
             
+            log(&format!("{:#?}", return_vec));
         }
-
-        return_vec.push(self.find_same(&self.score_card.p1).unwrap().set_pos());
-        return_vec.push(self.find_same(&self.score_card.p2).unwrap().set_pos());
-        return_vec.push(self.find_same(&self.score_card.p3).unwrap().set_pos());
-        return_vec.push(self.find_same(&self.score_card.p4).unwrap().set_pos());
-
-        
-        log(&format!("{:#?}", return_vec));
         return_vec
     }
 
@@ -313,7 +315,11 @@ impl MyApp {
 
     #[wasm_bindgen]
     pub fn make_hole_info(&self) -> Vec<JsString> {
-        self.score_card.p1.current_round().get_hole_info(self.lb_thru)
+        if self.get_hole() <= 18 {
+            self.score_card.p1.current_round().get_hole_info(self.lb_thru)
+        } else {
+            vec![]
+        }
     }
 
     pub fn make_lb(&mut self) -> Vec<JsString> {
