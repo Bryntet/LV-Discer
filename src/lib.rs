@@ -130,7 +130,7 @@ impl MyApp {
         let mut return_vec: Vec<JsString> = vec![];
         //let mut lb_copy = self.clone();
         self.set_lb_thru();
-        if self.get_hole(false) <= 18 {
+        if self.get_hole(false) <= 19 {
             self.lb_div_ind = self.selected_div_ind;
             self.get_players(true);
             self.fix_players();
