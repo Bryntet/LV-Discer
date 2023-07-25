@@ -251,7 +251,9 @@ impl MyApp {
             player.lb_even = false;
             player.old_pos = player.lb_pos;
             player.set_round(self.round_ind);
+            log(&format!("player.hole: {}", player.hole));
             player.hole = if self.lb_thru > 0 {self.lb_thru - 1} else {0};
+            log(&format!("player.hole after: {}", player.hole));
             player.make_tot_score();
         }
         self.assign_position();

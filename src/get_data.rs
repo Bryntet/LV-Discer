@@ -92,7 +92,11 @@ impl PlayerRound {
     // Gets score up until hole
     pub fn score_to_hole(&self, hole: usize) -> i16 {
         log(&format!("hole {}", hole));
-        (0..hole + 1).map(|i| self.hole_score(i)).sum()
+        if hole == 0 {
+            0
+        } else {
+            (0..hole + 1).map(|i| self.hole_score(i)).sum()
+        }
     }
 
     fn hole_score(&self, hole: usize) -> i16 {
@@ -895,9 +899,7 @@ impl NewPlayer {
 
     fn set_lb_hr(&self) -> JsString {
         
-        log(&format!("Hole: {}", self.hole));
         let value = if self.hot_round && self.round_ind != 0 && self.hole != 0 && self.hole < 19 {
-            log(&format!("HOT ROUND WITH Hole: {}", self.hole));
             r"X:\FLIPUP\grafik\fire.png"
         } else {
             r"X:\FLIPUP\grafik\alpha.png"
@@ -959,7 +961,7 @@ impl NewPlayer {
     fn set_thru(&self) -> JsString {
         VmixFunction::SetText(VmixInfo {
             id: &self.lb_vmix_id,
-            value: (self.hole + 1).to_string(),
+            value: (if self.hole == 0 {0} else {self.hole + 1}).to_string(),
             prop: VmixProperty::LBThru(self.position),
         })
         .to_cmd()
