@@ -251,10 +251,13 @@ class ModuleInstance extends InstanceBase {
 				name: 'Leaderboard update',
 				options: [],
 				callback: () => {
+					console.log("gonna send lb update")
 					this.sendCommand(this.rust_main.set_leaderboard().join('\r\n') + '\r\n')
+					console.log("sent lb update")
 					this.setVariableValues({
 						hole: this.rust_main.hole,
 					})
+					console.log("set var values")
 				},
 			},
 			increase_score: {
@@ -290,6 +293,7 @@ class ModuleInstance extends InstanceBase {
 				options: [],
 				callback: () => {
 					let inc = this.rust_main.revert_score()
+					this.setVariableValues({hole:this.rust_main.get_hole(true)})
 					this.sendCommand(inc.join('\r\n') + '\r\n')
 				},
 			},
@@ -350,7 +354,6 @@ class ModuleInstance extends InstanceBase {
 					if (foc_player != 'none') {
 						this.rust_main.set_foc(this.foc_player_ind)
 					}
-					console.log(inc)
 					this.sendCommand(inc.join('\r\n') + '\r\n')
 				},
 			},
@@ -402,7 +405,6 @@ class ModuleInstance extends InstanceBase {
 						this.rust_main.set_foc(foc_player)
 					}
 					let thing = this.rust_main.play_animation()
-					console.log(thing)
 					this.sendCommand(thing.join('\r\n') + '\r\n')
 					if (foc_player != 'none') {
 						this.rust_main.set_foc(this.foc_player_ind)
@@ -416,6 +418,7 @@ class ModuleInstance extends InstanceBase {
 					if (this.config.round !== undefined && this.config.round < this.rust_main.rounds) {
 						this.config.round++
 						this.sendCommand(this.rust_main.set_round(this.config.round - 1).join('\r\n') + '\r\n')
+						//this.rust_main.reset_thru()
 						this.saveConfig()
 						this.checkFeedbacks('increment_round')
 					}
@@ -428,6 +431,7 @@ class ModuleInstance extends InstanceBase {
 					if (this.config.round !== undefined && this.config.round > 1) {
 						this.config.round--
 						this.sendCommand(this.rust_main.set_round(this.config.round - 1).join('\r\n') + '\r\n')
+						//this.rust_main.reset_thru()
 						this.saveConfig()
 						this.checkFeedbacks('decrement_round')
 					}
@@ -518,7 +522,6 @@ class ModuleInstance extends InstanceBase {
 				options: [],
 				callback: () => {
 					let info = this.rust_main.make_hole_info().join('\r\n') + '\r\n'
-					console.log(info)
 					this.sendCommand(info)
 				}
 			}
@@ -557,9 +560,7 @@ class ModuleInstance extends InstanceBase {
 	}
 
 	async configUpdated(config) {
-		
 		if (config.vmix_ip != this.config.vmix_ip) {
-			
 			console.log('setting ip')
 			this.rust_main.ip = config.vmix_ip
 			this.config.vmix_ip = config.vmix_ip
@@ -573,7 +574,6 @@ class ModuleInstance extends InstanceBase {
 			console.log('setting id')
 			this.rust_main.id = this.config.vmix_input_id
 		}
-		
 		if (this.config.event_id) {
 			console.log('setting event id')
 			this.rust_main.event_id = this.config.event_id
@@ -582,7 +582,6 @@ class ModuleInstance extends InstanceBase {
 				.then(() => {
 					console.log('here')
 					const divs = this.rust_main.get_div_names()
-					console.log(divs)
 					this.div_names.length = 0
 					this.div_names.push({
 						id: 'none',
@@ -649,7 +648,6 @@ class ModuleInstance extends InstanceBase {
 		console.log(p_list.length)
 		if (p_list.length != 0) {
 			console.log("Sending p_list")
-			console.log(p_list)
 			this.sendCommand(p_list.join(''))
 			
 		}

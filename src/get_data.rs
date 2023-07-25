@@ -1,10 +1,6 @@
 use cynic::GraphQlResponse;
-use syn::token::Or;
 
-use self::{
-    queries::{Division, PoolLeaderboardDivision},
-    schema::__fields::Pool::round,
-};
+use self::queries::Division;
 use js_sys::JsString;
 use wasm_bindgen::prelude::*;
 #[wasm_bindgen]
@@ -33,8 +29,8 @@ pub async fn post_status(event_id: cynic::Id) -> cynic::GraphQlResponse<queries:
         .expect("failed to parse response")
 }
 
-const DEFAULT_FOREGROUND_COL: &'static str = "3F334D";
-const DEFAULT_BACKGROUND_COL: &'static str = "574B60";
+const DEFAULT_FOREGROUND_COL: &str = "3F334D";
+const DEFAULT_BACKGROUND_COL: &str = "574B60";
 #[derive(Debug, Clone, Default)]
 pub enum RankUpDown {
     Up(i16),
@@ -95,6 +91,7 @@ impl PlayerRound {
 
     // Gets score up until hole
     pub fn score_to_hole(&self, hole: usize) -> i16 {
+        log(&format!("hole {}", hole));
         (0..hole + 1).map(|i| self.hole_score(i)).sum()
     }
 
@@ -103,7 +100,6 @@ impl PlayerRound {
     }
 
     pub fn get_hole_info(&self, hole: usize) -> Vec<JsString> {
-        log("hello");
         let id = "0e76d38f-6e8d-4f7d-b1a6-e76f695f2094";
 
         let mut r_vec: Vec<JsString> = vec![];
@@ -117,8 +113,7 @@ impl PlayerRound {
             .to_cmd()
             .into(),
         );
-        
-        log(format!("{:#?}", r_vec).as_str());
+
         r_vec.push(
             VmixFunction::SetText(VmixInfo {
                 id,
@@ -128,13 +123,12 @@ impl PlayerRound {
             .to_cmd()
             .into(),
         );
-        log(format!("{:#?}", r_vec).as_str());
         let meters = if hole.measure_in_meters.unwrap_or(false) {
             hole.length.unwrap_or(0.0)
         } else {
             hole.length.unwrap_or(0.0) * 0.9144
         };
-        
+
         r_vec.push(
             VmixFunction::SetText(VmixInfo {
                 id,
@@ -145,7 +139,6 @@ impl PlayerRound {
             .into(),
         );
 
-        log(format!("{:#?}", r_vec).as_str());
         let feet = (meters * 3.28084) as u64;
         r_vec.push(
             VmixFunction::SetText(VmixInfo {
@@ -156,7 +149,6 @@ impl PlayerRound {
             .to_cmd()
             .into(),
         );
-        log(format!("{:#?}", r_vec).as_str());
         r_vec
     }
 }
@@ -268,8 +260,9 @@ pub enum VmixProperty {
     LBPosition(u16, u16, bool),
     LBName(u16),
     LBHotRound(u16),
-    LBRS(u16),
-    LBTS(u16),
+    Lbrs(u16),
+    Lbts(u16),
+    LbtsTitle,
     LBMove(u16),
     LBArrow(u16),
     LBThru(u16),
@@ -287,8 +280,12 @@ impl VmixProperty {
             VmixProperty::HoleNumber(v1, v2) => {
                 format!("SelectedName=HN{}p{}.Text", v1, v2 + 1)
             }
-            VmixProperty::ScoreColor(v1, v2) => format!("SelectedName=h{}p{}.Fill.Color", v1, v2 + 1),
-            VmixProperty::PosRightTriColor(v1) => format!("SelectedName=rghtri{}.Fill.Color", v1 + 1),
+            VmixProperty::ScoreColor(v1, v2) => {
+                format!("SelectedName=h{}p{}.Fill.Color", v1, v2 + 1)
+            }
+            VmixProperty::PosRightTriColor(v1) => {
+                format!("SelectedName=rghtri{}.Fill.Color", v1 + 1)
+            }
             VmixProperty::PosSquareColor(v1) => format!("SelectedName=rekt{}.Fill.Color", v1 + 1),
             VmixProperty::Name(ind) => format!("SelectedName=namep{}.Text", ind + 1),
             VmixProperty::TotalScore(ind) => format!("SelectedName=scoretotp{}.Text", ind + 1),
@@ -305,8 +302,9 @@ impl VmixProperty {
             }
             VmixProperty::LBName(pos) => format!("SelectedName=name#{}.Text", pos),
             VmixProperty::LBHotRound(pos) => format!("SelectedName=hrp{}.Source", pos),
-            VmixProperty::LBRS(pos) => format!("SelectedName=rs#{}.Text", pos),
-            VmixProperty::LBTS(pos) => format!("SelectedName=ts#{}.Text", pos),
+            VmixProperty::Lbrs(pos) => format!("SelectedName=rs#{}.Text", pos),
+            VmixProperty::Lbts(pos) => format!("SelectedName=ts#{}.Text", pos),
+            VmixProperty::LbtsTitle => "SelectedName=ts.Text".to_string(),
             VmixProperty::LBMove(pos) => format!("SelectedName=move{}.Text", pos),
             VmixProperty::LBArrow(pos) => format!("SelectedName=arw{}.Source", pos),
             VmixProperty::LBThru(pos) => format!("SelectedName=thru#{}.Text", pos),
@@ -343,6 +341,7 @@ pub struct NewPlayer {
     pub lb_pos: u16,
     pub old_pos: u16,
     pos_visible: bool,
+    pub lb_shown: bool,
 }
 
 impl Default for NewPlayer {
@@ -370,6 +369,7 @@ impl Default for NewPlayer {
             lb_pos: 0,
             old_pos: 0,
             pos_visible: true,
+            lb_shown: true,
         }
     }
 }
@@ -389,7 +389,7 @@ impl NewPlayer {
             for pool in rnd.expect("no round").pools {
                 for player in pool.leaderboard.expect("no lb") {
                     match player {
-                        Some(queries::PoolLeaderboardDivisionCombined::PLD(division)) => {
+                        Some(queries::PoolLeaderboardDivisionCombined::Pld(division)) => {
                             if division.id == div_id {
                                 for player in division.players {
                                     if player.player_id == id {
@@ -436,12 +436,28 @@ impl NewPlayer {
     }
 
     pub fn current_round(&self) -> &PlayerRound {
-        &self.rounds[self.round_ind]
+        log(&format!("round_ind {}", self.round_ind));
+        log(&format!("{:#?}", self.rounds.len()));
+        if self.round_ind >= self.rounds.len() {
+            &self.rounds[self.rounds.len() - 1]
+        } else {
+            &self.rounds[self.round_ind]
+        }
+    }
+    pub fn check_if_allowed_to_visible(&mut self) {
+        if self.round_ind >= self.rounds.len() {
+            self.lb_shown = false;
+        }
     }
 
     pub fn make_tot_score(&mut self) {
         self.round_score = self.current_round().score_to_hole(self.hole);
+        log(&format!(
+            "round_score {} hole {}",
+            self.round_score, self.hole
+        ));
         self.total_score = self.score_before_round() + self.round_score;
+        log(&format!("total_score {}", self.total_score));
     }
 
     pub fn check_pos(&mut self) {
@@ -471,7 +487,7 @@ impl NewPlayer {
         // log(&format!("{}", self.round_ind));
         // log(&format!("{:#?}", self.rounds));
         let result = self.current_round().hole_score(self.hole);
-        
+
         self.make_tot_score();
         // Set score
         return_vec.push(
@@ -483,7 +499,6 @@ impl NewPlayer {
             .to_cmd()
             .into(),
         );
-        log(&format!("{} {}", self.hole, self.shift));
         // Set colour
         return_vec.push(
             VmixFunction::SetColor(VmixInfo {
@@ -524,7 +539,6 @@ impl NewPlayer {
         //     .to_string()
         //     .into(),
         // );
-        
 
         return_vec.push(self.set_tot_score());
         if self.round_ind > 0 {
@@ -604,56 +618,73 @@ impl NewPlayer {
     }
 
     pub fn set_pos(&self) -> JsString {
-
         let value_string = if self.lb_even {
             "T".to_string()
-        } else {"".to_string()} + &self.lb_pos.to_string();
-        
-        
+        } else {
+            "".to_string()
+        } + &self.lb_pos.to_string();
+
         VmixFunction::SetText(VmixInfo {
             id: &self.vmix_id,
             value: value_string,
             prop: VmixProperty::PlayerPosition(self.ind as u16),
         })
-        .to_cmd().into()
+        .to_cmd()
+        .into()
     }
 
     pub fn hide_pos(&mut self) -> Vec<JsString> {
         self.pos_visible = false;
-        vec![VmixFunction::SetTextVisibleOff(VmixInfo {
-            id: &self.vmix_id,
-            value: "".to_string(),
-            prop: VmixProperty::PlayerPosition(self.ind as u16),
-        })
-        .to_cmd()
-        .into(), VmixFunction::SetColor(VmixInfo {
-            id: &self.vmix_id,
-            value: "00000000".to_string(),
-            prop: VmixProperty::PosRightTriColor(self.ind),
-        }).to_cmd().into(), VmixFunction::SetColor(VmixInfo {
-            id: &self.vmix_id,
-            value: "00000000".to_string(),
-            prop: VmixProperty::PosSquareColor(self.ind),
-        }).to_cmd().into()]
+        vec![
+            VmixFunction::SetTextVisibleOff(VmixInfo {
+                id: &self.vmix_id,
+                value: "".to_string(),
+                prop: VmixProperty::PlayerPosition(self.ind as u16),
+            })
+            .to_cmd()
+            .into(),
+            VmixFunction::SetColor(VmixInfo {
+                id: &self.vmix_id,
+                value: "00000000".to_string(),
+                prop: VmixProperty::PosRightTriColor(self.ind),
+            })
+            .to_cmd()
+            .into(),
+            VmixFunction::SetColor(VmixInfo {
+                id: &self.vmix_id,
+                value: "00000000".to_string(),
+                prop: VmixProperty::PosSquareColor(self.ind),
+            })
+            .to_cmd()
+            .into(),
+        ]
     }
 
     pub fn show_pos(&mut self) -> Vec<JsString> {
         self.pos_visible = true;
-        vec![VmixFunction::SetTextVisibleOn(VmixInfo {
-            id: &self.vmix_id,
-            value: "".to_string(),
-            prop: VmixProperty::PlayerPosition(self.ind as u16),
-        })
-        .to_cmd()
-        .into(), VmixFunction::SetColor(VmixInfo {
-            id: &self.vmix_id,
-            value: DEFAULT_BACKGROUND_COL.to_string(),
-            prop: VmixProperty::PosRightTriColor(self.ind),
-        }).to_cmd().into(), VmixFunction::SetColor(VmixInfo {
-            id: &self.vmix_id,
-            value: DEFAULT_BACKGROUND_COL.to_string(),
-            prop: VmixProperty::PosSquareColor(self.ind),
-        }).to_cmd().into()]
+        vec![
+            VmixFunction::SetTextVisibleOn(VmixInfo {
+                id: &self.vmix_id,
+                value: "".to_string(),
+                prop: VmixProperty::PlayerPosition(self.ind as u16),
+            })
+            .to_cmd()
+            .into(),
+            VmixFunction::SetColor(VmixInfo {
+                id: &self.vmix_id,
+                value: DEFAULT_BACKGROUND_COL.to_string(),
+                prop: VmixProperty::PosRightTriColor(self.ind),
+            })
+            .to_cmd()
+            .into(),
+            VmixFunction::SetColor(VmixInfo {
+                id: &self.vmix_id,
+                value: DEFAULT_BACKGROUND_COL.to_string(),
+                prop: VmixProperty::PosSquareColor(self.ind),
+            })
+            .to_cmd()
+            .into(),
+        ]
     }
 
     pub fn toggle_pos(&mut self) -> Vec<JsString> {
@@ -769,7 +800,7 @@ impl NewPlayer {
         self.shift = 0;
         self.round_score = 0;
         self.total_score = self.score_before_round();
-        
+
         return_vec.push(self.set_tot_score());
         return_vec.append(&mut self.hide_pos());
         if self.round_ind > 0 {
@@ -849,7 +880,6 @@ impl NewPlayer {
         })
         .to_cmd()
         .into();
-        log(&String::from(thing.clone()));
         thing
     }
 
@@ -864,11 +894,12 @@ impl NewPlayer {
     }
 
     fn set_lb_hr(&self) -> JsString {
-        let value = if self.hot_round && self.round_ind != 0 {
-            log("hot round");
+        
+        log(&format!("Hole: {}", self.hole));
+        let value = if self.hot_round && self.round_ind != 0 && self.hole != 0 && self.hole < 19 {
+            log(&format!("HOT ROUND WITH Hole: {}", self.hole));
             r"X:\FLIPUP\grafik\fire.png"
         } else {
-            log("not hot round");
             r"X:\FLIPUP\grafik\alpha.png"
         };
         VmixFunction::SetImage(VmixInfo {
@@ -884,20 +915,41 @@ impl NewPlayer {
         VmixFunction::SetText(VmixInfo {
             id: &self.lb_vmix_id,
             value: fix_score(self.round_score),
-            prop: VmixProperty::LBRS(self.position),
+            prop: VmixProperty::Lbrs(self.position),
         })
         .to_cmd()
         .into()
     }
 
-    fn set_ts(&self) -> JsString {
-        VmixFunction::SetText(VmixInfo {
+    fn set_ts(&self) -> Vec<JsString> {
+
+        let mut r_vec: Vec<JsString> = if self.round_ind == 0 {
+            vec![VmixFunction::SetTextVisibleOff(VmixInfo {
+                id: &self.lb_vmix_id,
+                value: "".to_string(),
+                prop: VmixProperty::Lbts(self.position),
+            })
+            .to_cmd()
+            .into(),
+            VmixFunction::SetTextVisibleOff(VmixInfo { id: &self.lb_vmix_id, value: "".to_string(), prop: VmixProperty::LbtsTitle }).to_cmd().into()]
+        } else {
+            vec![VmixFunction::SetTextVisibleOn(VmixInfo {
+                id: &self.lb_vmix_id,
+                value: "".to_string(),
+                prop: VmixProperty::Lbts(self.position),
+            }).to_cmd().into(),
+            VmixFunction::SetTextVisibleOn(VmixInfo { id: &self.lb_vmix_id, value: "".to_string(), prop: VmixProperty::LbtsTitle }).to_cmd().into()
+            ]
+        };
+
+        r_vec.push(VmixFunction::SetText(VmixInfo {
             id: &self.lb_vmix_id,
             value: fix_score(self.total_score),
-            prop: VmixProperty::LBTS(self.position),
+            prop: VmixProperty::Lbts(self.position),
         })
         .to_cmd()
-        .into()
+        .into());
+        r_vec
     }
 
     fn set_moves(&self) -> Vec<JsString> {
@@ -915,14 +967,15 @@ impl NewPlayer {
     }
 
     pub fn set_lb(&mut self) -> Vec<JsString> {
+        self.check_if_allowed_to_visible();
         let mut return_vec: Vec<JsString> = vec![
             self.set_lb_pos(),
             self.set_lb_name(),
             self.set_lb_hr(),
             self.set_rs(),
-            self.set_ts(),
         ];
 
+        return_vec.append(&mut self.set_ts());
         return_vec.append(&mut self.set_moves());
         return_vec.push(self.set_thru());
         return_vec
@@ -982,7 +1035,6 @@ impl RustHandler {
     pub fn get_players(&self) -> Vec<NewPlayer> {
         let mut players: Vec<queries::PoolLeaderboardPlayer> = vec![];
         let mut out_vec: Vec<NewPlayer> = vec![];
-        log(&format!("valid pool inds: {:?}", self.valid_pool_inds));
 
         let len_of_pools = self.event.rounds[self.round_ind]
             .clone()
@@ -999,9 +1051,8 @@ impl RustHandler {
                 .expect("no leaderboard")
             {
                 match div {
-                    Some(queries::PoolLeaderboardDivisionCombined::PLD(division)) => {
+                    Some(queries::PoolLeaderboardDivisionCombined::Pld(division)) => {
                         if division.id == self.chosen_division {
-                            log(&format!("division: {:?}", division.name));
                             for player in &division.players {
                                 players.push(player.clone());
                             }
@@ -1219,7 +1270,7 @@ pub mod queries {
 
     #[derive(cynic::InlineFragments, Debug, Clone)]
     pub enum PoolLeaderboardDivisionCombined {
-        PLD(PoolLeaderboardDivision),
+        Pld(PoolLeaderboardDivision),
         #[cynic(fallback)]
         Unknown,
     }
