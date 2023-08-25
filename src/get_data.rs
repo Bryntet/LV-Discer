@@ -91,7 +91,7 @@ impl PlayerRound {
 
     // Gets score up until hole
     pub fn score_to_hole(&self, hole: usize) -> i16 {
-        log(&format!("hole {}", hole));
+        //log(&format!("hole {}", hole));
         if hole == 0 {
             0
         } else {
@@ -346,6 +346,7 @@ pub struct NewPlayer {
     pub old_pos: u16,
     pos_visible: bool,
     pub lb_shown: bool,
+    pub dnf: bool,
 }
 
 impl Default for NewPlayer {
@@ -374,6 +375,7 @@ impl Default for NewPlayer {
             old_pos: 0,
             pos_visible: true,
             lb_shown: true,
+            dnf: false,
         }
     }
 }
@@ -424,11 +426,17 @@ impl NewPlayer {
         self.current_round().score_to_hole(17)
     }
 
-    pub fn score_before_round(&self) -> i16 {
+    pub fn score_before_round(&mut self) -> i16 {
         let mut total_score = 0;
-        for round_ind in 0..self.round_ind {
-            total_score += self.rounds[round_ind].score_to_hole(17)
+        if self.rounds.len() < self.round_ind || self.dnf {
+            println!("I'm a loser, I DNF:ed");
+            self.dnf = true;
+        } else {
+            for round_ind in 0..self.round_ind {
+                total_score += self.rounds[round_ind].score_to_hole(17)
+            }
         }
+        
         // log(&format!("round_ind {} tot_score {}", self.round_ind, total_score));
         total_score
     }
@@ -440,8 +448,6 @@ impl NewPlayer {
     }
 
     pub fn current_round(&self) -> &PlayerRound {
-        log(&format!("round_ind {}", self.round_ind));
-        log(&format!("{:#?}", self.rounds.len()));
         if self.round_ind >= self.rounds.len() {
             &self.rounds[self.rounds.len() - 1]
         } else {
@@ -456,12 +462,12 @@ impl NewPlayer {
 
     pub fn make_tot_score(&mut self) {
         self.round_score = self.current_round().score_to_hole(self.hole);
-        log(&format!(
-            "round_score {} hole {}",
-            self.round_score, self.hole
-        ));
+        // log(&format!(
+        //     "round_score {} hole {}",
+        //     self.round_score, self.hole
+        // ));
         self.total_score = self.score_before_round() + self.round_score;
-        log(&format!("total_score {}", self.total_score));
+        //log(&format!("total_score {}", self.total_score));
     }
 
     pub fn check_pos(&mut self) {

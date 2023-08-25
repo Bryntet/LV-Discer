@@ -128,12 +128,17 @@ impl MyApp {
     #[wasm_bindgen]
     pub fn set_leaderboard(&mut self) -> Vec<JsString> {
         let mut return_vec: Vec<JsString> = vec![];
+        log("set_leaderboard");
         //let mut lb_copy = self.clone();
         self.set_lb_thru();
+        log("past set_lb_thru");
         if self.get_hole(false) <= 19 {
+            log("hole <= 19");
             self.lb_div_ind = self.selected_div_ind;
             self.get_players(true);
+            log("past get_players");
             self.fix_players();
+            log("past fix_players");
             return_vec.append(&mut self.make_lb());
             for player in [
                 &self.score_card.p1,
@@ -251,9 +256,9 @@ impl MyApp {
             player.lb_even = false;
             player.old_pos = player.lb_pos;
             player.set_round(self.round_ind);
-            log(&format!("player.hole: {}", player.hole));
+            //log(&format!("player.hole: {}", player.hole));
             player.hole = if self.lb_thru > 0 {self.lb_thru - 1} else {0};
-            log(&format!("player.hole after: {}", player.hole));
+            //log(&format!("player.hole after: {}", player.hole));
             player.make_tot_score();
         }
         self.assign_position();
@@ -263,11 +268,12 @@ impl MyApp {
     pub fn assign_position(&mut self) {
         // Sort players in descending order by total_score
         
-        self.available_players.iter_mut().for_each(|p| if !p.lb_shown {
-            p.lb_pos = 0;
-            p.total_score = i16::MIN;
-        });
-        self.available_players.sort_unstable_by(|a, b| a.total_score.cmp(&b.total_score));
+
+        self.available_players.sort_unstable_by(|a, b| {
+            if !a.dnf { a.total_score } else { i16::MIN }
+        }.cmp(
+            if !b.dnf { &b.total_score } else { &i16::MIN }
+        ));
 
         // Iterate over sorted players to assign position
 
@@ -681,7 +687,7 @@ mod tests {
 
     async fn generate_app() -> MyApp {
         let mut app = MyApp::default();
-
+        app.event_id = "3be7a272-a61c-4aa7-a3f4-aba92c62799f".to_string();
         let _ = app.get_event().await.unwrap();
         app.get_players(false);
         let players = app.get_player_ids();
@@ -815,50 +821,46 @@ mod tests {
             .collect::<Vec<String>>()
             .join("")
     }
-    // #[wasm_bindgen_test]
-    // async fn lb_test() {
-    //     let mut app = generate_app().await;
-    //     let round = 3;
-    //     let thru = 18;
-    //     let div_ind = 1;
+    #[wasm_bindgen_test]
+    async fn lb_test() {
+        let mut app = generate_app().await;
+        let round = 3;
+        let thru = 18;
+        let div_ind = 1;
 
-    //     app.round_ind = round - 1;
-    //     app.lb_thru = thru - 1;
-    //     log("here");
-    //     app.set_lb_div(div_ind - 1);
-    //     log("not here");
-    //     // for player in &app.available_players {
-    //     //     if player.hot_round {
-    //     //         log(&format!("{}: {}", player.name, player.round_score));
-    //     //     }
-    //     // }
+        log("here");
+        
+        log("not here");
+        
+        app.set_round(round-1);
 
-    //     let all_commands = app
-    //         .make_lb()
-    //         .iter()
-    //         .map(|s| String::from(s)+"\r\n")
-    //         .collect::<Vec<String>>()
-    //         .join("");
 
-    //     sendData("192.168.120.135", 8099, &all_commands);
+        let all_commands = app
+            .set_leaderboard()
+            .iter()
+            .map(|s| String::from(s)+"\r\n")
+            .collect::<Vec<String>>()
+            .join("");
 
-    //     log(format!(
-    //         "{:#?}",
-    //         app.available_players
-    //             .iter()
-    //             .map(|player| player.name.clone()
-    //                 + ": "
-    //                 + &player.round_score.to_string()
-    //                 + ", "
-    //                 + &player.total_score.to_string()
-    //                 + ", "
-    //                 + &player.position.to_string()
-    //                 + ", "
-    //                 + &player.lb_even.to_string()
-    //                 + ", "
-    //                 + &player.lb_pos.to_string())
-    //             .collect::<Vec<String>>()
-    //     )
-    //     .as_str());
-    // }
+        //sendData("192.168.120.135", 8099, &all_commands);
+
+        // log(format!(
+        //     "{:#?}",
+        //     app.available_players
+        //         .iter()
+        //         .map(|player| player.name.clone()
+        //             + ": "
+        //             + &player.round_score.to_string()
+        //             + ", "
+        //             + &player.total_score.to_string()
+        //             + ", "
+        //             + &player.position.to_string()
+        //             + ", "
+        //             + &player.lb_even.to_string()
+        //             + ", "
+        //             + &player.lb_pos.to_string())
+        //         .collect::<Vec<String>>()
+        // )
+        // .as_str());
+    }
 }
