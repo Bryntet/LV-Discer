@@ -531,30 +531,30 @@ class ModuleInstance extends InstanceBase {
 	
 
 	sendCommand(cmd) {
-		// if (this.config.vmix_ip) {
-		// 	let socket = new TCPHelper(this.config.vmix_ip, 8099)
+		if (this.config.vmix_ip) {
+			let socket = new TCPHelper(this.config.vmix_ip, 8099)
 
-		// 	socket.on('error', (err) => {
-		// 		console.log(err)
-		// 		this.updateStatus(InstanceStatus.ConnectionFailure, err.message)
-		// 		this.log('error', 'Network error: ' + err.message)
-		// 	})
+			socket.on('error', (err) => {
+				console.log(err)
+				this.updateStatus(InstanceStatus.ConnectionFailure, err.message)
+				this.log('error', 'Network error: ' + err.message)
+			})
 
-		// 	socket.on('data', (data) => {
-		// 		if (data.toString().includes('VERSION')) {
-		// 			socket.send('PING\r\n')
-		// 			socket.send(cmd)
-		// 			socket.send('QUIT\r\n')
-		// 		} 
-		// 		if (data.toString().includes("QUIT OK Bye")) {
-		// 			socket.destroy()
-		// 		}
-		// 	})
-		// 	console.log('Trying to send command')
+			socket.on('data', (data) => {
+				if (data.toString().includes('VERSION')) {
+					socket.send('PING\r\n')
+					socket.send(cmd)
+					socket.send('QUIT\r\n')
+				}
+				if (data.toString().includes("QUIT OK Bye")) {
+					socket.destroy()
+				}
+			})
+			console.log('Trying to send command')
 			
-		// } else {
-		// 	this.updateStatus(InstanceStatus.BadConfig)
-		// }
+		} else {
+			this.updateStatus(InstanceStatus.BadConfig)
+		}
 
 		
 	}

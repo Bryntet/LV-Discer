@@ -839,7 +839,12 @@ impl NewPlayer {
             VmixFunction::OverlayInput4(self.get_mov()).to_cmd().into(),
         ];
         self.ob = false;
-        return_vec
+        // TODO!: REMOVE THIS AAAAAH
+        if self.ind + 1 != 4 {
+            return_vec
+        } else {
+            vec![]
+        }
     }
 
     fn set_input_pan(&mut self) -> JsString {
