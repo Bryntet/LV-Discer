@@ -681,14 +681,15 @@ class ModuleInstance extends InstanceBase {
 		if (this.config.hole != 0 && p_list.length != 0) {
 			console.log('setting hole')
 			console.log(this.config.hole)
-			setTimeout(() => {
-				this.sendCommand(this.rust_main.set_all_to_hole(this.config.hole).join('\r\n') + '\r\n')
-			}, 1000)
+			setTimeout(() => {this.sendCommand(this.st_main.set_all_to_hole(this.config.hole).join('\r\n') + '\r\n')}, 1000)
 			this.setVariableValues({
 				hole: this.config.hole,
 			})
 			
 		}
+
+		
+
 	}
 }
 

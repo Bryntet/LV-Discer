@@ -686,124 +686,25 @@ mod tests {
     }
 
     async fn generate_app() -> MyApp {
-        let mut app = MyApp::default();
-        app.event_id = "3be7a272-a61c-4aa7-a3f4-aba92c62799f".to_string();
-        let _ = app.get_event().await.unwrap();
+        let mut app = MyApp { event_id: "75cceb0e-5a1d-4fba-a5c8-f2ff95f84495".to_string(),  ..Default::default() };
+        app.get_event().await.unwrap();
+        log(&format!("{:#?}",app.pools));
+        app.set_div(1);
         app.get_players(false);
         let players = app.get_player_ids();
-        app.set_player(1, players[0].clone());
-        app.set_player(2, players[1].clone());
-        app.set_player(3, players[2].clone());
-        app.set_player(4, players[3].clone());
-        app.set_foc(1);
-
-        //app.set_div(0);
-        // let ids = app.get_player_ids();
-        // for i in 1..5 {
-        //     app.set_player(i.clone(), ids[i.clone()].clone().into());
-        // }
+        // app.set_player(1, players[0].clone());
+        // app.set_player(2, players[1].clone());
+        // app.set_player(3, players[2].clone());
+        // app.set_player(4, players[3].clone());
         // app.set_foc(1);
+
+        for i in 1..=4 {
+            app.set_player(i, players[i].clone());
+        }
+        app.set_foc(1);
         app
     }
 
-    // #[wasm_bindgen_test]
-    // async fn get_rounds() {
-    //     let mut app = generate_app().await;
-
-    //     let mut ind = 0;
-    //     for pool in &app.pools {
-    //         log(&ind.to_string());
-    //         ind += 1;
-    //         if let Some(lb) = pool.leaderboard.clone() {
-    //             for thing in lb {
-    //                 if let Some(div) = thing {
-    //                     match div {
-    //                         get_data::queries::PoolLeaderboardDivisionCombined::PLD(d) => {
-    //                             log(&d.name);
-    //                         }
-    //                         _ => {}
-    //                     }
-    //                 }
-    //             }
-    //         }
-    //     }
-    // }
-
-    // #[wasm_bindgen_test]
-    // async fn make_players() {
-    //     let mut app = generate_app().await;
-    //     let mut out_cmds: Vec<JsString> = vec![];
-    //     app.set_div(0);
-    //     sendData(
-    //         "192.168.120.135",
-    //         8099,
-    //         app.set_player(1, app.available_players[0].player_id.inner().into())
-    //             .iter()
-    //             .map(|s| String::from(s) + "\r\n")
-    //             .collect::<Vec<String>>()
-    //             .join("")
-    //             .as_str(),
-    //     );
-    //     sendData(
-    //         "192.168.120.135",
-    //         8099,
-    //         app.set_player(2, app.available_players[1].player_id.inner().into())
-    //             .iter()
-    //             .map(|s| String::from(s) + "\r\n")
-    //             .collect::<Vec<String>>()
-    //             .join("")
-    //             .as_str(),
-    //     );
-    //     sendData(
-    //         "192.168.120.135",
-    //         8099,
-    //         app.set_player(3, app.available_players[2].player_id.inner().into())
-    //             .iter()
-    //             .map(|s| String::from(s) + "\r\n")
-    //             .collect::<Vec<String>>()
-    //             .join("")
-    //             .as_str(),
-    //     );
-    //     sendData(
-    //         "192.168.120.135",
-    //         8099,
-    //         app.set_player(4, app.available_players[3].player_id.inner().into())
-    //         .iter()
-    //         .map(|s| String::from(s) + "\r\n")
-    //         .collect::<Vec<String>>()
-    //         .join("")
-    //         .as_str(),
-    //     );
-    // }
-
-    // #[wasm_bindgen_test]
-    // async fn score_increases() {
-    //     let mut app = generate_app().await;
-
-    //     for _ in 0..18 {
-    //         log("hi");
-    //         sendData(
-    //             "192.168.120.135",
-    //             8099,
-    //             app.increase_score()
-    //                 .iter()
-    //                 .map(|s| String::from(s) + "\r\n")
-    //                 .collect::<Vec<String>>()
-    //                 .join("")
-    //                 .as_str(),
-    //         );
-    //     }
-    // }
-
-    // #[wasm_bindgen_test]
-    // async fn lb_test_two() {
-    //     let mut app = generate_app().await;
-
-    //     send(&handle_js_vec(app.set_round(0)));
-    //     send(&handle_js_vec(app.get_focused().set_hole_score()));
-    //     send(&handle_js_vec(app.set_leaderboard()));
-
-    // }
 
     #[wasm_bindgen_test]
     async fn test_set_all_to_hole() {
@@ -812,7 +713,7 @@ mod tests {
     }
 
     fn send(data: &str) {
-        sendData("192.168.120.135", 8099, data);
+        sendData("37.123.135.170", 8099, data);
     }
     fn handle_js_vec(js_vec: Vec<JsString>) -> String {
         js_vec
@@ -824,7 +725,7 @@ mod tests {
     #[wasm_bindgen_test]
     async fn lb_test() {
         let mut app = generate_app().await;
-        let round = 3;
+        let round = 1;
         let thru = 18;
         let div_ind = 1;
 
@@ -833,7 +734,8 @@ mod tests {
         log("not here");
         
         app.set_round(round-1);
-
+        app.set_all_to_hole(thru);
+        log(&format!("{:#?}",app.available_players.iter().map(|player|player.name.clone()).collect::<Vec<String>>()));
 
         let all_commands = app
             .set_leaderboard()
@@ -842,7 +744,7 @@ mod tests {
             .collect::<Vec<String>>()
             .join("");
 
-        //sendData("192.168.120.135", 8099, &all_commands);
+        send(&all_commands);
 
         // log(format!(
         //     "{:#?}",
