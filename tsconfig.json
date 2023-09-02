@@ -1,0 +1,12 @@
+{
+	"extends": "@companion-module/tools/tsconfig/node18/recommended",
+	"include": ["js_src/**/*.ts"],
+	"exclude": ["node_modules/**", "js_src/**/*spec.ts", "js_src/**/__tests__/*", "js_src/**/__mocks__/*"],
+	"compilerOptions": {
+		"outDir": "./built",
+		"baseUrl": "./",
+		"paths": {
+			"*": ["./node_modules/*"]
+		}
+	}
+}

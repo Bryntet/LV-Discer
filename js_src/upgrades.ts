@@ -5,7 +5,6 @@ module.exports = {
 			updatedActions: [],
 			updatedFeedbacks: [],
 		}
-
 		// write your script in here
 
 		return result
