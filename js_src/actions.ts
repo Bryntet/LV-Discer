@@ -1,7 +1,9 @@
-import { CompanionActionDefinitions, CompanionVariableValues, DropdownChoice } from "@companion-module/base";
-import { MyApp } from "../built/rust_pkg/rust_wasm_test_edvin";
+import { CompanionActionDefinitions } from "@companion-module/base";
 import { sendCommand } from "./send";
 import { Config } from "./config";
+import { InstanceBaseExt } from "./util";
+import { FeedbackId } from "./feedbacks";
+import { CompanionCommonCallbackContext } from "@companion-module/base/dist/module-api/common";
 
 
 
@@ -27,21 +29,22 @@ export enum ActionId {
     SetHoleInfo = 'set_hole_info'
 }
 
-type setVariables = (values: CompanionVariableValues) => void
-type feedbacksFunc = (...feedbackTypes: string[]) => void
+async function parseAuto(context: CompanionCommonCallbackContext): Promise<number> {
+    return Number.parseInt(await context.parseVariablesInString("$(lvvmix:foc_player_ind)"));
+}
 
 
-export const setActionDefinitions = (rust_main: MyApp, config: Config, focused_players: DropdownChoice[], setVariableValues: setVariables, checkFeedbacks: feedbacksFunc, ): CompanionActionDefinitions => {
+export const setActionDefinitions = (instance: InstanceBaseExt<Config>): CompanionActionDefinitions => {
     const actions: CompanionActionDefinitions = {};
     actions[ActionId.LeaderboadUpdate] = {
         name: 'Leaderboard update',
         options: [],
         callback: () => {
             console.log("gonna send lb update")
-            sendCommand(rust_main.set_leaderboard().join('\r\n') + '\r\n', config)
+            sendCommand(instance.rust_main.set_leaderboard().join('\r\n') + '\r\n', instance.config)
             console.log("sent lb update")
-            setVariableValues({
-                hole: rust_main.hole,
+            instance.setVariableValues({
+                hole: instance.rust_main.hole,
             })
             console.log("set var values")
         },
@@ -54,21 +57,20 @@ export const setActionDefinitions = (rust_main: MyApp, config: Config, focused_p
                 label: 'Choose an option',
                 id: 'focused_player',
                 default: 'none', // Set the default value to 'none'
-                choices: focused_players,
+                choices: instance.focused_players,
             },
         ],
-        callback: (action) => {
+        callback: async (action, context) => {
             const foc_player = action.options.focused_player
             if (typeof foc_player === "number") {
-                rust_main.set_foc(foc_player)
+                instance.rust_main.set_foc(foc_player)
             }
-            let inc = rust_main.increase_score()
-            if (typeof foc_player === 'number') {
-                rust_main.set_foc(foc_player)
-            }
-            sendCommand(inc.join('\r\n') + '\r\n', config)
-            setVariableValues({
-                hole: rust_main.hole,
+            let inc = instance.rust_main.increase_score()
+            let foc_player_ind = await parseAuto(context)
+            instance.rust_main.set_foc(foc_player_ind)
+            sendCommand(inc.join('\r\n') + '\r\n', instance.config)
+            instance.setVariableValues({
+                hole: instance.rust_main.hole,
             })
         },
     }
@@ -78,9 +80,9 @@ export const setActionDefinitions = (rust_main: MyApp, config: Config, focused_p
         options: [],
         callback: () => {
             
-            let inc = rust_main.revert_score()
-            setVariableValues({hole:rust_main.get_hole(true)})
-            sendCommand(inc.join('\r\n') + '\r\n', config)
+            let inc = instance.rust_main.revert_score()
+            instance.setVariableValues({hole:instance.rust_main.get_hole(true)})
+            sendCommand(inc.join('\r\n') + '\r\n', instance.config)
         },
     }
 
@@ -88,12 +90,12 @@ export const setActionDefinitions = (rust_main: MyApp, config: Config, focused_p
         name: 'Reset score',
         options: [],
         callback: () => {
-            sendCommand(rust_main.reset_score().join('\r\n') + '\r\n', config)
-            setVariableValues({
-                hole: rust_main.hole,
+            sendCommand(instance.rust_main.reset_score().join('\r\n') + '\r\n', instance.config)
+            instance.setVariableValues({
+                hole: instance.rust_main.hole,
             })
         },
-    },
+    }
     actions[ActionId.ChangeFocusedPlayer] = {
         name: 'Change focused player',
         options: [
@@ -102,21 +104,21 @@ export const setActionDefinitions = (rust_main: MyApp, config: Config, focused_p
                 label: 'Choose an option',
                 id: 'focused_player',
                 default: 'none', 
-                choices: focused_players,
+                choices: instance.focused_players,
             },
         ],
         callback: (action) => {
             const foc_player = action.options.focused_player
             console.log(foc_player)
             if (typeof foc_player === "number") {
-                rust_main.set_foc(foc_player)
+                instance.rust_main.set_foc(foc_player)
                 // TODO: Impl change throw popup
-                setVariableValues({
-                    player_name: rust_main.get_foc_p_name(),
-                    hole: rust_main.hole,
+                instance.setVariableValues({
+                    player_name: instance.rust_main.get_foc_p_name(),
+                    hole: instance.rust_main.hole,
                     foc_player_ind: foc_player,
                 })
-                checkFeedbacks()
+                instance.checkFeedbacks(FeedbackId.FocusedPlayer)
             }
         },
     },
@@ -128,20 +130,20 @@ export const setActionDefinitions = (rust_main: MyApp, config: Config, focused_p
                 label: 'Choose an option',
                 id: 'focused_player',
                 default: 'none', 
-                choices: focused_players,
+                choices: instance.focused_players,
             },
         ],
-        callback: (action) => {
+        callback: async (action, context) => {
             const foc_player = action.options.focused_player
             if (typeof foc_player === "number") {
-                rust_main.set_foc(foc_player)
+                instance.rust_main.set_foc(foc_player)
             }
-            let inc = [rust_main.increase_throw()]
-            sendCommand(inc.join('\r\n') + '\r\n', config)
-            if (typeof foc_player === 'number') {
-                rust_main.set_foc(foc_player)
-            }
-            sendCommand(inc.join('\r\n') + '\r\n', config)
+            let inc = [instance.rust_main.increase_throw()]
+            sendCommand(inc.join('\r\n') + '\r\n', instance.config)
+            let foc_player_ind = await parseAuto(context)
+            instance.rust_main.set_foc(foc_player_ind)
+
+            sendCommand(inc.join('\r\n') + '\r\n', instance.config)
         },
     },
     actions[ActionId.DecreaseThrow] = {
@@ -152,27 +154,26 @@ export const setActionDefinitions = (rust_main: MyApp, config: Config, focused_p
                 label: 'Choose an option',
                 id: 'focused_player',
                 default: 'none',
-                choices: focused_players,
+                choices: instance.focused_players,
             },
         ],
-        callback: (action) => {
+        callback: async (action, context) => {
             const foc_player = action.options.focused_player
             if (typeof foc_player === 'number') {
-                rust_main.set_foc(foc_player)
+                instance.rust_main.set_foc(foc_player)
             }
-            let inc = [rust_main.decrease_throw()]
-            sendCommand(inc.join('\r\n') + '\r\n', config)
-            if (typeof foc_player === 'number') {
-                rust_main.set_foc(foc_player)
-            }
-            sendCommand(inc.join('\r\n') + '\r\n', config)
+            let inc = [instance.rust_main.decrease_throw()]
+            //sendCommand(inc.join('\r\n') + '\r\n', instance.config)
+            let foc_player_ind = await parseAuto(context)
+            instance.rust_main.set_foc(foc_player_ind)
+            sendCommand(inc.join('\r\n') + '\r\n', instance.config)
         },
     }
     actions[ActionId.OB] = {
         name: 'OB',
         options: [],
         callback: () => {
-            sendCommand(rust_main.ob_anim().join('\r\n') + '\r\n', config)
+            sendCommand(instance.rust_main.ob_anim().join('\r\n') + '\r\n', instance.config)
         },
     }
     actions[ActionId.RunAnimation] = {
@@ -183,19 +184,19 @@ export const setActionDefinitions = (rust_main: MyApp, config: Config, focused_p
                 label: 'Focused player',
                 id: 'focused_player',
                 default: 'none', 
-                choices: focused_players,
+                choices: instance.focused_players,
             },
         ],
-        callback: (action) => {
+        callback: async (action, context) => {
             const foc_player = action.options.focused_player
             if (typeof foc_player === 'number') {
-                rust_main.set_foc(foc_player)
+                instance.rust_main.set_foc(foc_player)
             }
-            let thing = rust_main.play_animation()
-            sendCommand(thing.join('\r\n') + '\r\n', config)
-            if (typeof foc_player === 'number') {
-                rust_main.set_foc(foc_player)
-            }
+            let thing = instance.rust_main.play_animation()
+            sendCommand(thing.join('\r\n') + '\r\n', instance.config)
+            let foc_player_ind = await parseAuto(context)
+            instance.rust_main.set_foc(foc_player_ind)
+
         },
     }
 
@@ -203,9 +204,8 @@ export const setActionDefinitions = (rust_main: MyApp, config: Config, focused_p
         name: 'Increment Round',
         options: [],
         callback: () => {
-            if (config.round !== undefined && config.round < rust_main.rounds) {
-                sendCommand(rust_main.set_round(config.round - 1).join('\r\n') + '\r\n', config)
-                checkFeedbacks('increment_round')
+            if (instance.config.round !== undefined && instance.config.round < instance.rust_main.rounds) {
+                sendCommand(instance.rust_main.set_round(instance.config.round - 1).join('\r\n') + '\r\n', instance.config)
             }
         },
     }
@@ -213,9 +213,8 @@ export const setActionDefinitions = (rust_main: MyApp, config: Config, focused_p
         name: 'Decrement Round',
         options: [],
         callback: () => {
-            if (config.round !== undefined && config.round > 1) {
-                sendCommand(rust_main.set_round(config.round - 1).join('\r\n') + '\r\n', config)
-                checkFeedbacks('decrement_round')
+            if (instance.config.round !== undefined && instance.config.round > 1) {
+                sendCommand(instance.rust_main.set_round(instance.config.round - 1).join('\r\n') + '\r\n', instance.config)
             }
         },
     }
@@ -223,14 +222,14 @@ export const setActionDefinitions = (rust_main: MyApp, config: Config, focused_p
         name: 'Show all positions',
         options: [],
         callback: () => {
-            sendCommand(rust_main.show_all_pos().join('\r\n') + '\r\n', config)
+            sendCommand(instance.rust_main.show_all_pos().join('\r\n') + '\r\n', instance.config)
         },
     }
     actions[ActionId.HideAllPos] = {
         name: 'Hide all positions',
         options: [],
         callback: () => {
-            sendCommand(rust_main.hide_all_pos().join('\r\n') + '\r\n', config)
+            sendCommand(instance.rust_main.hide_all_pos().join('\r\n') + '\r\n', instance.config)
         },
     }
     actions[ActionId.TogglePos] = {
@@ -241,18 +240,17 @@ export const setActionDefinitions = (rust_main: MyApp, config: Config, focused_p
                 label: 'Choose an option',
                 id: 'focused_player',
                 default: 'none', 
-                choices: focused_players,
+                choices: instance.focused_players,
             },
         ],
-        callback: (action) => {
+        callback: async (action, context) => {
             const foc_player = action.options.focused_player
             if (typeof foc_player === 'number') {
-                rust_main.set_foc(foc_player)
+                instance.rust_main.set_foc(foc_player)
             }
-            sendCommand(rust_main.toggle_pos().join('\r\n') + '\r\n', config)
-            if (typeof foc_player === 'number') {
-                rust_main.set_foc(foc_player)
-            }
+            sendCommand(instance.rust_main.toggle_pos().join('\r\n') + '\r\n', instance.config)
+            let foc_player_ind = await parseAuto(context)
+            instance.rust_main.set_foc(foc_player_ind)
         },
     }
     actions[ActionId.HidePos] = {
@@ -263,18 +261,17 @@ export const setActionDefinitions = (rust_main: MyApp, config: Config, focused_p
                 label: 'Choose an option',
                 id: 'focused_player',
                 default: 'none', 
-                choices: focused_players,
+                choices: instance.focused_players,
             },
         ],
-        callback: (action) => {
+        callback: async (action, context) => {
             const foc_player = action.options.focused_player
             if (typeof foc_player === 'number') {
-                rust_main.set_foc(foc_player)
+                instance.rust_main.set_foc(foc_player)
             }
-            sendCommand(rust_main.hide_pos().join('\r\n') + '\r\n', config)
-            if (typeof foc_player === 'number') {
-                rust_main.set_foc(foc_player)
-            }
+            sendCommand(instance.rust_main.hide_pos().join('\r\n') + '\r\n', instance.config)
+            let foc_player_ind = await parseAuto(context)
+            instance.rust_main.set_foc(foc_player_ind)
         },
     }
     actions[ActionId.ShowPos] = {
@@ -285,26 +282,25 @@ export const setActionDefinitions = (rust_main: MyApp, config: Config, focused_p
                 label: 'Choose an option',
                 id: 'focused_player',
                 default: 'none', 
-                choices: focused_players,
+                choices: instance.focused_players,
             },
         ],
-        callback: (action) => {
+        callback: async (action, context) => {
             const foc_player = action.options.focused_player
             if (typeof foc_player === 'number') {
-                rust_main.set_foc(foc_player)
+                instance.rust_main.set_foc(foc_player)
             }
-            sendCommand(rust_main.show_pos().join('\r\n') + '\r\n', config)
-            if (typeof foc_player === 'number') {
-                rust_main.set_foc(foc_player)
-            }
+            sendCommand(instance.rust_main.show_pos().join('\r\n') + '\r\n', instance.config)
+            let foc_player_ind = await parseAuto(context)
+            instance.rust_main.set_foc(foc_player_ind)
         }
     }
     actions[ActionId.SetHoleInfo] = {
         name: 'Set hole info',
         options: [],
         callback: () => {
-            let info = rust_main.make_hole_info().join('\r\n') + '\r\n'
-            sendCommand(info, config)
+            let info = instance.rust_main.make_hole_info().join('\r\n') + '\r\n'
+            sendCommand(info, instance.config)
         }
     }
     return actions

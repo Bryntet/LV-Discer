@@ -1,4 +1,4 @@
-import { InstanceBase, TCPHelper, InstanceStatus, runEntrypoint, SomeCompanionConfigField, DropdownChoice, CompanionStaticUpgradeScript} from '@companion-module/base';
+import { InstanceBase, InstanceStatus, runEntrypoint, SomeCompanionConfigField, DropdownChoice, CompanionStaticUpgradeScript, CompanionVariableValues} from '@companion-module/base';
 import { Config, getConfigFields } from "./config";
 import { setActionDefinitions } from "./actions";
 import { setFeedbackDefinitions } from './feedbacks';
@@ -11,7 +11,7 @@ import "net";
 
 
 class LevandeVideoInstance extends InstanceBase<Config> {
-	private rust_main = new wasm.MyApp;
+	public rust_main = new wasm.MyApp;
 	public config: Config = {
 		vmix_ip: 'localhost',
 		event_id: 'a57b4ed6-f64a-4710-8f20-f93e82d4fe79',
@@ -26,9 +26,9 @@ class LevandeVideoInstance extends InstanceBase<Config> {
 	};
 	private players: DropdownChoice[] = [{ id: 'none', label: 'None' }];
 	private div_names: DropdownChoice[] = [{ id: "none", label: 'None' }];
-	private foc_player_ind: number = 0;
-	private foc_player: string = "z";
-	private focused_players: DropdownChoice[] = [{ id: 'none', label: 'None' }];
+	public foc_player_ind: number = 0;
+	public foc_player: string = "z";
+	public focused_players: DropdownChoice[] = [{ id: 'none', label: 'None' }];
 	public hole: number = 0;
 
 	constructor(internal: unknown) {
@@ -109,7 +109,7 @@ class LevandeVideoInstance extends InstanceBase<Config> {
 		]
 	}
 
-	varValues() {
+	varValues(): CompanionVariableValues {
 		while (this.focused_players.length < 5) { // First element is always none
 			this.focused_players.push({
 				id: 'none' + this.focused_players.length,
@@ -137,44 +137,25 @@ class LevandeVideoInstance extends InstanceBase<Config> {
 	}
 
 	initFeedbacks() {
-		this.setFeedbackDefinitions(setFeedbackDefinitions(this.focused_players, this.foc_player_ind))
+		this.setFeedbackDefinitions(setFeedbackDefinitions(this))
+	}
+	intermediaryValuesSet(values: CompanionVariableValues) {
+		console.log("here setting values")
+		console.log(values)
+		if (typeof values.player_name === "string") {
+			this.foc_player = values.player_name
+		}
+		if (typeof values.foc_player_ind === "number") {
+			this.foc_player_ind = values.foc_player_ind
+		}
+		super.setVariableValues(this.varValues())
+		console.log("im so god damn cool")
 	}
 
 	
 
 	initActions() {
-		this.setActionDefinitions(setActionDefinitions(this.rust_main, this.config, this.focused_players, this.setVariableValues, this.checkFeedbacks))
-	}
-
-	
-
-	sendCommand(cmd: string) {
-		if (this.config.vmix_ip) {
-			let socket = new TCPHelper(this.config.vmix_ip, 8099)
-
-			socket.on('error', (err) => {
-				console.log(err)
-				this.updateStatus(InstanceStatus.ConnectionFailure, err.message)
-				this.log('error', 'Network error: ' + err.message)
-			})
-
-			socket.on('data', (data) => {
-				if (data.toString().includes('VERSION')) {
-					socket.send('PING\r\n')
-					socket.send(cmd)
-					socket.send('QUIT\r\n')
-				}
-				if (data.toString().includes("QUIT OK Bye")) {
-					socket.destroy()
-				}
-			})
-			console.log('Trying to send command')
-			
-		} else {
-			this.updateStatus(InstanceStatus.BadConfig)
-		}
-
-		
+		this.setActionDefinitions(setActionDefinitions(this))
 	}
 
 	async configUpdated(config: Config) {
@@ -264,7 +245,7 @@ class LevandeVideoInstance extends InstanceBase<Config> {
 		console.log(p_list.length)
 		if (p_list.length != 0) {
 			console.log("Sending p_list")
-			this.sendCommand(p_list.join(''))
+			sendCommand(p_list.join(''), config)
 			
 		}
 
@@ -288,7 +269,7 @@ class LevandeVideoInstance extends InstanceBase<Config> {
 			this.setVariableValues({name_thing: name})
 		})
 		if (this.rust_main.round != this.config.round - 1) {
-			this.sendCommand(this.rust_main.set_round(this.config.round - 1).join('\r\n') + '\r\n')
+			sendCommand(this.rust_main.set_round(this.config.round - 1).join('\r\n') + '\r\n', config)
 			console.log('Round increased')
 		}
 		console.log('hereeee')
@@ -299,7 +280,7 @@ class LevandeVideoInstance extends InstanceBase<Config> {
 		if (this.config.hole != 0 && p_list.length != 0) {
 			console.log('setting hole')
 			console.log(this.config.hole)
-			setTimeout(() => {this.sendCommand(this.rust_main.set_all_to_hole(this.config.hole).join('\r\n') + '\r\n')}, 1000)
+			setTimeout(() => {sendCommand(this.rust_main.set_all_to_hole(this.config.hole).join('\r\n') + '\r\n', config)}, 1000)
 			this.setVariableValues({
 				hole: this.config.hole,
 			})
@@ -311,6 +292,7 @@ class LevandeVideoInstance extends InstanceBase<Config> {
 	}
 }
 import { example_conversion } from './upgrades'
+import { sendCommand } from './send';
 const upgradeScripts: CompanionStaticUpgradeScript<Config>[] = [example_conversion]
 
 
