@@ -1007,6 +1007,7 @@ pub struct RustHandler {
     lb_vmix_id: String,
 }
 
+
 impl RustHandler {
     pub fn new(
         pre_event: GraphQlResponse<queries::EventQuery>,
