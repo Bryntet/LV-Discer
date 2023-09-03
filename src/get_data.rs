@@ -298,10 +298,10 @@ impl VmixProperty {
             VmixProperty::Mov(id) => format!("SelectedName={}", id),
             VmixProperty::PlayerPosition(pos) => format!("SelectedName=posp{}.Text", pos + 1),
             VmixProperty::LBPosition(pos, lb_pos, tied) => {
-                if *tied {
+                if *tied && lb_pos != &0 {
                     format!("SelectedName=pos#{}.Text&Value=T{}", pos, lb_pos)
                 } else {
-                    format!("SelectedName=pos#{}.Text&Value={}", pos, lb_pos)
+                    format!("SelectedName=pos#{}.Text&Value={}", pos, if lb_pos != &0 {lb_pos.to_string()} else {"".to_string()})
                 }
             }
             VmixProperty::LBName(pos) => format!("SelectedName=name#{}.Text", pos),
@@ -341,7 +341,7 @@ pub struct NewPlayer {
     pub position: u16,
     pub lb_even: bool,
     pub hot_round: bool,
-    lb_vmix_id: String,
+    pub lb_vmix_id: String,
     pub lb_pos: u16,
     pub old_pos: u16,
     pos_visible: bool,
@@ -637,7 +637,7 @@ impl NewPlayer {
         VmixFunction::SetText(VmixInfo {
             id: &self.vmix_id,
             value: value_string,
-            prop: VmixProperty::PlayerPosition(self.ind as u16),
+            prop: VmixProperty::PlayerPosition(self.ind as u16 ),
         })
         .to_cmd()
         .into()
@@ -656,7 +656,7 @@ impl NewPlayer {
             VmixFunction::SetColor(VmixInfo {
                 id: &self.vmix_id,
                 value: "00000000".to_string(),
-                prop: VmixProperty::PosRightTriColor(self.ind),
+                prop: VmixProperty::PosRightTriColor(self.ind ),
             })
             .to_cmd()
             .into(),
@@ -927,7 +927,7 @@ impl NewPlayer {
     fn set_rs(&self) -> JsString {
         VmixFunction::SetText(VmixInfo {
             id: &self.lb_vmix_id,
-            value: fix_score(self.round_score),
+            value: if self.lb_pos != 0 {fix_score(self.round_score)} else {"".to_string()},
             prop: VmixProperty::Lbrs(self.position),
         })
         .to_cmd()
@@ -972,7 +972,7 @@ impl NewPlayer {
     fn set_thru(&self) -> JsString {
         VmixFunction::SetText(VmixInfo {
             id: &self.lb_vmix_id,
-            value: (if self.hole == 0 {0} else {self.hole + 1}).to_string(),
+            value: if self.hole == 0 {"".to_string()} else {(self.hole + 1).to_string()},
             prop: VmixProperty::LBThru(self.position),
         })
         .to_cmd()

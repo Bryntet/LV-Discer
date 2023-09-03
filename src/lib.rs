@@ -115,6 +115,7 @@ impl MyApp {
     #[wasm_bindgen(setter = div)]
     pub fn set_div(&mut self, idx: usize) {
         log(&format!("div set to {}", idx));
+        self.selected_div_ind = idx;
         if let Some(handler) = &mut self.handler {
             handler.set_chosen_by_ind(idx);
         }
@@ -130,6 +131,7 @@ impl MyApp {
     #[wasm_bindgen]
     pub fn set_leaderboard(&mut self) -> Vec<JsString> {
         let mut return_vec: Vec<JsString> = vec![];
+        return_vec.append(&mut MyApp::clear_lb(10));
         log("set_leaderboard");
         //let mut lb_copy = self.clone();
         self.set_lb_thru();
@@ -138,6 +140,7 @@ impl MyApp {
             log("hole <= 19");
             self.lb_div_ind = self.selected_div_ind;
             self.get_players(true);
+            log(&format!("{:#?}", self.score_card.all_play_players.iter().map(|p|p.name.clone()).collect::<Vec<String>>()));
             log("past get_players");
             self.fix_players();
             log("past fix_players");
@@ -149,25 +152,35 @@ impl MyApp {
                 &self.score_card.p3,
                 &self.score_card.p4,
             ];
-            log(&format!("{:#?}",players.iter().map(|p|p.name.clone()).collect::<Vec<String>>()));
-            log("next is for loop");
             for player in players {
-                log(&format!("{:#?}",self.score_card.all_play_players.iter().map(|p|p.name.clone()).collect::<Vec<String>>()));
-                return_vec.push(self.find_same(player).unwrap().set_pos());
+                let same = self.find_same(player).unwrap();
+                log(&format!("same: {:#?}", same.set_pos()));
                 let mut cloned_player = player.clone();
                 if cloned_player.hole > 7 {
                     cloned_player.hole -= 1;
                     return_vec.append(&mut cloned_player.shift_scores(true));
                 }
+                return_vec.push(same.set_pos());
             }
-            return_vec.push(self.find_same(&self.score_card.p1).unwrap().set_pos());
-            return_vec.push(self.find_same(&self.score_card.p2).unwrap().set_pos());
-            return_vec.push(self.find_same(&self.score_card.p3).unwrap().set_pos());
-            return_vec.push(self.find_same(&self.score_card.p4).unwrap().set_pos());
+            // return_vec.push(self.find_same(&self.score_card.p1).unwrap().set_pos());
+            // return_vec.push(self.find_same(&self.score_card.p2).unwrap().set_pos());
+            // return_vec.push(self.find_same(&self.score_card.p3).unwrap().set_pos());
+            // return_vec.push(self.find_same(&self.score_card.p4).unwrap().set_pos());
         } else {
             log("PANIC, hole > 18");
         }
         return_vec
+    }
+
+    pub fn clear_lb(idx: u16) -> Vec<JsString> {
+        let mut new_player = get_data::NewPlayer::default();
+        new_player.lb_vmix_id = "2ef7178b-61ab-445c-9bbd-2f1c2c781e86".into();
+        let mut r_v: Vec<JsString> = vec![];
+        for i in 0..=idx {
+            new_player.position = i;
+            r_v.append(&mut new_player.set_lb());
+        }
+        r_v
     }
 
     #[wasm_bindgen]
@@ -249,7 +262,7 @@ impl MyApp {
 
     fn fix_players(&mut self) {
         if self.round_ind != 0 {
-            for player in &mut self.available_players {
+            for player in &mut self.score_card.all_play_players {
                 player.old_pos = player.lb_pos;
                 player.set_round(self.round_ind - 1);
                 player.hole = 17;
@@ -258,7 +271,7 @@ impl MyApp {
             self.assign_position();
             self.set_hot_round();
         }
-        for player in &mut self.available_players {
+        for player in &mut self.score_card.all_play_players {
             player.hot_round = false;
             player.lb_even = false;
             player.old_pos = player.lb_pos;
@@ -276,7 +289,7 @@ impl MyApp {
         // Sort players in descending order by total_score
         
 
-        self.available_players.sort_unstable_by(|a, b| {
+        self.score_card.all_play_players.sort_unstable_by(|a, b| {
             if !a.dnf { a.total_score } else { i16::MIN }
         }.cmp(
             if !b.dnf { &b.total_score } else { &i16::MIN }
@@ -284,20 +297,20 @@ impl MyApp {
 
         // Iterate over sorted players to assign position
 
-        let play_len = self.available_players.len();
-
+        let play_len = self.score_card.all_play_players.len();
+        log(&format!("Length of play_len: {play_len}"));
         for i in 0..play_len {
             let mut next_play = None;
             let mut prev_play = None;
 
             if i != 0 {
-                prev_play = Some(self.available_players[i - 1].clone());
+                prev_play = Some(self.score_card.all_play_players[i - 1].clone());
             }
             if i + 1 < play_len {
-                next_play = Some(self.available_players[i + 1].clone());
+                next_play = Some(self.score_card.all_play_players[i + 1].clone());
             }
 
-            let player = &mut self.available_players[i];
+            let player = &mut self.score_card.all_play_players[i];
             player.position = i as u16 + 1;
 
             if let Some(next_play) = next_play.clone() {
@@ -328,7 +341,7 @@ impl MyApp {
     fn make_checkin_text(&self) -> JsString {
         get_data::VmixFunction::SetText(get_data::VmixInfo {
             id: &self.lb_vmix_id,
-            value: String::from(self.get_div_names()[self.lb_div_ind].to_string()).to_uppercase()
+            value: String::from(self.get_div_names()[self.selected_div_ind].to_string()).to_uppercase()
                 + " "
                 + "LEADERBOARD CHECK-IN",
             prop: get_data::VmixProperty::LBCheckinText,
@@ -339,12 +352,12 @@ impl MyApp {
 
     fn set_hot_round(&mut self) {
         let hot_round = self
-            .available_players
+            .score_card.all_play_players
             .iter()
             .map(|player| player.round_score)
             .min()
             .unwrap_or(0);
-        for player in &mut self.available_players {
+        for player in &mut self.score_card.all_play_players {
             if player.round_score == hot_round {
                 player.hot_round = true;
             }
@@ -364,8 +377,8 @@ impl MyApp {
     }
 
     pub fn make_lb(&mut self) -> Vec<JsString> {
-        let mut r_vec: Vec<JsString> = self
-            .available_players
+        let mut r_vec: Vec<JsString> = self.score_card
+            .all_play_players
             .iter_mut()
             .flat_map(|player| player.set_lb())
             .collect();
@@ -460,8 +473,11 @@ impl MyApp {
         return_vec.append(&mut self.score_card.p2.show_pos());
         return_vec.append(&mut self.score_card.p3.show_pos());
         return_vec.append(&mut self.score_card.p4.show_pos());
+        log(&self.score_card.p2.ind.to_string());
+        log(&self.score_card.p2.lb_pos.to_string());
         return_vec
     }
+
 
     #[wasm_bindgen]
     pub fn hide_pos(&mut self) -> Vec<JsString> {
@@ -700,7 +716,7 @@ mod tests {
         let mut app = MyApp { event_id: "75cceb0e-5a1d-4fba-a5c8-f2ff95f84495".to_string(),  ..Default::default() };
         app.get_event().await.unwrap();
         log(&format!("{:#?}",app.pools));
-        app.set_div(1);
+        app.set_div(3);
         app.get_players(false);
         let players = app.get_player_ids();
         // app.set_player(1, players[0].clone());
@@ -717,11 +733,11 @@ mod tests {
     }
 
 
-    #[wasm_bindgen_test]
-    async fn test_set_all_to_hole() {
-        let mut app = generate_app().await;
-        send(&handle_js_vec(app.set_all_to_hole(13)));
-    }
+    // #[wasm_bindgen_test]
+    // async fn test_set_all_to_hole() {
+    //     let mut app = generate_app().await;
+    //     send(&handle_js_vec(app.set_all_to_hole(13)));
+    // }
 
     fn send(data: &str) {
         sendData("37.123.135.170", 8099, data);
@@ -736,26 +752,32 @@ mod tests {
     #[wasm_bindgen_test]
     async fn lb_test() {
         let mut app = generate_app().await;
-        let round = 1;
-        let thru = 18;
-        let div_ind = 1;
+        let round = 2;
+        let thru = 9;
+        let div_ind = 4;
 
         log("here");
         
         log("not here");
         
         app.set_round(round-1);
-        app.set_all_to_hole(thru);
-        log(&format!("{:#?}",app.available_players.iter().map(|player|player.name.clone()).collect::<Vec<String>>()));
-
-        let all_commands = app
-            .set_leaderboard()
-            .iter()
-            .map(|s| String::from(s)+"\r\n")
-            .collect::<Vec<String>>()
-            .join("");
-
+        //send(&handle_js_vec(app.reset_scores()));
+        send(&handle_js_vec(app.set_all_to_hole(thru)));
+        
+        let all_commands = handle_js_vec(app.set_leaderboard());
+        
+        
         send(&all_commands);
+        send(&handle_js_vec(app.show_all_pos()));
+
+        // let thingy = MyApp::clear_lb(10).iter()
+        //     .map(|s| String::from(s)+"\r\n")
+        //     .collect::<Vec<String>>()
+        //     .join("");
+        // log(&thingy);
+
+
+        // send(&thingy);
 
         // log(format!(
         //     "{:#?}",
