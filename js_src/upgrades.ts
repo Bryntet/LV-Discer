@@ -1,14 +1,16 @@
-module.exports = {
-	example_conversion: function (context, props) {
-		const result = {
-			updatedConfig: null,
-			updatedActions: [],
-			updatedFeedbacks: [],
-		}
-		// write your script in here
+import { CompanionStaticUpgradeResult } from "@companion-module/base"
+import { Config } from "./config"
 
-		return result
-	},
+export function example_conversion(context: any, props: any): CompanionStaticUpgradeResult<Config> {
+    if (context + props == 2) {
+        console.log("hello")
+    }
+    const result = {
+        updatedConfig: null,
+        updatedActions: [],
+        updatedFeedbacks: [],
+    }
+    // write your script in here
 
-	// more will be added here later
+    return result
 }

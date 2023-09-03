@@ -1,12 +1,17 @@
-import { CompanionActionDefinitions } from "@companion-module/base";
+import { CompanionActionDefinitions, CompanionVariableValues, DropdownChoice } from "@companion-module/base";
 import { MyApp } from "../built/rust_pkg/rust_wasm_test_edvin";
+import { sendCommand } from "./send";
+import { Config } from "./config";
+
+
+
 
 
 export enum ActionId {
 	LeaderboadUpdate = 'leaderboard_update',
 	IncreaseScore = 'increase_score',
 	RevertScoreIncrease = 'revert_score_increase',
-    RevertScore = 'revert_score',
+    ResetScore = 'reset_score',
     ChangeFocusedPlayer = 'change_focused_player',
     IncreaseThrow = 'increase_throw',
     DecreaseThrow = 'decrease_throw',
@@ -22,295 +27,285 @@ export enum ActionId {
     SetHoleInfo = 'set_hole_info'
 }
 
+type setVariables = (values: CompanionVariableValues) => void
+type feedbacksFunc = (...feedbackTypes: string[]) => void
 
-export const setActionDefinitions = (rust_main: MyApp, current_conf: ): CompanionActionDefinitions => {
+
+export const setActionDefinitions = (rust_main: MyApp, config: Config, focused_players: DropdownChoice[], setVariableValues: setVariables, checkFeedbacks: feedbacksFunc, ): CompanionActionDefinitions => {
     const actions: CompanionActionDefinitions = {};
     actions[ActionId.LeaderboadUpdate] = {
         name: 'Leaderboard update',
-				options: [],
-				callback: () => {
-					console.log("gonna send lb update")
-					this.sendCommand(this.rust_main.set_leaderboard().join('\r\n') + '\r\n')
-					console.log("sent lb update")
-					this.setVariableValues({
-						hole: this.rust_main.hole,
-					})
-					console.log("set var values")
-				},
+        options: [],
+        callback: () => {
+            console.log("gonna send lb update")
+            sendCommand(rust_main.set_leaderboard().join('\r\n') + '\r\n', config)
+            console.log("sent lb update")
+            setVariableValues({
+                hole: rust_main.hole,
+            })
+            console.log("set var values")
+        },
     }
     actions[ActionId.IncreaseScore] = {
         name: 'Increase score',
-				options: [
-					{
-						type: 'dropdown',
-						label: 'Choose an option',
-						id: 'focused_player',
-						default: 'none', // Set the default value to 'none'
-						choices: this.focused_players,
-					},
-				],
-
-				callback: (action, bank) => {
-					const foc_player = action.options.focused_player
-
-					if (foc_player != 'none') {
-						rust_main.set_foc(foc_player)
-					}
-					let inc = this.rust_main.increase_score()
-					if (foc_player != 'none') {
-						rust_main.set_foc(this.foc_player_ind)
-					}
-					this.setVariableValues({
-						hole: this.rust_main.hole,
-					})
-					this.sendCommand(inc.join('\r\n') + '\r\n')
-				},
+        options: [
+            {
+                type: 'dropdown',
+                label: 'Choose an option',
+                id: 'focused_player',
+                default: 'none', // Set the default value to 'none'
+                choices: focused_players,
+            },
+        ],
+        callback: (action) => {
+            const foc_player = action.options.focused_player
+            if (typeof foc_player === "number") {
+                rust_main.set_foc(foc_player)
+            }
+            let inc = rust_main.increase_score()
+            if (typeof foc_player === 'number') {
+                rust_main.set_foc(foc_player)
+            }
+            sendCommand(inc.join('\r\n') + '\r\n', config)
+            setVariableValues({
+                hole: rust_main.hole,
+            })
+        },
     }
 
+    actions[ActionId.RevertScoreIncrease] = {
+        name: 'Revert score increase',
+        options: [],
+        callback: () => {
+            
+            let inc = rust_main.revert_score()
+            setVariableValues({hole:rust_main.get_hole(true)})
+            sendCommand(inc.join('\r\n') + '\r\n', config)
+        },
+    }
 
+    actions[ActionId.ResetScore] = {
+        name: 'Reset score',
+        options: [],
+        callback: () => {
+            sendCommand(rust_main.reset_score().join('\r\n') + '\r\n', config)
+            setVariableValues({
+                hole: rust_main.hole,
+            })
+        },
+    },
+    actions[ActionId.ChangeFocusedPlayer] = {
+        name: 'Change focused player',
+        options: [
+            {
+                type: 'dropdown',
+                label: 'Choose an option',
+                id: 'focused_player',
+                default: 'none', 
+                choices: focused_players,
+            },
+        ],
+        callback: (action) => {
+            const foc_player = action.options.focused_player
+            console.log(foc_player)
+            if (typeof foc_player === "number") {
+                rust_main.set_foc(foc_player)
+                // TODO: Impl change throw popup
+                setVariableValues({
+                    player_name: rust_main.get_foc_p_name(),
+                    hole: rust_main.hole,
+                    foc_player_ind: foc_player,
+                })
+                checkFeedbacks()
+            }
+        },
+    },
+    actions[ActionId.IncreaseThrow] = {
+        name: 'Increase throw',
+        options: [
+            {
+                type: 'dropdown',
+                label: 'Choose an option',
+                id: 'focused_player',
+                default: 'none', 
+                choices: focused_players,
+            },
+        ],
+        callback: (action) => {
+            const foc_player = action.options.focused_player
+            if (typeof foc_player === "number") {
+                rust_main.set_foc(foc_player)
+            }
+            let inc = [rust_main.increase_throw()]
+            sendCommand(inc.join('\r\n') + '\r\n', config)
+            if (typeof foc_player === 'number') {
+                rust_main.set_foc(foc_player)
+            }
+            sendCommand(inc.join('\r\n') + '\r\n', config)
+        },
+    },
+    actions[ActionId.DecreaseThrow] = {
+        name: 'Decrease throw',
+        options: [
+            {
+                type: 'dropdown',
+                label: 'Choose an option',
+                id: 'focused_player',
+                default: 'none',
+                choices: focused_players,
+            },
+        ],
+        callback: (action) => {
+            const foc_player = action.options.focused_player
+            if (typeof foc_player === 'number') {
+                rust_main.set_foc(foc_player)
+            }
+            let inc = [rust_main.decrease_throw()]
+            sendCommand(inc.join('\r\n') + '\r\n', config)
+            if (typeof foc_player === 'number') {
+                rust_main.set_foc(foc_player)
+            }
+            sendCommand(inc.join('\r\n') + '\r\n', config)
+        },
+    }
+    actions[ActionId.OB] = {
+        name: 'OB',
+        options: [],
+        callback: () => {
+            sendCommand(rust_main.ob_anim().join('\r\n') + '\r\n', config)
+        },
+    }
+    actions[ActionId.RunAnimation] = {
+        name: 'Run animation',
+        options: [
+            {
+                type: 'dropdown',
+                label: 'Focused player',
+                id: 'focused_player',
+                default: 'none', 
+                choices: focused_players,
+            },
+        ],
+        callback: (action) => {
+            const foc_player = action.options.focused_player
+            if (typeof foc_player === 'number') {
+                rust_main.set_foc(foc_player)
+            }
+            let thing = rust_main.play_animation()
+            sendCommand(thing.join('\r\n') + '\r\n', config)
+            if (typeof foc_player === 'number') {
+                rust_main.set_foc(foc_player)
+            }
+        },
+    }
 
-
-    return {
-
-			increase_score: {
-				
-			},
-			revert_score_increase: {
-				name: 'Revert score increase',
-				options: [],
-				callback: () => {
-					let inc = this.rust_main.revert_score()
-					this.setVariableValues({hole:this.rust_main.get_hole(true)})
-					this.sendCommand(inc.join('\r\n') + '\r\n')
-				},
-			},
-			change_focused_player: {
-				name: 'Change focused player',
-				options: [
-					{
-						type: 'dropdown',
-						label: 'Choose an option',
-						id: 'focused_player',
-						default: 'none', // Set the default value to 'none'
-						choices: this.focused_players,
-					},
-				],
-				callback: (action) => {
-					const foc_player = action.options.focused_player
-					this.foc_player_ind = foc_player
-					console.log(this.focused_players)
-					if (foc_player != 'none') {
-						this.rust_main.set_foc(foc_player)
-						// TODO: Impl change throw popup
-						this.setVariableValues({
-							player_name: this.rust_main.get_foc_p_name(),
-							hole: this.rust_main.hole,
-						})
-						this.checkFeedbacks()
-					}
-				},
-			},
-			reset_score: {
-				name: 'Reset score',
-				options: [],
-				callback: () => {
-					this.sendCommand(this.rust_main.reset_score().join('\r\n') + '\r\n')
-					this.setVariableValues({
-						hole: this.rust_main.hole,
-					})
-				},
-			},
-			increase_throw: {
-				name: 'Increase throw',
-				options: [
-					{
-						type: 'dropdown',
-						label: 'Choose an option',
-						id: 'focused_player',
-						default: 'none', // Set the default value to 'none'
-						choices: this.focused_players,
-					},
-				],
-				callback: (action) => {
-					const foc_player = action.options.focused_player
-					if (foc_player != 'none') {
-						this.rust_main.set_foc(foc_player)
-					}
-					let inc = [this.rust_main.increase_throw()]
-					this.sendCommand(inc.join('\r\n') + '\r\n')
-					if (foc_player != 'none') {
-						this.rust_main.set_foc(this.foc_player_ind)
-					}
-					this.sendCommand(inc.join('\r\n') + '\r\n')
-				},
-			},
-			decrease_throw: {
-				label: 'Decrease throw',
-				options: [
-					{
-						type: 'dropdown',
-						label: 'Choose an option',
-						id: 'focused_player',
-						default: 'none', // Set the default value to 'none'
-						choices: this.focused_players,
-					},
-				],
-				callback: (action) => {
-					const foc_player = action.options.focused_player
-					if (foc_player != 'none') {
-						this.rust_main.set_foc(foc_player)
-					}
-					let inc = [this.rust_main.decrease_throw()]
-					this.sendCommand(inc.join('\r\n') + '\r\n')
-					if (foc_player != 'none') {
-						this.rust_main.set_foc(this.foc_player_ind)
-					}
-					this.sendCommand(inc.join('\r\n') + '\r\n')
-				},
-			},
-			ob: {
-				name: 'OB',
-				options: [],
-				callback: () => {
-					this.sendCommand(this.rust_main.ob_anim().join('\r\n') + '\r\n')
-				},
-			},
-			run_animation: {
-				name: 'Run animation',
-				options: [
-					{
-						type: 'dropdown',
-						label: 'Focused player',
-						id: 'focused_player',
-						default: 'none', // Set the default value to 'none'
-						choices: this.focused_players,
-					},
-				],
-				callback: (action) => {
-					const foc_player = action.options.focused_player
-					if (foc_player != 'none') {
-						this.rust_main.set_foc(foc_player)
-					}
-					let thing = this.rust_main.play_animation()
-					this.sendCommand(thing.join('\r\n') + '\r\n')
-					if (foc_player != 'none') {
-						this.rust_main.set_foc(this.foc_player_ind)
-					}
-				},
-			},
-			increment_round: {
-				name: 'Increment Round',
-				options: [],
-				callback: () => {
-					if (this.config.round !== undefined && this.config.round < this.rust_main.rounds) {
-						this.config.round++
-						this.sendCommand(this.rust_main.set_round(this.config.round - 1).join('\r\n') + '\r\n')
-						//this.rust_main.reset_thru()
-						this.saveConfig()
-						this.checkFeedbacks('increment_round')
-					}
-				},
-			},
-			decrement_round: {
-				name: 'Decrement Round',
-				options: [],
-				callback: () => {
-					if (this.config.round !== undefined && this.config.round > 1) {
-						this.config.round--
-						this.sendCommand(this.rust_main.set_round(this.config.round - 1).join('\r\n') + '\r\n')
-						//this.rust_main.reset_thru()
-						this.saveConfig()
-						this.checkFeedbacks('decrement_round')
-					}
-				},
-			},
-			show_all_pos: {
-				name: 'Show all positions',
-				options: [],
-				callback: () => {
-					this.sendCommand(this.rust_main.show_all_pos().join('\r\n') + '\r\n')
-				},
-			},
-			hide_all_pos: {
-				name: 'Hide all positions',
-				options: [],
-				callback: () => {
-					this.sendCommand(this.rust_main.hide_all_pos().join('\r\n') + '\r\n')
-				},
-			},
-			toggle_pos: {
-				name: 'Toggle current position',
-				options: [
-					{
-						type: 'dropdown',
-						label: 'Choose an option',
-						id: 'focused_player',
-						default: 'none', // Set the default value to 'none'
-						choices: this.focused_players,
-					},
-				],
-				callback: (action) => {
-					const foc_player = action.options.focused_player
-					if (foc_player != 'none') {
-						this.rust_main.set_foc(foc_player)
-					}
-					this.sendCommand(this.rust_main.toggle_pos().join('\r\n') + '\r\n')
-					if (foc_player != 'none') {
-						this.rust_main.set_foc(this.foc_player_ind)
-					}
-				},
-			},
-			hide_pos: {
-				name: 'Hide position',
-				options: [
-					{
-						type: 'dropdown',
-						label: 'Choose an option',
-						id: 'focused_player',
-						default: 'none', // Set the default value to 'none'
-						choices: this.focused_players,
-					},
-				],
-				callback: (action) => {
-					const foc_player = action.options.focused_player
-					if (foc_player != 'none') {
-						this.rust_main.set_foc(foc_player)
-					}
-					this.sendCommand(this.rust_main.hide_pos().join('\r\n') + '\r\n')
-					if (foc_player != 'none') {
-						this.rust_main.set_foc(this.foc_player_ind)
-					}
-				},
-			},
-			show_pos: {
-				name: 'Show position',
-				options: [
-					{
-						type: 'dropdown',
-						label: 'Choose an option',
-						id: 'focused_player',
-						default: 'none', // Set the default value to 'none'
-						choices: this.focused_players,
-					},
-				],
-				callback: (action) => {
-					const foc_player = action.options.focused_player
-					if (foc_player != 'none') {
-						this.rust_main.set_foc(foc_player)
-					}
-					this.sendCommand(this.rust_main.show_pos().join('\r\n') + '\r\n')
-					if (foc_player != 'none') {
-						this.rust_main.set_foc(this.foc_player_ind)
-					}
-				}
-			},
-			set_hole_info: {
-				name: 'Set hole info',
-				options: [],
-				callback: () => {
-					let info = this.rust_main.make_hole_info().join('\r\n') + '\r\n'
-					this.sendCommand(info)
-				}
-			}
-		}
+    actions[ActionId.IncrementRound] = {
+        name: 'Increment Round',
+        options: [],
+        callback: () => {
+            if (config.round !== undefined && config.round < rust_main.rounds) {
+                sendCommand(rust_main.set_round(config.round - 1).join('\r\n') + '\r\n', config)
+                checkFeedbacks('increment_round')
+            }
+        },
+    }
+    actions[ActionId.DecrementRound] = {
+        name: 'Decrement Round',
+        options: [],
+        callback: () => {
+            if (config.round !== undefined && config.round > 1) {
+                sendCommand(rust_main.set_round(config.round - 1).join('\r\n') + '\r\n', config)
+                checkFeedbacks('decrement_round')
+            }
+        },
+    }
+    actions[ActionId.ShowAllPos] = {
+        name: 'Show all positions',
+        options: [],
+        callback: () => {
+            sendCommand(rust_main.show_all_pos().join('\r\n') + '\r\n', config)
+        },
+    }
+    actions[ActionId.HideAllPos] = {
+        name: 'Hide all positions',
+        options: [],
+        callback: () => {
+            sendCommand(rust_main.hide_all_pos().join('\r\n') + '\r\n', config)
+        },
+    }
+    actions[ActionId.TogglePos] = {
+        name: 'Toggle current position',
+        options: [
+            {
+                type: 'dropdown',
+                label: 'Choose an option',
+                id: 'focused_player',
+                default: 'none', 
+                choices: focused_players,
+            },
+        ],
+        callback: (action) => {
+            const foc_player = action.options.focused_player
+            if (typeof foc_player === 'number') {
+                rust_main.set_foc(foc_player)
+            }
+            sendCommand(rust_main.toggle_pos().join('\r\n') + '\r\n', config)
+            if (typeof foc_player === 'number') {
+                rust_main.set_foc(foc_player)
+            }
+        },
+    }
+    actions[ActionId.HidePos] = {
+        name: 'Hide position',
+        options: [
+            {
+                type: 'dropdown',
+                label: 'Choose an option',
+                id: 'focused_player',
+                default: 'none', 
+                choices: focused_players,
+            },
+        ],
+        callback: (action) => {
+            const foc_player = action.options.focused_player
+            if (typeof foc_player === 'number') {
+                rust_main.set_foc(foc_player)
+            }
+            sendCommand(rust_main.hide_pos().join('\r\n') + '\r\n', config)
+            if (typeof foc_player === 'number') {
+                rust_main.set_foc(foc_player)
+            }
+        },
+    }
+    actions[ActionId.ShowPos] = {
+        name: 'Show position',
+        options: [
+            {
+                type: 'dropdown',
+                label: 'Choose an option',
+                id: 'focused_player',
+                default: 'none', 
+                choices: focused_players,
+            },
+        ],
+        callback: (action) => {
+            const foc_player = action.options.focused_player
+            if (typeof foc_player === 'number') {
+                rust_main.set_foc(foc_player)
+            }
+            sendCommand(rust_main.show_pos().join('\r\n') + '\r\n', config)
+            if (typeof foc_player === 'number') {
+                rust_main.set_foc(foc_player)
+            }
+        }
+    }
+    actions[ActionId.SetHoleInfo] = {
+        name: 'Set hole info',
+        options: [],
+        callback: () => {
+            let info = rust_main.make_hole_info().join('\r\n') + '\r\n'
+            sendCommand(info, config)
+        }
+    }
+    return actions
 }

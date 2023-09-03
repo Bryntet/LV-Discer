@@ -28,7 +28,6 @@ pub fn init_panic_hook() {
 #[derive(Clone, Debug)]
 pub struct Constants {
     ip: String,
-    pool_id: String,
     default_bg_col: String,
     vmix_id: String,
 }
@@ -36,7 +35,6 @@ impl Default for Constants {
     fn default() -> Self {
         Self {
             ip: "192.168.120.135".to_string(),
-            pool_id: "a592cf05-095c-439f-b69c-66511b6ce9c6".to_string(),
             default_bg_col: "3F334D".to_string(),
             vmix_id: "506fbd14-52fc-495b-8d17-5b924fba64f3".to_string(),
         }
@@ -105,6 +103,7 @@ impl Default for MyApp {
 impl MyApp {
     #[wasm_bindgen(constructor)]
     pub fn new() -> MyApp {
+        utils::set_panic_hook();
         MyApp::default()
     }
     #[wasm_bindgen(setter = ip)]
@@ -119,11 +118,14 @@ impl MyApp {
         if let Some(handler) = &mut self.handler {
             handler.set_chosen_by_ind(idx);
         }
-
+        log("did that");
         self.get_players(false);
+        log("here now hah");
         // self.selected_div = Some(self.all_divs[idx].clone());
         // self.score_card.all_play_players = self.selected_div.as_ref().unwrap().players.clone();
     }
+
+    
 
     #[wasm_bindgen]
     pub fn set_leaderboard(&mut self) -> Vec<JsString> {
@@ -140,12 +142,17 @@ impl MyApp {
             self.fix_players();
             log("past fix_players");
             return_vec.append(&mut self.make_lb());
-            for player in [
+
+            let players = [
                 &self.score_card.p1,
                 &self.score_card.p2,
                 &self.score_card.p3,
                 &self.score_card.p4,
-            ] {
+            ];
+            log(&format!("{:#?}",players.iter().map(|p|p.name.clone()).collect::<Vec<String>>()));
+            log("next is for loop");
+            for player in players {
+                log(&format!("{:#?}",self.score_card.all_play_players.iter().map(|p|p.name.clone()).collect::<Vec<String>>()));
                 return_vec.push(self.find_same(player).unwrap().set_pos());
                 let mut cloned_player = player.clone();
                 if cloned_player.hole > 7 {
@@ -189,7 +196,7 @@ impl MyApp {
     }
 
     fn find_same(&self, player: &get_data::NewPlayer) -> Option<get_data::NewPlayer> {
-        for p in &self.available_players {
+        for p in &self.score_card.all_play_players {
             if p.player_id == player.player_id {
                 return Some({
                     let mut cl = p.clone();
@@ -392,6 +399,11 @@ impl MyApp {
             self.consts.vmix_id.clone(),
             self.lb_vmix_id.clone(),
         ));
+
+        match self.handler.clone() {
+            Some(..) => {log("handler fine")},
+            None => {log("handler on fire")}
+        }
         let promise = js_sys::Promise::resolve(&JsValue::from_str(&promise.to_string()));
         let result = wasm_bindgen_futures::JsFuture::from(promise).await?;
         Ok(result)
@@ -592,10 +604,7 @@ impl MyApp {
     pub fn set_event_id(&mut self, event_id: JsString) {
         self.event_id = String::from(event_id);
     }
-    #[wasm_bindgen(setter)]
-    pub fn set_pool_id(&mut self, pool_id: JsString) {
-        self.consts.pool_id = String::from(pool_id);
-    }
+   
 }
 
 #[wasm_bindgen]
@@ -659,6 +668,8 @@ impl ScoreCard {
             _ => panic!("Invalid player number"),
         }
     }
+
+   
 
     pub fn set_round(&mut self, round: usize) -> Vec<JsString> {
         let mut return_vec: Vec<JsString> = vec![];

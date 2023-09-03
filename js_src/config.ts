@@ -4,10 +4,9 @@ export interface Config {
     vmix_ip: string;
     event_id: string;
     vmix_input_id: string;
-    pool_ind: number;
     round: number;
     hole: number;
-    div: string;
+    div: number|string;
     p1: string;
     p2: string;
     p3: string;
@@ -46,16 +45,6 @@ export const getConfigFields = (div_names: DropdownChoice[], players: DropdownCh
 				width: 6,
 				default: '506fbd14-52fc-495b-8d17-5b924fba64f3',
 				required: true,
-			},
-			{
-				type: 'number',
-				id: 'pool_ind',
-				label: 'Pool index',
-				width: 2,
-				min: 1,
-				max: 1000,
-				required: true,
-				default: 1,
 			},
 			{
 				type: 'number',
