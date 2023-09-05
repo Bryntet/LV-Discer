@@ -44,9 +44,6 @@ impl Default for Constants {
 #[wasm_bindgen]
 #[derive(Clone)]
 pub struct MyApp {
-    id: String,
-    name: String,
-    text: String,
     #[wasm_bindgen(skip)]
     pub all_divs: Vec<get_data::queries::PoolLeaderboardDivision>,
     #[wasm_bindgen(getter_with_clone)]
@@ -56,8 +53,6 @@ pub struct MyApp {
     pub selected_div: cynic::Id,
     foc_play_ind: usize,
     consts: Constants,
-    input_ids: Vec<String>,
-    event: Option<get_data::queries::Event>,
     event_id: String,
     pools: Vec<get_data::queries::Pool>,
     handler: Option<get_data::RustHandler>,
@@ -71,22 +66,12 @@ pub struct MyApp {
 impl Default for MyApp {
     fn default() -> MyApp {
         MyApp {
-            id: "506fbd14-52fc-495b-8d17-5b924fba64f3".into(),
-            name: "TextBlock3.Text".into(),
-            text: "".into(),
             score_card: ScoreCard::default(),
             all_divs: vec![],
             selected_div_ind: 0,
             selected_div: cynic::Id::from("cd094fcf-76c7-471e-bfe3-be3d5892bd81"),
             foc_play_ind: 0,
             consts: Constants::default(),
-            input_ids: vec![
-                "506fbd14-52fc-495b-8d17-5b924fba64f3".to_string(),
-                "506fbd14-52fc-495b-8d17-5b924fba64f3".to_string(),
-                "506fbd14-52fc-495b-8d17-5b924fba64f3".to_string(),
-                "506fbd14-52fc-495b-8d17-5b924fba64f3".to_string(),
-            ],
-            event: None,
             pools: vec![],
             event_id: "75cceb0e-5a1d-4fba-a5c8-f2ff95f84495".into(),
             handler: None,
@@ -126,8 +111,6 @@ impl MyApp {
         // self.score_card.all_play_players = self.selected_div.as_ref().unwrap().players.clone();
     }
 
-    
-
     #[wasm_bindgen]
     pub fn set_leaderboard(&mut self) -> Vec<JsString> {
         let mut return_vec: Vec<JsString> = vec![];
@@ -140,7 +123,14 @@ impl MyApp {
             log("hole <= 19");
             self.lb_div_ind = self.selected_div_ind;
             self.get_players(true);
-            log(&format!("{:#?}", self.score_card.all_play_players.iter().map(|p|p.name.clone()).collect::<Vec<String>>()));
+            log(&format!(
+                "{:#?}",
+                self.score_card
+                    .all_play_players
+                    .iter()
+                    .map(|p| p.name.clone())
+                    .collect::<Vec<String>>()
+            ));
             log("past get_players");
             self.fix_players();
             log("past fix_players");
@@ -193,12 +183,13 @@ impl MyApp {
         ]
         .iter_mut()
         .flat_map(|player| {
-            player.hole = hole - 1;
-            if player.hole > 7 {
+            if hole >= 9 {
+                player.hole = hole - 1;
                 player.shift_scores(true)
             } else {
                 let mut r_vec: Vec<JsString> = vec![];
-                for x in 0..hole {
+                for x in 1..=hole {
+                    log(&format!("hello im here: {}", x));
                     player.hole = x;
                     r_vec.append(&mut player.set_hole_score());
                 }
@@ -239,13 +230,7 @@ impl MyApp {
             &self.score_card.p3,
             &self.score_card.p4,
         ];
-        self.lb_thru = focused_players
-            .iter()
-            .map(|p| {
-                p.hole
-            })
-            .min()
-            .unwrap_or(0);
+        self.lb_thru = focused_players.iter().map(|p| p.hole).min().unwrap_or(0);
     }
 
     #[wasm_bindgen]
@@ -254,6 +239,11 @@ impl MyApp {
             self.set_lb_thru();
         }
         self.lb_thru + 1
+    }
+
+    #[wasm_bindgen(getter = focused_player_hole)]
+    pub fn focused_player_hole(&mut self) -> usize {
+        self.get_focused().hole + 1
     }
     #[wasm_bindgen(getter = hole)]
     pub fn get_hole_js(&self) -> usize {
@@ -277,7 +267,12 @@ impl MyApp {
             player.old_pos = player.lb_pos;
             player.set_round(self.round_ind);
             //log(&format!("player.hole: {}", player.hole));
-            player.hole = if self.lb_thru > 0 {self.lb_thru - 1} else {0};
+            player.thru = self.lb_thru as u8;
+            player.hole = if self.lb_thru > 0 {
+                self.lb_thru - 1
+            } else {
+                0
+            };
             //log(&format!("player.hole after: {}", player.hole));
             player.make_tot_score();
         }
@@ -287,13 +282,17 @@ impl MyApp {
 
     pub fn assign_position(&mut self) {
         // Sort players in descending order by total_score
-        
 
         self.score_card.all_play_players.sort_unstable_by(|a, b| {
-            if !a.dnf { a.total_score } else { i16::MIN }
-        }.cmp(
-            if !b.dnf { &b.total_score } else { &i16::MIN }
-        ));
+            {
+                if !a.dnf {
+                    a.total_score
+                } else {
+                    i16::MIN
+                }
+            }
+            .cmp(if !b.dnf { &b.total_score } else { &i16::MIN })
+        });
 
         // Iterate over sorted players to assign position
 
@@ -331,7 +330,10 @@ impl MyApp {
             }
             if let Some(prev_play) = prev_play {
                 if player.total_score == prev_play.total_score {
-                    player.lb_even = true
+                    if next_play.is_none() {
+                        player.lb_pos = prev_play.lb_pos
+                    }
+                    player.lb_even = true;
                 }
             }
             player.check_pos();
@@ -341,7 +343,8 @@ impl MyApp {
     fn make_checkin_text(&self) -> JsString {
         get_data::VmixFunction::SetText(get_data::VmixInfo {
             id: &self.lb_vmix_id,
-            value: String::from(self.get_div_names()[self.selected_div_ind].to_string()).to_uppercase()
+            value: String::from(self.get_div_names()[self.selected_div_ind].to_string())
+                .to_uppercase()
                 + " "
                 + "LEADERBOARD CHECK-IN",
             prop: get_data::VmixProperty::LBCheckinText,
@@ -352,7 +355,8 @@ impl MyApp {
 
     fn set_hot_round(&mut self) {
         let hot_round = self
-            .score_card.all_play_players
+            .score_card
+            .all_play_players
             .iter()
             .map(|player| player.round_score)
             .min()
@@ -377,7 +381,8 @@ impl MyApp {
     }
 
     pub fn make_lb(&mut self) -> Vec<JsString> {
-        let mut r_vec: Vec<JsString> = self.score_card
+        let mut r_vec: Vec<JsString> = self
+            .score_card
             .all_play_players
             .iter_mut()
             .flat_map(|player| player.set_lb())
@@ -414,8 +419,8 @@ impl MyApp {
         ));
 
         match self.handler.clone() {
-            Some(..) => {log("handler fine")},
-            None => {log("handler on fire")}
+            Some(..) => log("handler fine"),
+            None => log("handler on fire"),
         }
         let promise = js_sys::Promise::resolve(&JsValue::from_str(&promise.to_string()));
         let result = wasm_bindgen_futures::JsFuture::from(promise).await?;
@@ -473,11 +478,8 @@ impl MyApp {
         return_vec.append(&mut self.score_card.p2.show_pos());
         return_vec.append(&mut self.score_card.p3.show_pos());
         return_vec.append(&mut self.score_card.p4.show_pos());
-        log(&self.score_card.p2.ind.to_string());
-        log(&self.score_card.p2.lb_pos.to_string());
         return_vec
     }
-
 
     #[wasm_bindgen]
     pub fn hide_pos(&mut self) -> Vec<JsString> {
@@ -551,6 +553,7 @@ impl MyApp {
         return_vec.append(&mut self.score_card.p2.reset_scores());
         return_vec.append(&mut self.score_card.p3.reset_scores());
         return_vec.append(&mut self.score_card.p4.reset_scores());
+        return_vec.append(&mut MyApp::clear_lb(10));
         return_vec
     }
 
@@ -620,7 +623,6 @@ impl MyApp {
     pub fn set_event_id(&mut self, event_id: JsString) {
         self.event_id = String::from(event_id);
     }
-   
 }
 
 #[wasm_bindgen]
@@ -659,7 +661,7 @@ impl ScoreCard {
             if player.player_id == cynic::Id::from(&player_id) {
                 let mut p = player.clone();
                 p.ind = player_num - 1;
-                out_vec.push(p.clone().set_name());
+                out_vec.append(&mut p.clone().set_name());
                 out_vec.append(&mut p.clone().set_round(rnd)); // resets score and sets round
                 match player_num {
                     1 => self.p1 = p.clone(),
@@ -685,8 +687,6 @@ impl ScoreCard {
         }
     }
 
-   
-
     pub fn set_round(&mut self, round: usize) -> Vec<JsString> {
         let mut return_vec: Vec<JsString> = vec![];
 
@@ -701,10 +701,8 @@ impl ScoreCard {
 #[cfg(test)]
 mod tests {
     //! Tests need to run with high node version otherwise it fails!
+
     use super::*;
-    use tokio_test;
-    use wasm_bindgen::prelude::*;
-    use wasm_bindgen_futures::JsFuture;
     use wasm_bindgen_test::*;
 
     #[wasm_bindgen(module = "src/test_module.js")]
@@ -713,9 +711,12 @@ mod tests {
     }
 
     async fn generate_app() -> MyApp {
-        let mut app = MyApp { event_id: "75cceb0e-5a1d-4fba-a5c8-f2ff95f84495".to_string(),  ..Default::default() };
+        let mut app = MyApp {
+            event_id: "75cceb0e-5a1d-4fba-a5c8-f2ff95f84495".to_string(),
+            ..Default::default()
+        };
         app.get_event().await.unwrap();
-        log(&format!("{:#?}",app.pools));
+        log(&format!("{:#?}", app.pools));
         app.set_div(3);
         app.get_players(false);
         let players = app.get_player_ids();
@@ -724,14 +725,14 @@ mod tests {
         // app.set_player(3, players[2].clone());
         // app.set_player(4, players[3].clone());
         // app.set_foc(1);
-
-        for i in 1..=4 {
-            app.set_player(i, players[i].clone());
-        }
+        players.iter().enumerate().take(4 + 1).skip(1).for_each(|(i, player)| {
+            let test = app.set_player(i, player.clone());
+            log(&format!("{:#?}", test));
+            send(&handle_js_vec(test));
+        });
         app.set_foc(1);
         app
     }
-
 
     // #[wasm_bindgen_test]
     // async fn test_set_all_to_hole() {
@@ -740,7 +741,7 @@ mod tests {
     // }
 
     fn send(data: &str) {
-        sendData("37.123.135.170", 8099, data);
+        sendData("192.168.120.135", 8099, data);
     }
     fn handle_js_vec(js_vec: Vec<JsString>) -> String {
         js_vec
@@ -753,29 +754,31 @@ mod tests {
     async fn lb_test() {
         let mut app = generate_app().await;
         let round = 2;
-        let thru = 9;
-        let div_ind = 4;
+        let thru = 0;
 
         log("here");
-        
+
         log("not here");
-        
-        app.set_round(round-1);
+
+        app.set_round(round - 1);
         //send(&handle_js_vec(app.reset_scores()));
         send(&handle_js_vec(app.set_all_to_hole(thru)));
-        
+
         let all_commands = handle_js_vec(app.set_leaderboard());
-        
-        
+
         send(&all_commands);
         send(&handle_js_vec(app.show_all_pos()));
+
+        let return_vec: Vec<JsString> = app.get_focused().start_score_anim();
+        send(&handle_js_vec(return_vec));
+
+        send(&handle_js_vec(app.ob_anim()));
 
         // let thingy = MyApp::clear_lb(10).iter()
         //     .map(|s| String::from(s)+"\r\n")
         //     .collect::<Vec<String>>()
         //     .join("");
         // log(&thingy);
-
 
         // send(&thingy);
 

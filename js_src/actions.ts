@@ -65,10 +65,12 @@ export const setActionDefinitions = (instance: InstanceBaseExt<Config>): Compani
             if (typeof foc_player === "number") {
                 instance.rust_main.set_foc(foc_player)
             }
-            let inc = instance.rust_main.increase_score()
-            let foc_player_ind = await parseAuto(context)
-            instance.rust_main.set_foc(foc_player_ind)
-            sendCommand(inc.join('\r\n') + '\r\n', instance.config)
+            if (instance.rust_main.focused_player_hole <= instance.rust_main.hole) {
+                let inc = instance.rust_main.increase_score()
+                sendCommand(inc.join('\r\n') + '\r\n', instance.config)
+            }
+                let foc_player_ind = await parseAuto(context)
+                instance.rust_main.set_foc(foc_player_ind)
             instance.setVariableValues({
                 hole: instance.rust_main.hole,
             })
@@ -79,7 +81,6 @@ export const setActionDefinitions = (instance: InstanceBaseExt<Config>): Compani
         name: 'Revert score increase',
         options: [],
         callback: () => {
-            
             let inc = instance.rust_main.revert_score()
             instance.setVariableValues({hole:instance.rust_main.get_hole(true)})
             sendCommand(inc.join('\r\n') + '\r\n', instance.config)
@@ -121,7 +122,8 @@ export const setActionDefinitions = (instance: InstanceBaseExt<Config>): Compani
                 instance.checkFeedbacks(FeedbackId.FocusedPlayer)
             }
         },
-    },
+    }
+
     actions[ActionId.IncreaseThrow] = {
         name: 'Increase throw',
         options: [
@@ -145,7 +147,7 @@ export const setActionDefinitions = (instance: InstanceBaseExt<Config>): Compani
 
             sendCommand(inc.join('\r\n') + '\r\n', instance.config)
         },
-    },
+    }
     actions[ActionId.DecreaseThrow] = {
         name: 'Decrease throw',
         options: [
@@ -192,8 +194,10 @@ export const setActionDefinitions = (instance: InstanceBaseExt<Config>): Compani
             if (typeof foc_player === 'number') {
                 instance.rust_main.set_foc(foc_player)
             }
-            let thing = instance.rust_main.play_animation()
-            sendCommand(thing.join('\r\n') + '\r\n', instance.config)
+            if (instance.rust_main.focused_player_hole <= instance.rust_main.hole) {
+                let thing = instance.rust_main.play_animation()
+                sendCommand(thing.join('\r\n') + '\r\n', instance.config)
+            }
             let foc_player_ind = await parseAuto(context)
             instance.rust_main.set_foc(foc_player_ind)
 
