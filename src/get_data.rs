@@ -788,7 +788,7 @@ impl NewPlayer {
         return_vec.push(
             VmixFunction::SetColor(VmixInfo {
                 id: &self.vmix_id,
-                value: DEFAULT_FOREGROUND_COL.to_string(),
+                value: DEFAULT_FOREGROUND_COL.to_string() + "00",
                 prop: col_prop,
             })
             .to_cmd()
