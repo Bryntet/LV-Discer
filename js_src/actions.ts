@@ -26,7 +26,8 @@ export enum ActionId {
     TogglePos = 'toggle_pos',
     HidePos = 'hide_pos',
     ShowPos = 'show_pos',
-    SetHoleInfo = 'set_hole_info'
+    SetHoleInfo = 'set_hole_info',
+    DoOtherLeaderboard = 'do_other_leaderboard',
 }
 
 async function parseAuto(context: CompanionCommonCallbackContext): Promise<number> {
@@ -307,5 +308,25 @@ export const setActionDefinitions = (instance: InstanceBaseExt<Config>): Compani
             sendCommand(info, instance.config)
         }
     }
+    actions[ActionId.DoOtherLeaderboard] = {
+        name: 'Do other leaderboard',
+        options: [
+            {
+                type: 'number',
+                label: 'division number',
+                id: 'division',
+                default: 1,
+                min: 1,
+                max: 100
+            },
+        ],
+        callback: (action) => {
+            let div = action.options.division
+            if (typeof div === "number" ) {
+                sendCommand(instance.rust_main.make_separate_lb(div-1).join('\r\n') + '\r\n', instance.config)
+            }
+        }
+    }
+
     return actions
 }
