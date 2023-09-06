@@ -760,7 +760,7 @@ impl NewPlayer {
             return_vec.push(
                 VmixFunction::SetColor(VmixInfo {
                     id: &self.vmix_id,
-                    value: DEFAULT_FOREGROUND_COL.to_string(),
+                    value: DEFAULT_FOREGROUND_COL.to_string() + "00",
                     prop: VmixProperty::ScoreColor(9, self.ind),
                 })
                 .to_cmd()
@@ -1225,15 +1225,15 @@ pub mod queries {
 
         pub fn get_score_colour(&self) -> &str {
             match self.actual_score() as i64 {
-                4 => "AB8E77", // TODO FIX CORRECT COLOUR
-                3 => "AB8E77",
-                2 => "CA988D",
-                1 => "EC928F",
-                0 => "7E8490",
-                -1 => "A6F8BB",
-                -2 => "6A8BE7",
-                -3 => "DD6AC9",
-                _ => "AB8E77",
+                4 => "AB8E77FF", // TODO FIX CORRECT COLOUR
+                3 => "AB8E77FF",
+                2 => "CA988DFF",
+                1 => "EC928FFF",
+                0 => "7E8490FF",
+                -1 => "A6F8BBFF",
+                -2 => "6A8BE7FF",
+                -3 => "DD6AC9FF",
+                _ => "AB8E77FF",
             }
         }
 
