@@ -96,7 +96,11 @@ impl PlayerRound {
     }
 
     fn hole_score(&self, hole: usize) -> i16 {
-        self.results[hole].actual_score() as i16
+        if self.results.len() > hole {
+            self.results[hole].actual_score() as i16
+        } else {
+            0
+        }
     }
 
     pub fn get_hole_info(&self, hole: usize) -> Vec<JsString> {
@@ -351,6 +355,7 @@ pub struct NewPlayer {
     pub dnf: bool,
     pub first_scored: bool,
     pub thru: u8,
+    pub hidden: bool,
 }
 
 impl Default for NewPlayer {
@@ -382,6 +387,7 @@ impl Default for NewPlayer {
             dnf: false,
             first_scored: false,
             thru: 0,
+            hidden: false,
         }
     }
 }
@@ -938,6 +944,7 @@ impl NewPlayer {
         VmixFunction::SetText(VmixInfo {
             id: &self.lb_vmix_id,
             value: if self.lb_pos != 0 {
+                log(&format!("{} {} {}", self.lb_pos, self.position, self.round_score));
                 fix_score(self.round_score)
             } else {
                 "".to_string()
@@ -949,14 +956,17 @@ impl NewPlayer {
     }
 
     fn set_ts(&self) -> Vec<JsString> {
+        let score = if self.lb_pos != 0 && !self.hidden{
+            log(&format!("{} {} {}", self.lb_pos, self.position, self.total_score));
+            fix_score(self.total_score)
+        } else {
+            "".to_string()
+        };
+
         let mut r_vec: Vec<JsString> = vec![
             VmixFunction::SetTextVisibleOn(VmixInfo {
                 id: &self.lb_vmix_id,
-                value: if self.lb_pos != 0 {
-                    fix_score(self.total_score)
-                } else {
-                    "".to_string()
-                },
+                value: "".to_string(),
                 prop: VmixProperty::Lbts(self.position),
             })
             .to_cmd()
@@ -972,7 +982,7 @@ impl NewPlayer {
         r_vec.push(
             VmixFunction::SetText(VmixInfo {
                 id: &self.lb_vmix_id,
-                value: fix_score(self.total_score),
+                value: score,
                 prop: VmixProperty::Lbts(self.position),
             })
             .to_cmd()

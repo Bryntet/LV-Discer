@@ -165,6 +165,7 @@ impl MyApp {
     pub fn clear_lb(idx: u16) -> Vec<JsString> {
         let mut new_player = get_data::NewPlayer::default();
         new_player.lb_vmix_id = "2ef7178b-61ab-445c-9bbd-2f1c2c781e86".into();
+        new_player.hidden = true;
         let mut r_v: Vec<JsString> = vec![];
         for i in 0..=idx {
             new_player.position = i;
@@ -712,12 +713,12 @@ mod tests {
 
     async fn generate_app() -> MyApp {
         let mut app = MyApp {
-            event_id: "75cceb0e-5a1d-4fba-a5c8-f2ff95f84495".to_string(),
+            event_id: "a95092a2-e4ab-4196-a8a6-64de2a1893a8".to_string(),
             ..Default::default()
         };
         app.get_event().await.unwrap();
         log(&format!("{:#?}", app.pools));
-        app.set_div(3);
+        app.set_div(0);
         app.get_players(false);
         let players = app.get_player_ids();
         // app.set_player(1, players[0].clone());
@@ -728,9 +729,9 @@ mod tests {
         players.iter().enumerate().take(4 + 1).skip(1).for_each(|(i, player)| {
             let test = app.set_player(i, player.clone());
             log(&format!("{:#?}", test));
-            send(&handle_js_vec(test));
+            //send(&handle_js_vec(test));
         });
-        app.set_foc(1);
+        app.set_foc(0);
         app
     }
 
@@ -754,25 +755,26 @@ mod tests {
     async fn lb_test() {
         let mut app = generate_app().await;
         let round = 2;
-        let thru = 0;
+        let thru = 3;
 
         log("here");
 
         log("not here");
 
         app.set_round(round - 1);
-        //send(&handle_js_vec(app.reset_scores()));
-        send(&handle_js_vec(app.set_all_to_hole(thru)));
+        app.set_all_to_hole(thru - 1);
 
+
+        //send(&handle_js_vec(MyApp::clear_lb(10)));
         let all_commands = handle_js_vec(app.set_leaderboard());
-
+        log(&all_commands);
         send(&all_commands);
-        send(&handle_js_vec(app.show_all_pos()));
+        // send(&handle_js_vec(app.show_all_pos()));
 
-        let return_vec: Vec<JsString> = app.get_focused().start_score_anim();
-        send(&handle_js_vec(return_vec));
+        //let return_vec: Vec<JsString> = app.get_focused().start_score_anim();
+        //send(&handle_js_vec(return_vec));
 
-        send(&handle_js_vec(app.ob_anim()));
+        //send(&handle_js_vec(app.ob_anim()));
 
         // let thingy = MyApp::clear_lb(10).iter()
         //     .map(|s| String::from(s)+"\r\n")
