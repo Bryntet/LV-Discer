@@ -952,7 +952,11 @@ impl NewPlayer {
         let mut r_vec: Vec<JsString> = vec![
             VmixFunction::SetTextVisibleOn(VmixInfo {
                 id: &self.lb_vmix_id,
-                value: "".to_string(),
+                value: if self.lb_pos != 0 {
+                    fix_score(self.total_score)
+                } else {
+                    "".to_string()
+                },
                 prop: VmixProperty::Lbts(self.position),
             })
             .to_cmd()
@@ -965,8 +969,6 @@ impl NewPlayer {
             .to_cmd()
             .into(),
         ];
-      
-
         r_vec.push(
             VmixFunction::SetText(VmixInfo {
                 id: &self.lb_vmix_id,
