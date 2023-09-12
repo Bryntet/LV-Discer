@@ -623,6 +623,32 @@ impl MyApp {
     pub fn set_event_id(&mut self, event_id: JsString) {
         self.event_id = String::from(event_id);
     }
+
+    #[wasm_bindgen]
+    pub fn make_separate_lb(&self, div_ind: usize) -> Vec<JsString> {
+        use std::panic;
+        let result = panic::catch_unwind(|| {
+            let mut new = self.clone();
+            new.set_div(div_ind);
+            new.get_players(false);
+            let players = new.get_player_ids();
+            players.iter().enumerate().take(4 + 1).skip(1).for_each(|(i, player)| {
+                new.set_player(i, player.clone());
+            });
+            new.set_foc(0);
+            new.set_round(self.round_ind);
+            new.set_all_to_hole(self.get_hole_js());
+            new.set_leaderboard()
+        });
+        match result {
+            Ok(v) => v,
+            Err(e) => {
+                log(&format!("Error: {:?}", e));
+                vec![]
+            }
+        }
+        
+    }
 }
 
 #[wasm_bindgen]
@@ -696,6 +722,8 @@ impl ScoreCard {
         return_vec.append(&mut self.p4.set_round(round));
         return_vec
     }
+
+    
 }
 
 #[cfg(test)]
@@ -712,12 +740,12 @@ mod tests {
 
     async fn generate_app() -> MyApp {
         let mut app = MyApp {
-            event_id: "75cceb0e-5a1d-4fba-a5c8-f2ff95f84495".to_string(),
+            event_id: "a95092a2-e4ab-4196-a8a6-64de2a1893a8".to_string(),
             ..Default::default()
         };
         app.get_event().await.unwrap();
         log(&format!("{:#?}", app.pools));
-        app.set_div(3);
+        app.set_div(1);
         app.get_players(false);
         let players = app.get_player_ids();
         // app.set_player(1, players[0].clone());
@@ -728,7 +756,7 @@ mod tests {
         players.iter().enumerate().take(4 + 1).skip(1).for_each(|(i, player)| {
             let test = app.set_player(i, player.clone());
             log(&format!("{:#?}", test));
-            send(&handle_js_vec(test));
+            //send(&handle_js_vec(test));
         });
         app.set_foc(1);
         app
@@ -741,7 +769,7 @@ mod tests {
     // }
 
     fn send(data: &str) {
-        sendData("192.168.120.135", 8099, data);
+        sendData("37.123.135.170", 8099, data);
     }
     fn handle_js_vec(js_vec: Vec<JsString>) -> String {
         js_vec
@@ -753,8 +781,8 @@ mod tests {
     #[wasm_bindgen_test]
     async fn lb_test() {
         let mut app = generate_app().await;
-        let round = 2;
-        let thru = 0;
+        let round = 0;
+        let thru = 9;
 
         log("here");
 
@@ -762,17 +790,15 @@ mod tests {
 
         app.set_round(round - 1);
         //send(&handle_js_vec(app.reset_scores()));
-        send(&handle_js_vec(app.set_all_to_hole(thru)));
+        app.set_all_to_hole(thru);
 
         let all_commands = handle_js_vec(app.set_leaderboard());
 
         send(&all_commands);
-        send(&handle_js_vec(app.show_all_pos()));
+        app.show_all_pos();
 
-        let return_vec: Vec<JsString> = app.get_focused().start_score_anim();
-        send(&handle_js_vec(return_vec));
+        //send(&handle_js_vec(return_vec));
 
-        send(&handle_js_vec(app.ob_anim()));
 
         // let thingy = MyApp::clear_lb(10).iter()
         //     .map(|s| String::from(s)+"\r\n")
