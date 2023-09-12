@@ -112,7 +112,7 @@ impl MyApp {
     }
 
     #[wasm_bindgen]
-    pub fn set_leaderboard(&mut self) -> Vec<JsString> {
+    pub fn set_leaderboard(&mut self, update_players: bool) -> Vec<JsString> {
         let mut return_vec: Vec<JsString> = vec![];
         return_vec.append(&mut MyApp::clear_lb(10));
         log("set_leaderboard");
@@ -148,9 +148,13 @@ impl MyApp {
                 let mut cloned_player = player.clone();
                 if cloned_player.hole > 7 {
                     cloned_player.hole -= 1;
-                    return_vec.append(&mut cloned_player.shift_scores(true));
+                    let mut shift_scores = cloned_player.shift_scores(true);
+                    if update_players {return_vec.append(&mut shift_scores)};
                 }
-                return_vec.push(same.set_pos());
+                let pos = same.set_pos();
+                if update_players {
+                    return_vec.push(pos);
+                }
             }
             // return_vec.push(self.find_same(&self.score_card.p1).unwrap().set_pos());
             // return_vec.push(self.find_same(&self.score_card.p2).unwrap().set_pos());
@@ -632,13 +636,17 @@ impl MyApp {
             new.set_div(div_ind);
             new.get_players(false);
             let players = new.get_player_ids();
+            new.available_players.iter_mut().for_each(|player| {
+                player.visible_player = false
+            });
+            
             players.iter().enumerate().take(4 + 1).skip(1).for_each(|(i, player)| {
                 new.set_player(i, player.clone());
             });
             new.set_foc(0);
             new.set_round(self.round_ind);
-            new.set_all_to_hole(self.get_hole_js());
-            new.set_leaderboard()
+            new.set_all_to_hole(self.lb_thru);
+            new.set_leaderboard(false)
         });
         match result {
             Ok(v) => v,
@@ -792,7 +800,7 @@ mod tests {
         //send(&handle_js_vec(app.reset_scores()));
         app.set_all_to_hole(thru);
 
-        let all_commands = handle_js_vec(app.set_leaderboard());
+        let all_commands = handle_js_vec(app.set_leaderboard(true));
 
         send(&all_commands);
         app.show_all_pos();

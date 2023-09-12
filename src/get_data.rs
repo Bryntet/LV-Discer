@@ -351,6 +351,7 @@ pub struct NewPlayer {
     pub dnf: bool,
     pub first_scored: bool,
     pub thru: u8,
+    pub visible_player: bool,
 }
 
 impl Default for NewPlayer {
@@ -382,6 +383,7 @@ impl Default for NewPlayer {
             dnf: false,
             first_scored: false,
             thru: 0,
+            visible_player: true,
         }
     }
 }
@@ -574,7 +576,7 @@ impl NewPlayer {
         self.hole += 1;
         self.throws = 0;
         return_vec.push(self.set_throw());
-        return_vec
+        if self.visible_player {return_vec} else {vec![]} 
     }
 
     pub fn revert_hole_score(&mut self) -> Vec<JsString> {
@@ -650,13 +652,13 @@ impl NewPlayer {
             "".to_string()
         } + &self.lb_pos.to_string();
 
-        VmixFunction::SetText(VmixInfo {
+        if self.visible_player { VmixFunction::SetText(VmixInfo {
             id: &self.vmix_id,
             value: value_string,
             prop: VmixProperty::PlayerPosition(self.ind as u16),
         })
         .to_cmd()
-        .into()
+        .into()} else {"".into()}
     }
 
     pub fn hide_pos(&mut self) -> Vec<JsString> {
@@ -767,7 +769,7 @@ impl NewPlayer {
                 .into(),
             );
         }
-        return_vec
+        if self.visible_player {return_vec} else {vec![]}
     }
 
     fn del_score(&mut self) -> Vec<JsString> {

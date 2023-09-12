@@ -42,7 +42,7 @@ export const setActionDefinitions = (instance: InstanceBaseExt<Config>): Compani
         options: [],
         callback: () => {
             console.log("gonna send lb update")
-            sendCommand(instance.rust_main.set_leaderboard().join('\r\n') + '\r\n', instance.config)
+            sendCommand(instance.rust_main.set_leaderboard(true).join('\r\n') + '\r\n', instance.config)
             console.log("sent lb update")
             instance.setVariableValues({
                 hole: instance.rust_main.hole,
