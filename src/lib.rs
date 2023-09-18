@@ -141,8 +141,7 @@ impl MyApp {
                 &self.score_card.p4,
             ];
             for player in players {
-                let same = self.find_same(player).unwrap();
-                log(&format!("same: {:#?}", same.set_pos()));
+                let same = self.find_same(player);
                 let mut cloned_player = player.clone();
                 if cloned_player.hole > 7 {
                     cloned_player.hole -= 1;
@@ -151,10 +150,13 @@ impl MyApp {
                         return_vec.append(&mut shift_scores)
                     };
                 }
-                let pos = same.set_pos();
-                if update_players {
-                    return_vec.push(pos);
+                if let Some(same) = same {
+                    let pos = same.set_pos();
+                    if update_players {
+                        return_vec.push(pos);
+                    }
                 }
+                
             }
             // return_vec.push(self.find_same(&self.score_card.p1).unwrap().set_pos());
             // return_vec.push(self.find_same(&self.score_card.p2).unwrap().set_pos());
@@ -629,9 +631,8 @@ impl MyApp {
     }
 
     #[wasm_bindgen]
-    pub fn make_separate_lb(&self, div_ind: usize) -> Vec<JsString> {
-        use std::panic;
-        let result = panic::catch_unwind(|| {
+    pub fn make_separate_lb(&mut self, div_ind: usize) -> Vec<JsString> {
+        if self.lb_thru != 0 {
             let mut new = self.clone();
             new.set_div(div_ind);
             new.get_players(false);
@@ -650,15 +651,14 @@ impl MyApp {
                 });
             new.set_foc(0);
             new.set_round(self.round_ind);
-            new.set_all_to_hole(self.lb_thru);
-            new.set_leaderboard(false)
-        });
-        match result {
-            Ok(v) => v,
-            Err(e) => {
-                log(&format!("Error: {:?}", e));
-                vec![]
+            if self.lb_thru > 0 {
+                new.set_all_to_hole(self.lb_thru-1);
+            } else {
+                new.set_all_to_hole(0);
             }
+            new.set_leaderboard(false)
+        } else {
+            vec![]
         }
     }
 }

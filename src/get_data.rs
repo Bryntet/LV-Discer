@@ -987,10 +987,12 @@ impl NewPlayer {
     fn set_rs(&self, hidden: bool) -> JsString {
         VmixFunction::SetText(VmixInfo {
             id: &self.lb_vmix_id,
-            value: if self.lb_pos != 0 && !hidden {
-                fix_score(self.round_score)
-            } else {
+            value: if self.lb_pos == 0 {
+                "".to_string()
+            } else if hidden {
                 "E".to_string()
+            } else {
+                fix_score(self.round_score)
             },
             prop: VmixProperty::Lbrs(self.position),
         })
@@ -1002,11 +1004,7 @@ impl NewPlayer {
         let mut r_vec: Vec<JsString> = vec![
             VmixFunction::SetTextVisibleOn(VmixInfo {
                 id: &self.lb_vmix_id,
-                value: if self.lb_pos != 0 && !hidden {
-                    fix_score(self.total_score)
-                } else {
-                    "E".to_string()
-                },
+                value: "".to_string(),
                 prop: VmixProperty::Lbts(self.position),
             })
             .to_cmd()
@@ -1022,7 +1020,13 @@ impl NewPlayer {
         r_vec.push(
             VmixFunction::SetText(VmixInfo {
                 id: &self.lb_vmix_id,
-                value: fix_score(self.total_score),
+                value: if self.lb_pos == 0 {
+                    "".to_string()
+                } else if hidden && self.round_ind == 0{
+                    "E".to_string()
+                } else {
+                    fix_score(self.total_score)
+                },
                 prop: VmixProperty::Lbts(self.position),
             })
             .to_cmd()
@@ -1038,10 +1042,12 @@ impl NewPlayer {
     fn set_thru(&self, hidden: bool) -> JsString {
         VmixFunction::SetText(VmixInfo {
             id: &self.lb_vmix_id,
-            value: if hidden {
+            value: if self.lb_pos == 0 {
+                "".to_string()
+            } else if hidden {
                 "0".to_string()
             } else {
-                (self.thru).to_string()
+                self.thru.to_string()
             },
             prop: VmixProperty::LBThru(self.position),
         })

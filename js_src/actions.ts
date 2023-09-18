@@ -209,19 +209,22 @@ export const setActionDefinitions = (instance: InstanceBaseExt<Config>): Compani
         name: 'Increment Round',
         options: [],
         callback: () => {
-            if (instance.config.round !== undefined && instance.config.round < instance.rust_main.rounds) {
-                sendCommand(instance.rust_main.set_round(instance.config.round - 1).join('\r\n') + '\r\n', instance.config)
-                instance.setVariableValues({round: instance.rust_main.round})
+            if (instance.config.round !== undefined && instance.rust_main.round + 1 < instance.rust_main.rounds) {
+                sendCommand(instance.rust_main.set_round(instance.rust_main.round + 1).join('\r\n') + '\r\n', instance.config)
+                instance.setVariableValues({ round: instance.rust_main.round + 1 })
+                instance.config.round = instance.rust_main.round + 1
             }
-        },
+        }
     }
+    
     actions[ActionId.DecrementRound] = {
         name: 'Decrement Round',
         options: [],
         callback: () => {
-            if (instance.config.round !== undefined && instance.config.round > 1) {
-                sendCommand(instance.rust_main.set_round(instance.config.round - 1).join('\r\n') + '\r\n', instance.config)
-                instance.setVariableValues({ round: instance.rust_main.round })
+            if (instance.config.round !== undefined && instance.rust_main.round > 0) {
+                sendCommand(instance.rust_main.set_round(instance.rust_main.round - 1).join('\r\n') + '\r\n', instance.config)
+                instance.setVariableValues({ round: instance.rust_main.round + 1 })
+                instance.config.round = instance.rust_main.round + 1
             }
         },
     }
