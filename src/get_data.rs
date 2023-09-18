@@ -148,7 +148,10 @@ impl PlayerRound {
         let id = "0e76d38f-6e8d-4f7d-b1a6-e76f695f2094";
 
         let mut r_vec: Vec<JsString> = vec![];
-        let hole = &self.results[hole].hole;
+        let hole = match &self.results.get(hole) {
+            Some(hole) => hole,
+            None => i16::MAX,
+        };
         r_vec.push(
             VmixFunction::SetText(VmixInfo {
                 id,
