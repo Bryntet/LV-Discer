@@ -1,5 +1,5 @@
-use cynic::GraphQlResponse;
 use self::queries::Division;
+use cynic::GraphQlResponse;
 use js_sys::JsString;
 use wasm_bindgen::prelude::*;
 
@@ -68,14 +68,10 @@ impl HoleScoreOrDefault for Option<&PlayerRound> {
     }
     fn get_score_colour(&self, hole: usize) -> String {
         match self {
-            Some(round) => {
-                match round.results.get(hole) {
-                    Some(result) => {
-                        result.get_score_colour().into()
-                    }
-                    None => "000000".to_string(),
-                }
-            }
+            Some(round) => match round.results.get(hole) {
+                Some(result) => result.get_score_colour().into(),
+                None => "000000".to_string(),
+            },
             None => "000000".to_string(),
         }
     }
@@ -619,7 +615,11 @@ impl NewPlayer {
         self.hole += 1;
         self.throws = 0;
         return_vec.push(self.set_throw());
-        if self.visible_player {return_vec} else {vec![]} 
+        if self.visible_player {
+            return_vec
+        } else {
+            vec![]
+        }
     }
 
     pub fn revert_hole_score(&mut self) -> Vec<JsString> {
@@ -695,13 +695,17 @@ impl NewPlayer {
             "".to_string()
         } + &self.lb_pos.to_string();
 
-        if self.visible_player { VmixFunction::SetText(VmixInfo {
-            id: &self.vmix_id,
-            value: value_string,
-            prop: VmixProperty::PlayerPosition(self.ind as u16),
-        })
-        .to_cmd()
-        .into()} else {"".into()}
+        if self.visible_player {
+            VmixFunction::SetText(VmixInfo {
+                id: &self.vmix_id,
+                value: value_string,
+                prop: VmixProperty::PlayerPosition(self.ind as u16),
+            })
+            .to_cmd()
+            .into()
+        } else {
+            "".into()
+        }
     }
 
     pub fn hide_pos(&mut self) -> Vec<JsString> {
@@ -812,7 +816,11 @@ impl NewPlayer {
                 .into(),
             );
         }
-        if self.visible_player {return_vec} else {vec![]}
+        if self.visible_player {
+            return_vec
+        } else {
+            vec![]
+        }
     }
 
     fn del_score(&mut self) -> Vec<JsString> {
@@ -920,20 +928,16 @@ impl NewPlayer {
         .into()
     }
 
-    
-
     fn get_mov(&self) -> String {
         if self.ob {
             "50 ob.mov".to_string()
         } else {
             match self.current_round() {
-                Some(round) => {
-                    match round.results.get(self.hole) {
-                        Some(result) => result.get_mov().to_string(),
-                        None => "".to_string()
-                    }
+                Some(round) => match round.results.get(self.hole) {
+                    Some(result) => result.get_mov().to_string(),
+                    None => "".to_string(),
                 },
-                None => "".to_string()
+                None => "".to_string(),
             }
         }
     }
@@ -1058,7 +1062,6 @@ impl NewPlayer {
         return_vec.append(&mut self.set_ts(hide));
         return_vec.append(&mut self.set_moves());
 
-
         return_vec.push(self.set_thru(hide));
         return_vec
     }
@@ -1082,7 +1085,11 @@ impl RustHandler {
     ) -> Self {
         let event = pre_event.data.expect("no data").event.expect("no event");
         let mut divisions: Vec<queries::Division> = vec![];
-        event.divisions.iter().flatten().for_each(|div| divisions.push(div.clone()));
+        event
+            .divisions
+            .iter()
+            .flatten()
+            .for_each(|div| divisions.push(div.clone()));
 
         Self {
             chosen_division: divisions.first().expect("NO DIV CHOSEN").id.clone(),
@@ -1216,8 +1223,6 @@ pub mod queries {
         pub points: Option<f64>,
         pub score: Option<f64>, // Tror denna är total score för runda
     }
-
-    
 
     #[derive(cynic::QueryFragment, Debug, Clone)]
     pub struct SimpleResult {

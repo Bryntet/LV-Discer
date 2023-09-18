@@ -1,8 +1,8 @@
 mod get_data;
 mod utils;
+use crate::get_data::HoleScoreOrDefault;
 use js_sys::JsString;
 use wasm_bindgen::prelude::*;
-use crate::get_data::HoleScoreOrDefault;
 #[wasm_bindgen]
 extern "C" {
     #[wasm_bindgen(js_namespace = console)]
@@ -147,7 +147,9 @@ impl MyApp {
                 if cloned_player.hole > 7 {
                     cloned_player.hole -= 1;
                     let mut shift_scores = cloned_player.shift_scores(true);
-                    if update_players {return_vec.append(&mut shift_scores)};
+                    if update_players {
+                        return_vec.append(&mut shift_scores)
+                    };
                 }
                 let pos = same.set_pos();
                 if update_players {
@@ -177,10 +179,12 @@ impl MyApp {
 
     #[wasm_bindgen]
     pub fn set_all_to_hole(&mut self, hole: usize) -> Vec<JsString> {
-        [&mut self.score_card.p1,
+        [
+            &mut self.score_card.p1,
             &mut self.score_card.p2,
             &mut self.score_card.p3,
-            &mut self.score_card.p4]
+            &mut self.score_card.p4,
+        ]
         .iter_mut()
         .flat_map(|player| {
             if hole >= 9 {
@@ -224,10 +228,12 @@ impl MyApp {
     // }
 
     fn set_lb_thru(&mut self) {
-        let focused_players = [&self.score_card.p1,
+        let focused_players = [
+            &self.score_card.p1,
             &self.score_card.p2,
             &self.score_card.p3,
-            &self.score_card.p4];
+            &self.score_card.p4,
+        ];
         self.lb_thru = focused_players.iter().map(|p| p.hole).min().unwrap_or(0);
     }
 
@@ -630,13 +636,18 @@ impl MyApp {
             new.set_div(div_ind);
             new.get_players(false);
             let players = new.get_player_ids();
-            new.available_players.iter_mut().for_each(|player| {
-                player.visible_player = false
-            });
-            
-            players.iter().enumerate().take(4 + 1).skip(1).for_each(|(i, player)| {
-                new.set_player(i, player.clone());
-            });
+            new.available_players
+                .iter_mut()
+                .for_each(|player| player.visible_player = false);
+
+            players
+                .iter()
+                .enumerate()
+                .take(4 + 1)
+                .skip(1)
+                .for_each(|(i, player)| {
+                    new.set_player(i, player.clone());
+                });
             new.set_foc(0);
             new.set_round(self.round_ind);
             new.set_all_to_hole(self.lb_thru);
@@ -649,7 +660,6 @@ impl MyApp {
                 vec![]
             }
         }
-        
     }
 }
 
@@ -724,8 +734,6 @@ impl ScoreCard {
         return_vec.append(&mut self.p4.set_round(round));
         return_vec
     }
-
-    
 }
 
 #[cfg(test)]
@@ -755,11 +763,16 @@ mod tests {
         // app.set_player(3, players[2].clone());
         // app.set_player(4, players[3].clone());
         // app.set_foc(1);
-        players.iter().enumerate().take(4 + 1).skip(1).for_each(|(i, player)| {
-            let test = app.set_player(i, player.clone());
-            log(&format!("{:#?}", test));
-            //send(&handle_js_vec(test));
-        });
+        players
+            .iter()
+            .enumerate()
+            .take(4 + 1)
+            .skip(1)
+            .for_each(|(i, player)| {
+                let test = app.set_player(i, player.clone());
+                log(&format!("{:#?}", test));
+                //send(&handle_js_vec(test));
+            });
         app.set_foc(1);
         app
     }
@@ -800,7 +813,6 @@ mod tests {
         app.show_all_pos();
 
         //send(&handle_js_vec(return_vec));
-
 
         // let thingy = MyApp::clear_lb(10).iter()
         //     .map(|s| String::from(s)+"\r\n")
