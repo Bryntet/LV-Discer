@@ -1,8 +1,8 @@
 use cynic::GraphQlResponse;
-
 use self::queries::Division;
 use js_sys::JsString;
 use wasm_bindgen::prelude::*;
+
 #[wasm_bindgen]
 extern "C" {
     #[wasm_bindgen(js_namespace = console)]
@@ -37,6 +37,48 @@ pub enum RankUpDown {
     Down(i16),
     #[default]
     Same,
+}
+
+pub trait HoleScoreOrDefault {
+    fn hole_score(&self, hole: usize) -> i16;
+    fn score_to_hole(&self, hole: usize) -> i16;
+    fn get_score_colour(&self, hole: usize) -> String;
+    fn get_hole_info(&self, hole: usize) -> Vec<JsString>;
+}
+
+// Implement the trait for `Option<&PlayerRound>`
+impl HoleScoreOrDefault for Option<&PlayerRound> {
+    fn hole_score(&self, hole: usize) -> i16 {
+        match self {
+            Some(round) => round.hole_score(hole),
+            None => i16::MAX,
+        }
+    }
+    fn score_to_hole(&self, hole: usize) -> i16 {
+        match self {
+            Some(round) => round.score_to_hole(hole),
+            None => i16::MAX,
+        }
+    }
+    fn get_hole_info(&self, hole: usize) -> Vec<JsString> {
+        match self {
+            Some(round) => round.get_hole_info(hole),
+            None => vec![],
+        }
+    }
+    fn get_score_colour(&self, hole: usize) -> String {
+        match self {
+            Some(round) => {
+                match round.results.get(hole) {
+                    Some(result) => {
+                        result.get_score_colour().into()
+                    }
+                    None => "000000".to_string(),
+                }
+            }
+            None => "000000".to_string(),
+        }
+    }
 }
 
 impl RankUpDown {
@@ -96,7 +138,10 @@ impl PlayerRound {
     }
 
     fn hole_score(&self, hole: usize) -> i16 {
-        self.results[hole].actual_score() as i16
+        match self.results.get(hole) {
+            Some(result) => result.actual_score() as i16,
+            None => i16::MAX,
+        }
     }
 
     pub fn get_hole_info(&self, hole: usize) -> Vec<JsString> {
@@ -450,17 +495,11 @@ impl NewPlayer {
     }
 
     fn get_col(&self) -> String {
-        self.current_round().results[self.hole]
-            .get_score_colour()
-            .into()
+        self.current_round().get_score_colour(self.hole)
     }
 
-    pub fn current_round(&self) -> &PlayerRound {
-        if self.round_ind >= self.rounds.len() {
-            &self.rounds[self.rounds.len() - 1]
-        } else {
-            &self.rounds[self.round_ind]
-        }
+    pub fn current_round(&self) -> Option<&PlayerRound> {
+        self.rounds.get(self.round_ind)
     }
     pub fn check_if_allowed_to_visible(&mut self) {
         if self.round_ind >= self.rounds.len() {
@@ -725,7 +764,7 @@ impl NewPlayer {
 
     pub fn shift_scores(&mut self, last_blank: bool) -> Vec<JsString> {
         let mut return_vec = vec![];
-        let in_hole = self.hole.clone();
+        let in_hole = self.hole;
 
         let diff = self.hole - 8 + {
             if last_blank && self.hole != 17 {
@@ -867,11 +906,11 @@ impl NewPlayer {
 
     fn set_input_pan(&mut self) -> JsString {
         let pan = match self.ind + 1 {
-            1 => -0.628 + 0.2,
-            2 => -0.628 + 0.419 + 0.2,
-            3 => -0.628 + 0.4185 * 2.0 + 0.2,
-            4 => -0.628 + 0.419 * 3.0 + 0.2,
-            _ => -0.628 + 0.2,
+            1 => -0.628,
+            2 => -0.628 + 0.419,
+            3 => -0.628 + 0.4185 * 2.0,
+            4 => -0.628 + 0.419 * 3.0,
+            _ => -0.628,
         };
         VmixFunction::SetPanX(VmixInfo {
             id: &self.get_mov(),
@@ -888,9 +927,15 @@ impl NewPlayer {
         if self.ob {
             "50 ob.mov".to_string()
         } else {
-            self.current_round().results[self.hole]
-                .get_mov()
-                .to_string()
+            match self.current_round() {
+                Some(round) => {
+                    match round.results.get(self.hole) {
+                        Some(result) => result.get_mov().to_string(),
+                        None => "".to_string()
+                    }
+                },
+                None => "".to_string()
+            }
         }
     }
 
@@ -936,13 +981,13 @@ impl NewPlayer {
         .into()
     }
 
-    fn set_rs(&self) -> JsString {
+    fn set_rs(&self, hidden: bool) -> JsString {
         VmixFunction::SetText(VmixInfo {
             id: &self.lb_vmix_id,
-            value: if self.lb_pos != 0 {
+            value: if self.lb_pos != 0 && !hidden {
                 fix_score(self.round_score)
             } else {
-                "".to_string()
+                "E".to_string()
             },
             prop: VmixProperty::Lbrs(self.position),
         })
@@ -950,14 +995,14 @@ impl NewPlayer {
         .into()
     }
 
-    fn set_ts(&self) -> Vec<JsString> {
+    fn set_ts(&self, hidden: bool) -> Vec<JsString> {
         let mut r_vec: Vec<JsString> = vec![
             VmixFunction::SetTextVisibleOn(VmixInfo {
                 id: &self.lb_vmix_id,
-                value: if self.lb_pos != 0 {
+                value: if self.lb_pos != 0 && !hidden {
                     fix_score(self.total_score)
                 } else {
-                    "".to_string()
+                    "E".to_string()
                 },
                 prop: VmixProperty::Lbts(self.position),
             })
@@ -991,7 +1036,7 @@ impl NewPlayer {
         VmixFunction::SetText(VmixInfo {
             id: &self.lb_vmix_id,
             value: if hidden {
-                "".to_string()
+                "0".to_string()
             } else {
                 (self.thru).to_string()
             },
@@ -1003,19 +1048,19 @@ impl NewPlayer {
 
     pub fn set_lb(&mut self) -> Vec<JsString> {
         self.check_if_allowed_to_visible();
+        let hide = self.thru == 0;
         let mut return_vec: Vec<JsString> = vec![
             self.set_lb_pos(),
             self.set_lb_name(),
             self.set_lb_hr(),
-            self.set_rs(),
+            self.set_rs(hide),
         ];
 
-        return_vec.append(&mut self.set_ts());
+        return_vec.append(&mut self.set_ts(hide));
         return_vec.append(&mut self.set_moves());
 
-        let hide_thru = self.thru == 0;
 
-        return_vec.push(self.set_thru(hide_thru));
+        return_vec.push(self.set_thru(hide));
         return_vec
     }
 }
@@ -1025,9 +1070,7 @@ pub struct RustHandler {
     pub chosen_division: cynic::Id,
     event: queries::Event,
     divisions: Vec<queries::Division>,
-    round_id: cynic::Id,
     round_ind: usize,
-    valid_pool_inds: Vec<usize>,
     vmix_id: String,
     lb_vmix_id: String,
 }
@@ -1040,19 +1083,13 @@ impl RustHandler {
     ) -> Self {
         let event = pre_event.data.expect("no data").event.expect("no event");
         let mut divisions: Vec<queries::Division> = vec![];
-        for div in &event.divisions {
-            if let Some(div) = div {
-                divisions.push(div.clone());
-            }
-        }
+        event.divisions.iter().flatten().for_each(|div| divisions.push(div.clone()));
 
         Self {
-            chosen_division: divisions[0].id.clone(),
+            chosen_division: divisions.first().expect("NO DIV CHOSEN").id.clone(),
             event,
             divisions,
-            round_id: cynic::Id::from(""),
             round_ind: 0,
-            valid_pool_inds: vec![0],
             vmix_id,
             lb_vmix_id,
         }
@@ -1064,10 +1101,6 @@ impl RustHandler {
             divs.push(div.clone());
         }
         divs
-    }
-
-    pub fn get_round(&self) -> queries::Round {
-        self.event.rounds[self.round_ind].clone().expect("no round")
     }
 
     pub fn get_players(&self) -> Vec<NewPlayer> {
@@ -1116,27 +1149,6 @@ impl RustHandler {
     }
     pub fn set_chosen_by_ind(&mut self, ind: usize) {
         self.chosen_division = self.divisions[ind].id.clone();
-    }
-
-    fn assign_position(players: &mut Vec<NewPlayer>) {
-        // Sort players in descending order by total_score
-        players.sort_unstable_by(|a, b| b.total_score.cmp(&a.total_score));
-
-        // Iterate over sorted players to assign position
-        let mut current_position: u16 = 1;
-        let mut last_score: i16 = players[0].total_score;
-        for player in players.iter_mut() {
-            // If current player's score is less than last score, increment position
-            if player.total_score < last_score {
-                current_position += 1;
-            }
-
-            // Assign current position to player
-            player.position = current_position;
-
-            // Update last score
-            last_score = player.total_score;
-        }
     }
 }
 
@@ -1222,7 +1234,7 @@ pub mod queries {
             if let Some(par) = self.hole.par {
                 self.score - par
             } else {
-                log(&format!("no par for hole {}", self.hole.number));
+                //log(&format!("no par for hole {}", self.hole.number));
                 self.score
             }
         }

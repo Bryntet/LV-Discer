@@ -2,7 +2,7 @@ mod get_data;
 mod utils;
 use js_sys::JsString;
 use wasm_bindgen::prelude::*;
-
+use crate::get_data::HoleScoreOrDefault;
 #[wasm_bindgen]
 extern "C" {
     #[wasm_bindgen(js_namespace = console)]
@@ -28,14 +28,12 @@ pub fn init_panic_hook() {
 #[derive(Clone, Debug)]
 pub struct Constants {
     ip: String,
-    default_bg_col: String,
     vmix_id: String,
 }
 impl Default for Constants {
     fn default() -> Self {
         Self {
             ip: "192.168.120.135".to_string(),
-            default_bg_col: "3F334D".to_string(),
             vmix_id: "506fbd14-52fc-495b-8d17-5b924fba64f3".to_string(),
         }
     }
@@ -179,12 +177,10 @@ impl MyApp {
 
     #[wasm_bindgen]
     pub fn set_all_to_hole(&mut self, hole: usize) -> Vec<JsString> {
-        vec![
-            &mut self.score_card.p1,
+        [&mut self.score_card.p1,
             &mut self.score_card.p2,
             &mut self.score_card.p3,
-            &mut self.score_card.p4,
-        ]
+            &mut self.score_card.p4]
         .iter_mut()
         .flat_map(|player| {
             if hole >= 9 {
@@ -228,12 +224,10 @@ impl MyApp {
     // }
 
     fn set_lb_thru(&mut self) {
-        let focused_players = vec![
-            &self.score_card.p1,
+        let focused_players = [&self.score_card.p1,
             &self.score_card.p2,
             &self.score_card.p3,
-            &self.score_card.p4,
-        ];
+            &self.score_card.p4];
         self.lb_thru = focused_players.iter().map(|p| p.hole).min().unwrap_or(0);
     }
 
@@ -292,10 +286,10 @@ impl MyApp {
                 if !a.dnf {
                     a.total_score
                 } else {
-                    i16::MIN
+                    i16::MAX
                 }
             }
-            .cmp(if !b.dnf { &b.total_score } else { &i16::MIN })
+            .cmp(if !b.dnf { &b.total_score } else { &i16::MAX })
         });
 
         // Iterate over sorted players to assign position
