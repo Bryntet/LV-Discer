@@ -211,6 +211,7 @@ export const setActionDefinitions = (instance: InstanceBaseExt<Config>): Compani
         callback: () => {
             if (instance.config.round !== undefined && instance.config.round < instance.rust_main.rounds) {
                 sendCommand(instance.rust_main.set_round(instance.config.round - 1).join('\r\n') + '\r\n', instance.config)
+                instance.setVariableValues({round: instance.rust_main.round})
             }
         },
     }
@@ -220,6 +221,7 @@ export const setActionDefinitions = (instance: InstanceBaseExt<Config>): Compani
         callback: () => {
             if (instance.config.round !== undefined && instance.config.round > 1) {
                 sendCommand(instance.rust_main.set_round(instance.config.round - 1).join('\r\n') + '\r\n', instance.config)
+                instance.setVariableValues({ round: instance.rust_main.round })
             }
         },
     }

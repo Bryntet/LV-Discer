@@ -70,6 +70,10 @@ class LevandeVideoInstance extends InstanceBase<Config> {
 			{
 				name: "Focused player index",
 				variableId: "foc_player_ind",
+			},
+			{
+				name: "Round",
+				variableId: "round",
 			}
 		])
 
@@ -124,6 +128,7 @@ class LevandeVideoInstance extends InstanceBase<Config> {
 			p4: this.focused_players[4].label,
 			hole: this.rust_main.hole,
 			foc_player_ind: this.foc_player_ind,
+			round: this.rust_main.round + 1,
 		}
 	}
 
