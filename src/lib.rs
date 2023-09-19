@@ -110,7 +110,7 @@ impl MyApp {
     }
 
     #[wasm_bindgen]
-    pub fn set_leaderboard(&mut self, update_players: bool) -> Vec<JsString> {
+    pub fn set_leaderboard(&mut self, update_players: bool, lb_start_ind: Option<usize>) -> Vec<JsString> {
         let mut return_vec: Vec<JsString> = vec![];
         return_vec.append(&mut MyApp::clear_lb(10));
         log("set_leaderboard");
@@ -131,7 +131,12 @@ impl MyApp {
             ));
             log("past get_players");
             self.fix_players();
-            log("past fix_players");
+            
+            if let Some(pop) = lb_start_ind {
+                self.score_card.all_play_players.drain(0..pop);
+                self.score_card.all_play_players.iter_mut().for_each(|p| p.position -= pop as u16);
+            }
+
             return_vec.append(&mut self.make_lb());
 
             let players = [
@@ -284,6 +289,7 @@ impl MyApp {
         }
         self.assign_position();
         self.set_hot_round();
+        
     }
 
     pub fn assign_position(&mut self) {
@@ -299,6 +305,8 @@ impl MyApp {
             }
             .cmp(if !b.dnf { &b.total_score } else { &i16::MAX })
         });
+
+        
 
         // Iterate over sorted players to assign position
 
@@ -344,6 +352,7 @@ impl MyApp {
             }
             player.check_pos();
         }
+        
     }
 
     fn make_checkin_text(&self) -> JsString {
@@ -656,7 +665,7 @@ impl MyApp {
             } else {
                 new.set_all_to_hole(0);
             }
-            new.set_leaderboard(false)
+            new.set_leaderboard(false, None)
         } else {
             vec![]
         }
@@ -750,12 +759,12 @@ mod tests {
 
     async fn generate_app() -> MyApp {
         let mut app = MyApp {
-            event_id: "a95092a2-e4ab-4196-a8a6-64de2a1893a8".to_string(),
+            event_id: "5c243af9-ea9d-4f44-ab07-9c55be23bd8c".to_string(),
             ..Default::default()
         };
         app.get_event().await.unwrap();
         log(&format!("{:#?}", app.pools));
-        app.set_div(1);
+        app.set_div(0);
         app.get_players(false);
         let players = app.get_player_ids();
         // app.set_player(1, players[0].clone());
@@ -770,7 +779,6 @@ mod tests {
             .skip(1)
             .for_each(|(i, player)| {
                 let test = app.set_player(i, player.clone());
-                log(&format!("{:#?}", test));
                 //send(&handle_js_vec(test));
             });
         app.set_foc(1);
@@ -796,9 +804,9 @@ mod tests {
     #[wasm_bindgen_test]
     async fn lb_test() {
         let mut app = generate_app().await;
-        let round = 0;
+        let round = 1;
         let thru = 9;
-
+        let tens = 0;
         log("here");
 
         log("not here");
@@ -807,7 +815,7 @@ mod tests {
         //send(&handle_js_vec(app.reset_scores()));
         app.set_all_to_hole(thru);
 
-        let all_commands = handle_js_vec(app.set_leaderboard(true));
+        let all_commands = handle_js_vec(app.set_leaderboard(true, if tens == 0 { None } else { Some(tens*10 as usize )}));
 
         send(&all_commands);
         app.show_all_pos();

@@ -195,6 +195,7 @@ export const setActionDefinitions = (instance: InstanceBaseExt<Config>): Compani
             if (typeof foc_player === 'number') {
                 instance.rust_main.set_foc(foc_player)
             }
+            instance.log("debug", "Running animation\nfoc play hole: " + instance.rust_main.focused_player_hole + " hole: " + instance.rust_main.hole)
             if (instance.rust_main.focused_player_hole <= instance.rust_main.hole) {
                 let thing = instance.rust_main.play_animation()
                 sendCommand(thing.join('\r\n') + '\r\n', instance.config)
