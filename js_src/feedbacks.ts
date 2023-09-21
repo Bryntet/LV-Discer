@@ -28,9 +28,6 @@ export function setFeedbackDefinitions(instance: InstanceBaseExt<Config>): Compa
             ],
             callback: async (feedback, context) => {
                 const chosen_player = feedback.options.chosen_player
-                console.log("I AM IN A FEEDBACK")
-                console.log(chosen_player)
-                console.log(await context.parseVariablesInString("$(lvvmix:foc_player_ind)"))
                 return chosen_player == await context.parseVariablesInString("$(lvvmix:foc_player_ind)")
             },
         }

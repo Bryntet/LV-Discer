@@ -26,7 +26,8 @@ export enum ActionId {
     TogglePos = 'toggle_pos',
     HidePos = 'hide_pos',
     ShowPos = 'show_pos',
-    SetHoleInfo = 'set_hole_info'
+    SetHoleInfo = 'set_hole_info',
+    DoOtherLeaderboard = 'do_other_leaderboard',
 }
 
 async function parseAuto(context: CompanionCommonCallbackContext): Promise<number> {
@@ -41,7 +42,7 @@ export const setActionDefinitions = (instance: InstanceBaseExt<Config>): Compani
         options: [],
         callback: () => {
             console.log("gonna send lb update")
-            sendCommand(instance.rust_main.set_leaderboard().join('\r\n') + '\r\n', instance.config)
+            sendCommand(instance.rust_main.set_leaderboard(true).join('\r\n') + '\r\n', instance.config)
             console.log("sent lb update")
             instance.setVariableValues({
                 hole: instance.rust_main.hole,
@@ -194,6 +195,7 @@ export const setActionDefinitions = (instance: InstanceBaseExt<Config>): Compani
             if (typeof foc_player === 'number') {
                 instance.rust_main.set_foc(foc_player)
             }
+            instance.log("debug", "Running animation\nfoc play hole: " + instance.rust_main.focused_player_hole + " hole: " + instance.rust_main.hole)
             if (instance.rust_main.focused_player_hole <= instance.rust_main.hole) {
                 let thing = instance.rust_main.play_animation()
                 sendCommand(thing.join('\r\n') + '\r\n', instance.config)
@@ -208,17 +210,22 @@ export const setActionDefinitions = (instance: InstanceBaseExt<Config>): Compani
         name: 'Increment Round',
         options: [],
         callback: () => {
-            if (instance.config.round !== undefined && instance.config.round < instance.rust_main.rounds) {
-                sendCommand(instance.rust_main.set_round(instance.config.round - 1).join('\r\n') + '\r\n', instance.config)
+            if (instance.config.round !== undefined && instance.rust_main.round + 1 < instance.rust_main.rounds) {
+                sendCommand(instance.rust_main.set_round(instance.rust_main.round + 1).join('\r\n') + '\r\n', instance.config)
+                instance.setVariableValues({ round: instance.rust_main.round + 1 })
+                instance.config.round = instance.rust_main.round + 1
             }
-        },
+        }
     }
+    
     actions[ActionId.DecrementRound] = {
         name: 'Decrement Round',
         options: [],
         callback: () => {
-            if (instance.config.round !== undefined && instance.config.round > 1) {
-                sendCommand(instance.rust_main.set_round(instance.config.round - 1).join('\r\n') + '\r\n', instance.config)
+            if (instance.config.round !== undefined && instance.rust_main.round > 0) {
+                sendCommand(instance.rust_main.set_round(instance.rust_main.round - 1).join('\r\n') + '\r\n', instance.config)
+                instance.setVariableValues({ round: instance.rust_main.round + 1 })
+                instance.config.round = instance.rust_main.round + 1
             }
         },
     }
@@ -307,5 +314,25 @@ export const setActionDefinitions = (instance: InstanceBaseExt<Config>): Compani
             sendCommand(info, instance.config)
         }
     }
+    actions[ActionId.DoOtherLeaderboard] = {
+        name: 'Do other leaderboard',
+        options: [
+            {
+                type: 'number',
+                label: 'division number',
+                id: 'division',
+                default: 1,
+                min: 1,
+                max: 100
+            },
+        ],
+        callback: (action) => {
+            let div = action.options.division
+            if (typeof div === "number" ) {
+                sendCommand(instance.rust_main.make_separate_lb(div-1).join('\r\n') + '\r\n', instance.config)
+            }
+        }
+    }
+
     return actions
 }
