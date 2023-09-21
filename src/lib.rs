@@ -176,7 +176,7 @@ impl MyApp {
     pub fn clear_lb(idx: u16) -> Vec<JsString> {
         let mut new_player = get_data::NewPlayer::default();
         new_player.lb_vmix_id = "2ef7178b-61ab-445c-9bbd-2f1c2c781e86".into();
-        new_player.hidden = true;
+        
         let mut r_v: Vec<JsString> = vec![];
         for i in 0..=idx {
             new_player.position = i;
