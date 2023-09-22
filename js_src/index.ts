@@ -5,11 +5,6 @@ import { setFeedbackDefinitions } from './feedbacks';
 import wasm from '../built/rust_pkg/rust_wasm_test_edvin';
 import "net";
 
-
-
-
-
-
 class LevandeVideoInstance extends InstanceBase<Config> {
 	public rust_main = new wasm.MyApp;
 	public config: Config = {
