@@ -164,137 +164,180 @@ class LevandeVideoInstance extends InstanceBase<Config> {
 	}
 
 	async configUpdated(config: Config) {
+		this.updateVmixIp(config);
+		this.log('debug', 'Config updating');
+		
+		console.log(config);
+		this.config = config;
+		
+		this.updateVmixInputId();
+		this.updateEventId();
+		this.updateDiv();
+		this.updateFocusedPlayers();
+		this.updatePList(config);
+		const p_list = this.generatePList([this.config.p1, this.config.p2, this.config.p3, this.config.p4]);
+		
+		this.initActions();
+		this.initFeedbacks();
+		this.setVariableValues(this.varValues());
+
+		this.setFocusedPlayerVariables();
+		this.updateRoundBasedOnConfig(config);
+		this.updateHoleIfNecessary(config, p_list);
+	}
+	updateVmixIp(config: Config) {
 		if (config.vmix_ip != this.config.vmix_ip) {
-			console.log('setting ip')
-			this.rust_main.ip = config.vmix_ip
-			this.config.vmix_ip = config.vmix_ip
+			console.log('setting ip');
+			this.rust_main.ip = config.vmix_ip;
+			this.config.vmix_ip = config.vmix_ip;
 		}
+	}
 
-		this.log('debug', 'Config updating')
-
-		console.log(config)
-		this.config = config
+	updateVmixInputId() {
 		if (this.config.vmix_input_id) {
-			console.log('setting id')
-			//this.rust_main.id = this.config.vmix_input_id
+			console.log('setting id');
+			
 		}
+	}
+
+	updateEventId() {
 		if (this.config.event_id) {
-			console.log('setting event id')
-			this.rust_main.event_id = this.config.event_id
+			console.log('setting event id');
+			this.rust_main.event_id = this.config.event_id;
 			this.rust_main
 				.get_event()
-				.then(() => {
-					console.log('here')
-					
-					this.div_names.length = 0
-					this.div_names.push({
-						id: 'none',
-						label: 'None',
-					})
-					for (const [idx, name] of this.rust_main.get_div_names().entries()) {
-						this.div_names.push({
-							id: idx,
-							label: name,
-						})
-					}
-				})
+				.then(this.handleEvent.bind(this))
 				.catch((err) => {
-					console.log(err)
-				})
+					console.log(err);
+				});
 		}
-		console.log(this.div_names)
+	}
+
+	handleEvent() {
+		console.log('here');
 		
-
-		if (typeof this.config.div === "number") {
-			this.rust_main.div = this.config.div
-			this.players.length = 0
-			this.players.push({
-				id: 'none',
-				label: 'None',
-			})
-
-			let ids = []
-			let names = []
-			for (const name of this.rust_main.get_player_names()) {
-				names.push(name)
-			}
-			for (const id of this.rust_main.get_player_ids()) {
-				ids.push(id)
-			}
-			for (const [idx, name] of names.entries()) {
-				this.players.push({
-					id: ids[idx],
-					label: name,
-				})
-			}
+		this.div_names.length = 0;
+		this.div_names.push({
+			id: 'none',
+			label: 'None',
+		});
+		for (const [idx, name] of this.rust_main.get_div_names().entries()) {
+			this.div_names.push({
+				id: idx,
+				label: name,
+			});
 		}
-		this.focused_players.length = 0
+	}
+
+	updateDiv() {
+		if (typeof this.config.div === "number") {
+			this.rust_main.div = this.config.div;
+			this.updatePlayers();
+		}
+	}
+
+	updatePlayers() {
+		this.players.length = 0;
+		this.players.push({
+			id: 'none',
+			label: 'None',
+		});
+
+		let ids = this.rust_main.get_player_ids();
+		let names = this.rust_main.get_player_names();
+		for (const [idx, name] of names.entries()) {
+			this.players.push({
+				id: ids[idx],
+				label: name,
+			});
+		}
+	}
+
+	updateFocusedPlayers() {
+		this.focused_players.length = 0;
 		this.focused_players.push({
 			id: 'none',
 			label: 'None',
-		})
-		let list = [this.config.p1, this.config.p2, this.config.p3, this.config.p4]
-		let p_list = []
-		for (const [idx, player] of list.entries()) {
-			console.log(player)
-			if (typeof player === 'string' && player !== 'none') {
-				let cmd = this.rust_main.set_player(idx + 1, player)
-				for (const c of cmd) {
-					p_list.push(c + '\r\n')
-				}
-			}
-		}
-		
-		console.log(list)
-		console.log("Gonna try p_list")
-		console.log(p_list.length)
-		if (p_list.length != 0) {
-			console.log("Sending p_list")
-			sendCommand(p_list.join(''), config)
-			
-		}
-
+		});
 
 		for (const [idx, name] of this.rust_main.get_focused_player_names().entries()) {
 			this.focused_players.push({
 				id: idx,
 				label: name,
-			})
+			});
 		}
-		
+	}
 
-		this.initActions()
-		this.initFeedbacks()
-		this.setVariableValues(this.varValues())
+	updatePList(config: Config) {
+		let list = [this.config.p1, this.config.p2, this.config.p3, this.config.p4];
+		let p_list = this.generatePList(list);
 
-		// Set variable for focused players
-		this.rust_main.get_focused_player_names().forEach((name, index) => {
-			const name_thing = 'p' + (index + 1)
-			console.log(name_thing)
-			this.setVariableValues({name_thing: name})
-		})
-		if (this.rust_main.round != this.config.round - 1) {
-			sendCommand(this.rust_main.set_round(this.config.round - 1).join('\r\n') + '\r\n', config)
-			console.log('Round increased')
+		if (p_list.length != 0) {
+			console.log("Sending p_list");
+			sendCommand(p_list.join(''), config);
 		}
-		console.log('hereeee')
-		console.log(this.config.hole)
-		console.log(p_list.length)
-		//console.log(this.rust_main.get_all_rounds())
+	}
 
-		if (this.config.hole != 0 && p_list.length != 0) {
-			console.log('setting hole')
-			console.log(this.config.hole)
-			setTimeout(() => {sendCommand(this.rust_main.set_all_to_hole(this.config.hole).join('\r\n') + '\r\n', config)}, 1000)
+	generatePList(list: any[]): string[] {
+		let p_list: string[] = [];
+		for (const [idx, player] of list.entries()) {
+			if (typeof player === 'string' && player !== 'none') {
+				let cmds = this.rust_main.set_player(idx + 1, player);
+				for (const cmd of cmds) {
+					p_list.push(cmd + '\r\n');
+				}
+			}
+		}
+		return p_list;
+	}
+
+	
+
+	updateHole(config: Config) {
+		if (this.config.hole != 0 && this.generatePList([this.config.p1, this.config.p2, this.config.p3, this.config.p4]).length != 0) {
+			setTimeout(() => {
+				sendCommand(this.rust_main.set_all_to_hole(this.config.hole).join('\r\n') + '\r\n', config);
+			}, 1000);
 			this.setVariableValues({
 				hole: this.config.hole,
-			})
-			
+			});
 		}
+	}
+	setFocusedPlayerVariables() {
+		this.rust_main.get_focused_player_names().forEach((name, index) => {
+			const name_thing = 'p' + (index + 1);
+			console.log(name_thing);
+			this.setVariableValues({ [name_thing]: name });
+		});
+	}
+
+	updateRoundBasedOnConfig(config: Config) {
+		if (this.rust_main.round != this.config.round - 1) {
+			sendCommand(this.rust_main.set_round(this.config.round - 1).join('\r\n') + '\r\n', config);
+			console.log('Round increased');
+		}
+	}
+
+	updateHoleIfNecessary(config: Config, p_list: string[]) {
+		console.log('hereeee');
+		console.log(this.config.hole);
+		console.log(p_list.length);
+		
+		if (this.config.hole != 0 && p_list.length != 0) {
+			console.log('setting hole');
+			console.log(this.config.hole);
+			setTimeout(() => {
+				sendCommand(this.rust_main.set_all_to_hole(this.config.hole).join('\r\n') + '\r\n', config);
+			}, 1000);
+			this.setVariableValues({
+				hole: this.config.hole,
+			});
+		}
+	}
 
 		
 
-	}
+	
 }
 import { example_conversion } from './upgrades'
 import { sendCommand } from './send';
