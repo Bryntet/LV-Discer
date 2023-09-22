@@ -185,7 +185,7 @@ class LevandeVideoInstance extends InstanceBase<Config> {
 				.get_event()
 				.then(() => {
 					console.log('here')
-					//const divs = this.rust_main.get_div_names()
+					
 					this.div_names.length = 0
 					this.div_names.push({
 						id: 'none',

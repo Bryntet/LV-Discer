@@ -779,7 +779,7 @@ mod tests {
             .take(4 + 1)
             .skip(1)
             .for_each(|(i, player)| {
-                let test = app.set_player(i, player.clone());
+                app.set_player(i, player.clone());
                 //send(&handle_js_vec(test));
             });
         app.set_foc(1);
@@ -816,7 +816,7 @@ mod tests {
         //send(&handle_js_vec(app.reset_scores()));
         app.set_all_to_hole(thru);
 
-        let all_commands = handle_js_vec(app.set_leaderboard(true, if tens == 0 { None } else { Some(tens*10 as usize )}));
+        let all_commands = handle_js_vec(app.set_leaderboard(true, if tens == 0 { None } else { Some(tens*10)}));
 
         send(&all_commands);
         app.show_all_pos();
