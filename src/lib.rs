@@ -1,8 +1,12 @@
 mod get_data;
 mod utils;
+pub mod vmix_controller;
+
 use crate::get_data::HoleScoreOrDefault;
 use js_sys::JsString;
 use wasm_bindgen::prelude::*;
+use vmix_controller::{LeaderBoardProperty, VMixFunction, VmixProperty};
+
 #[wasm_bindgen]
 extern "C" {
     #[wasm_bindgen(js_namespace = console)]
@@ -357,14 +361,14 @@ impl MyApp {
     }
 
     fn make_checkin_text(&self) -> JsString {
-        get_data::VmixFunction::SetText(get_data::VmixInfo {
-            id: &self.lb_vmix_id,
-            value: String::from(self.get_div_names()[self.selected_div_ind].to_string())
-                .to_uppercase()
-                + " "
-                + "LEADERBOARD CHECK-IN",
-            prop: get_data::VmixProperty::LBCheckinText,
-        })
+        let value = String::from(self.get_div_names()[self.selected_div_ind].to_string())
+            .to_uppercase()
+            + " "
+            + "LEADERBOARD CHECK-IN";
+        VMixFunction::SetText{
+            value,
+            input: LeaderBoardProperty::CheckinText.into(),
+        }
         .to_cmd()
         .into()
     }
