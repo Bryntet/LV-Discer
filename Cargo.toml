@@ -13,31 +13,29 @@ default = ["console_error_panic_hook"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-cynic = { version = "2.2.8", features = ["http-surf"] }
-syn = "2.0.15"
-log = "0.4.17"
-serde = "1.0.159"
-serde_json = "1.0.96"
-clap = "4.2.1"
-anyhow = "1.0.70"
-paste = "1.0.12"
-quote = "1.0.26"
-catppuccin-egui = "2.0.1"
-wasm-bindgen = "0.2.84"
-wasm-bindgen-futures = "0.4.34"
-wasm-rs-async-executor = "0.9.0"
+cynic = { version = "3.4.3" }
+syn = "2.0.52"
+log = "0.4.21"
+serde = "1.0.197"
+serde_json = "1.0.114"
+clap = "4.5.3"
+anyhow = "1.0.81"
+paste = "1.0.14"
+quote = "1.0.35"
+wasm-bindgen = "0.2.92"
+wasm-bindgen-futures = "0.4.42"
 console_error_panic_hook = { version = "0.1.7", optional = true }
-getrandom = { version = "0.2.9", features = ["js"] }
-reqwest = { version = "0.11.16", features = ["json", "blocking"] }
-js-sys = "0.3.61"
-regex = "1.7.3"
-serde-wasm-bindgen = "0.5.0"
-wasm-bindgen-test = "0.3.34"
-tokio =  { version = "1.28.0", features = ["rt"] }
+getrandom = { version = "0.2.12", features = ["js"] }
+reqwest = { version = "0.11.26", features = ["json", "blocking", "wasm-streams"] }
+js-sys = "0.3.69"
+regex = "1.10.3"
+serde-wasm-bindgen = "0.6.5"
+wasm-bindgen-test = "0.3.42"
+tokio =  { version = "1.36.0", features = ["rt"] }
 
 [dev-dependencies]
-tokio-test = "0.4.2"
-wasm-bindgen-test = "0.3.34"
+tokio-test = "0.4.4"
+wasm-bindgen-test = "0.3.42"
 
 
 
