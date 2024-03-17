@@ -5,7 +5,7 @@ pub mod vmix_controller;
 use crate::get_data::HoleScoreOrDefault;
 use js_sys::JsString;
 use wasm_bindgen::prelude::*;
-use vmix_controller::{LeaderBoardProperty, VMixFunction, VmixProperty};
+use vmix_controller::{LeaderBoardProperty, VMixFunction};
 
 #[wasm_bindgen]
 extern "C" {
@@ -32,13 +32,11 @@ pub fn init_panic_hook() {
 #[derive(Clone, Debug)]
 pub struct Constants {
     ip: String,
-    vmix_id: String,
 }
 impl Default for Constants {
     fn default() -> Self {
         Self {
             ip: "192.168.120.135".to_string(),
-            vmix_id: "506fbd14-52fc-495b-8d17-5b924fba64f3".to_string(),
         }
     }
 }
@@ -62,7 +60,6 @@ pub struct MyApp {
     round_ind: usize,
     lb_div_ind: usize,
     lb_thru: usize,
-    lb_vmix_id: String,
 }
 
 impl Default for MyApp {
@@ -81,7 +78,6 @@ impl Default for MyApp {
             round_ind: 0,
             lb_div_ind: 0,
             lb_thru: 0,
-            lb_vmix_id: "2ef7178b-61ab-445c-9bbd-2f1c2c781e86".into(),
         }
     }
 }
@@ -434,8 +430,6 @@ impl MyApp {
         let promise: usize = 0;
         self.handler = Some(get_data::RustHandler::new(
             get_data::post_status(cynic::Id::from(&self.event_id)).await,
-            self.consts.vmix_id.clone(),
-            self.lb_vmix_id.clone(),
         ));
 
         match self.handler.clone() {

@@ -139,7 +139,6 @@ impl PlayerRound {
     }
 
     pub fn get_hole_info(&self, hole: usize) -> Vec<JsString> {
-        let id = "0e76d38f-6e8d-4f7d-b1a6-e76f695f2094";
 
         let mut r_vec: Vec<JsString> = vec![];
         let binding = self::queries::Hole::default();
@@ -219,7 +218,6 @@ pub struct NewPlayer {
     pub rounds: Vec<PlayerRound>,
     pub hole: usize,
     pub ind: usize,
-    vmix_id: String,
     pub throws: u8,
     shift: usize,
     pub ob: bool,
@@ -251,7 +249,6 @@ impl Default for NewPlayer {
             rounds: vec![],
             hole: 0,
             ind: 0,
-            vmix_id: "".to_string(),
             throws: 0,
             shift: 0,
             ob: false,
@@ -278,8 +275,6 @@ impl NewPlayer {
         l_name: String,
         event: queries::Event,
         div_id: cynic::Id,
-        vmix_id: String,
-        lb_vmix_id: String,
     ) -> Self {
         let mut rounds: Vec<PlayerRound> = vec![];
         for rnd in event.rounds {
@@ -307,8 +302,6 @@ impl NewPlayer {
             first_name: f_name,
             surname: l_name,
             rounds,
-            vmix_id,
-            lb_vmix_id,
             ..Default::default()
         }
     }
@@ -877,15 +870,11 @@ pub struct RustHandler {
     event: queries::Event,
     divisions: Vec<queries::Division>,
     round_ind: usize,
-    vmix_id: String,
-    lb_vmix_id: String,
 }
 
 impl RustHandler {
     pub fn new(
         pre_event: GraphQlResponse<queries::EventQuery>,
-        vmix_id: String,
-        lb_vmix_id: String,
     ) -> Self {
         let event = pre_event.data.expect("no data").event.expect("no event");
         let mut divisions: Vec<queries::Division> = vec![];
@@ -900,8 +889,6 @@ impl RustHandler {
             event,
             divisions,
             round_ind: 0,
-            vmix_id,
-            lb_vmix_id,
         }
     }
 
@@ -951,8 +938,6 @@ impl RustHandler {
                 player.last_name,
                 self.event.clone(),
                 self.chosen_division.clone(),
-                self.vmix_id.clone(),
-                self.lb_vmix_id.clone(),
             ));
         }
         out_vec

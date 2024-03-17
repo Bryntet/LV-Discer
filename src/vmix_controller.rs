@@ -74,7 +74,7 @@ impl<InputEnum: VMixSelectionTrait> VMixFunction<InputEnum> {
 
 
     fn get_value(&self) -> Option<String> {
-        if let Some(value) = match self {
+        match self {
             Self::SetText {value, .. } => Some(value.clone()),
             Self::SetColor {color, .. } => Some("#".to_string() + color),
             Self::OverlayInput4Off => None,
@@ -83,11 +83,7 @@ impl<InputEnum: VMixSelectionTrait> VMixFunction<InputEnum> {
             Self::SetPanX{value, ..} => Some(value.to_string()),
             Self::SetTextVisibleOn{..} => None,
             Self::SetTextVisibleOff{..} => None,
-        } {
-            Some("Value=".to_string() + &value)
-        } else {
-            None
-        }
+        }.map(|value| "Value=".to_string() + &value)
     }
 
 }
