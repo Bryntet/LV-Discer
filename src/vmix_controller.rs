@@ -105,16 +105,15 @@ impl<InputEnum: VMixSelectionTrait> VMixFunction<InputEnum> {
     }
 
     pub fn to_cmd(&self) -> String {
-        let mut cmd = "FUNCTION ".to_string() + self.get_start_cmd();
+        let cmd = "FUNCTION ".to_string() + self.get_start_cmd();
         let input = self.get_input();
         let value = self.get_value();
         match (input,value) {
-            (Some(input),Some(value)) => cmd += &format!(" Input={}&Value={}",input,value),
-            (Some(input), None) => cmd += &format!(" Input={}",input),
-            (None,Some(value)) => cmd += &format!(" Value={}",value),
-            (None,None) => ()
+            (Some(input),Some(value)) => format!("{cmd} Input={}&Value={}",input,value),
+            (Some(input), None) => format!("{cmd} Input={}",input),
+            (None,Some(value)) => format!("{cmd} Value={}",value),
+            (None,None) => cmd
         }
-        cmd
     }
 }
 
