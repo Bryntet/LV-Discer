@@ -1,6 +1,7 @@
 mod get_data;
 mod utils;
 pub mod vmix_controller;
+mod queries;
 
 use crate::get_data::HoleScoreOrDefault;
 use js_sys::JsString;
@@ -45,7 +46,7 @@ impl Default for Constants {
 #[derive(Clone)]
 pub struct MyApp {
     #[wasm_bindgen(skip)]
-    pub all_divs: Vec<get_data::queries::PoolLeaderboardDivision>,
+    pub all_divs: Vec<queries::PoolLeaderboardDivision>,
     #[wasm_bindgen(getter_with_clone)]
     pub score_card: ScoreCard,
     selected_div_ind: usize,
@@ -54,7 +55,7 @@ pub struct MyApp {
     foc_play_ind: usize,
     consts: Constants,
     event_id: String,
-    pools: Vec<get_data::queries::Pool>,
+    pools: Vec<queries::Pool>,
     handler: Option<get_data::RustHandler>,
     available_players: Vec<get_data::NewPlayer>,
     round_ind: usize,
@@ -450,7 +451,7 @@ impl MyApp {
     //             for div in lb {
     //                 if let Some(div) = div {
     //                     match div {
-    //                         get_data::queries::PoolLeaderboardDivisionCombined::PoolLeaderboardDivision(d) => {
+    //                         queries::PoolLeaderboardDivisionCombined::PoolLeaderboardDivision(d) => {
     //                             self.all_divs.push(d);
     //                         }
     //                         _ => {}

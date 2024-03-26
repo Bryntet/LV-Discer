@@ -266,9 +266,9 @@ dependencies = [
 
 [[package]]
 name = "cynic"
-version = "3.4.3"
+version = "3.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7335114540697c7b1c1a0131cbe0e983fdb1e646f881234afe9e2a66133ac99a"
+checksum = "7ef57bc03e3192ab928c93c996e049639a22a2a8bba55a373d77f0a15848c833"
 dependencies = [
  "cynic-proc-macros",
  "ref-cast",
@@ -279,9 +279,9 @@ dependencies = [
 
 [[package]]
 name = "cynic-codegen"
-version = "3.4.3"
+version = "3.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a11d6119f9f0f55c9d7cff5189a7b318f35a7d2d6faa4872441ee521f65420b6"
+checksum = "bf5164481ecccd521447e7cf57c9fec8c10c0b6f75871e455978e44a65bed5d0"
 dependencies = [
  "counter",
  "darling",
@@ -297,9 +297,9 @@ dependencies = [
 
 [[package]]
 name = "cynic-proc-macros"
-version = "3.4.3"
+version = "3.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "eb81a5872a7774daf11caefb2ebe7166d9da12b1b69cf35661130b3c3fccbd61"
+checksum = "b46bdbdea06bfbd594f5e260ab0ee8cad72bc6c98ae9dab405b96b0dc240ff1a"
 dependencies = [
  "cynic-codegen",
  "darling",
@@ -983,6 +983,7 @@ dependencies = [
  "clap",
  "console_error_panic_hook",
  "cynic",
+ "cynic-codegen",
  "getrandom",
  "js-sys",
  "log",

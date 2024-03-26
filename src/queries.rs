@@ -1,280 +1,167 @@
-#[cynic::schema_for_derives(
-    file = r#"src/schema.graphql"#,
-    module = "schema",
-)]
+use wasm_bindgen::prelude::*;
 
-mod queries {
-    use super::schema;
-
-    #[derive(cynic::QueryVariables, Debug)]
-    pub struct LivescoreVariables {
-        pub pool_id: Option<cynic::Id>,
-    }
-
-    #[derive(cynic::QueryVariables, Debug)]
-    pub struct EventResultVariables {
-        pub event_id: Option<cynic::Id>,
-    }
-
-    #[derive(cynic::QueryVariables, Debug)]
-    pub struct PoolLBVariables {
-        pub pool_id: Option<cynic::Id>,
-    }
-
-    #[derive(cynic::QueryVariables, Debug)]
-    pub struct EventInfoVariables {
-        pub event_id: Option<cynic::Id>,
-    }
-
-    #[derive(cynic::QueryFragment, Debug)]
-    #[cynic(graphql_type = "RootQuery", variables = "LivescoreVariables")]
-    pub struct Livescore {
-        #[arguments(poolId: $pool_id)]
-        pub pool: Option<Pool>,
-    }
-
-    #[derive(cynic::QueryFragment, Debug)]
-    #[cynic(graphql_type = "RootQuery", variables = "PoolLBVariables")]
-    pub struct PoolLB {
-        #[arguments(poolId: $pool_id)]
-        pub pool: Option<Pool2>,
-    }
-
-    #[derive(cynic::QueryFragment, Debug)]
-    #[cynic(graphql_type = "RootQuery", variables = "EventResultVariables")]
-    pub struct EventResult {
-        #[arguments(eventId: $event_id)]
-        pub event: Option<Event>,
-    }
-
-    #[derive(cynic::QueryFragment, Debug)]
-    #[cynic(graphql_type = "RootQuery", variables = "EventInfoVariables")]
-    pub struct EventInfo {
-        #[arguments(eventId: $event_id)]
-        pub event: Option<Event2>,
-    }
-
-    #[derive(cynic::QueryFragment, Debug)]
-    pub struct PoolLivescoreDivision {
-        pub id: cynic::Id,
-        pub name: String,
-        pub players: Vec<PoolLivescorePlayer>,
-    }
-
-    #[derive(cynic::QueryFragment, Debug)]
-    pub struct PoolLivescorePlayer {
-        pub place: f64,
-        pub first_name: String,
-        pub last_name: String,
-        pub pdga_number: Option<f64>,
-        pub starts_at: Option<DateTime>,
-        pub is_dnf: bool,
-        pub is_dns: bool,
-        pub total_par: Option<f64>,
-        pub total_score: Option<f64>,
-        pub results: Vec<PoolLivescoreResult>,
-    }
-
-    #[derive(cynic::QueryFragment, Debug)]
-    pub struct PoolLivescoreResult {
-        pub id: cynic::Id,
-        pub score: f64,
-        pub is_circle_hit: bool,
-        pub is_outside_putt: bool,
-        pub is_inside_putt: bool,
-        pub is_out_of_bounds: bool,
-    }
-
-    #[derive(cynic::QueryFragment, Debug)]
-    pub struct PoolLeaderboardDivision {
-        pub id: cynic::Id,
-        pub name: String,
-        pub players: Vec<PoolLeaderboardPlayer>,
-    }
-
-    #[derive(cynic::QueryFragment, Debug)]
-    pub struct PoolLeaderboardPlayer {
-        pub place: f64,
-        pub first_name: String,
-        pub last_name: String,
-        pub pdga_number: Option<f64>,
-        pub is_dnf: bool,
-        pub is_dns: bool,
-        pub score: Option<f64>,
-        pub par: Option<f64>,
-        pub results: Vec<SimpleResult>,
-    }
-
-    #[derive(cynic::QueryFragment, Debug)]
-    pub struct SimpleResult {
-        pub id: cynic::Id,
-        pub score: f64,
-        pub is_circle_hit: bool,
-        pub is_outside_putt: bool,
-        pub is_inside_putt: bool,
-        pub is_out_of_bounds: bool,
-    }
-
-    #[derive(cynic::QueryFragment, Debug)]
-    pub struct Pool {
-        pub id: cynic::Id,
-        pub date: DateTime,
-        pub status: PoolStatus,
-        pub layout_version: LayoutVersion,
-        pub livescore: Option<Vec<PoolLivescoreDivisionCombined>>,
-    }
-
-    #[derive(cynic::QueryFragment, Debug)]
-    #[cynic(graphql_type = "Pool")]
-    pub struct Pool2 {
-        pub id: cynic::Id,
-        pub date: DateTime,
-        pub status: PoolStatus,
-        pub layout_version: LayoutVersion,
-        pub leaderboard: Option<Vec<Option<PoolLeaderboardDivisionCombined>>>,
-    }
-
-    #[derive(cynic::QueryFragment, Debug)]
-    pub struct LayoutVersion {
-        pub id: cynic::Id,
-        pub holes: Vec<Hole>,
-    }
-
-    #[derive(cynic::QueryFragment, Debug)]
-    pub struct Hole {
-        pub number: f64,
-        pub par: Option<f64>,
-        pub name: Option<String>,
-        pub length: Option<f64>,
-    }
-
-    #[derive(cynic::QueryFragment, Debug)]
-    pub struct EventLeaderboardDivision {
-        pub id: cynic::Id,
-        pub name: String,
-        #[cynic(rename = "type")]
-        pub type_: String,
-        pub players: Vec<EventLeaderboardPlayer>,
-    }
-
-    #[derive(cynic::QueryFragment, Debug)]
-    pub struct EventLeaderboardPlayer {
-        pub first_name: String,
-        pub last_name: String,
-        pub pdga_number: Option<f64>,
-        pub pdga_rating: Option<f64>,
-        pub place: f64,
-        pub score: Option<f64>,
-        pub par: Option<f64>,
-        pub pool_leaderboards: Vec<EventLeaderboardPool>,
-        pub is_dnf: bool,
-        pub is_dns: bool,
-    }
-
-    #[derive(cynic::QueryFragment, Debug)]
-    pub struct EventLeaderboardPool {
-        pub place: f64,
-        pub score: Option<f64>,
-        pub points: Option<f64>,
-        pub pool_id: cynic::Id,
-    }
-
-    #[derive(cynic::QueryFragment, Debug)]
-    pub struct Event {
-        pub leaderboard: Option<Vec<Option<EventLeaderboardDivisionCombined>>>,
-    }
-
-    #[derive(cynic::QueryFragment, Debug)]
-    #[cynic(graphql_type = "Event")]
-    pub struct Event2 {
-        pub id: cynic::Id,
-        pub name: String,
-        pub rounds: Vec<Option<Round>>,
-        pub players: Vec<Player>,
-    }
-
-    #[derive(cynic::QueryFragment, Debug)]
-    pub struct Player {
-        pub user: User,
-        pub division: Division,
-        pub dnf: DNF,
-        pub dns: DNS,
-    }
-
-    #[derive(cynic::QueryFragment, Debug)]
-    pub struct User {
-        pub id: cynic::Id,
-        pub first_name: Option<String>,
-        pub last_name: Option<String>,
-    }
-
-    #[derive(cynic::QueryFragment, Debug)]
-    pub struct Round {
-        pub pools: Vec<Pool3>,
-    }
-
-    #[derive(cynic::QueryFragment, Debug)]
-    #[cynic(graphql_type = "Pool")]
-    pub struct Pool3 {
-        pub date: DateTime,
-        pub id: cynic::Id,
-    }
-
-    #[derive(cynic::QueryFragment, Debug)]
-    pub struct Division {
-        pub id: cynic::Id,
-        #[cynic(rename = "type")]
-        pub type_: String,
-        pub name: String,
-    }
-
-    #[derive(cynic::QueryFragment, Debug)]
-    pub struct DNS {
-        pub is_dns: bool,
-    }
-
-    #[derive(cynic::QueryFragment, Debug)]
-    pub struct DNF {
-        pub is_dnf: bool,
-    }
-
-    #[derive(cynic::InlineFragments, Debug)]
-    pub enum EventLeaderboardDivisionCombined {
-        EventLeaderboardDivision(EventLeaderboardDivision),
-        #[cynic(fallback)]
-        Unknown
-    }
-
-    #[derive(cynic::InlineFragments, Debug)]
-    pub enum PoolLeaderboardDivisionCombined {
-        PoolLeaderboardDivision(PoolLeaderboardDivision),
-        #[cynic(fallback)]
-        Unknown
-    }
-
-    #[derive(cynic::InlineFragments, Debug)]
-    pub enum PoolLivescoreDivisionCombined {
-        PoolLivescoreDivision(PoolLivescoreDivision),
-        #[cynic(fallback)]
-        Unknown
-    }
-
-    #[derive(cynic::Enum, Clone, Copy, Debug)]
-    pub enum PoolStatus {
-        Closed,
-        Prepare,
-        Open,
-        Completed,
-    }
-
-    #[derive(cynic::Scalar, Debug, Clone)]
-    pub struct DateTime(pub String);
-
+#[wasm_bindgen]
+extern "C" {
+    #[wasm_bindgen(js_namespace = console)]
+    fn log(s: &str);
 }
 
 
-#[allow(non_snake_case, non_camel_case_types)]
-mod schema {
-    cynic::use_schema!(r#"src/schema.graphql"#);
+
+
+#[derive(cynic::QueryVariables, Debug)]
+pub struct EventQueryVariables {
+    pub event_id: cynic::Id,
+}
+#[derive(cynic::QueryFragment, Debug)]
+#[cynic(graphql_type = "RootQuery", variables = "EventQueryVariables")]
+pub struct EventQuery {
+    #[arguments(eventId: $event_id)]
+    pub event: Option<Event>,
+}
+#[derive(cynic::QueryFragment, Debug, Clone)]
+pub struct Event {
+    pub rounds: Vec<Option<Round>>,
+    pub divisions: Vec<Option<Division>>,
+}
+#[derive(cynic::QueryFragment, Debug, Clone)]
+pub struct Round {
+    pub pools: Vec<Pool>,
+    pub id: cynic::Id,
 }
 
+#[derive(cynic::QueryFragment, Debug, Clone)]
+pub struct Division {
+    pub id: cynic::Id,
+    pub name: String,
+}
+
+#[derive(cynic::QueryFragment, Debug, Clone)]
+pub struct PoolLeaderboardDivision {
+    pub id: cynic::Id,
+    pub name: String,
+    pub players: Vec<PoolLeaderboardPlayer>,
+    #[cynic(rename = "type")]
+    pub type_: String,
+}
+
+#[derive(cynic::QueryFragment, Debug, Clone)]
+pub struct PoolLeaderboardPlayer {
+    pub first_name: String,
+    pub is_dnf: bool,
+    pub is_dns: bool,
+    pub last_name: String,
+    pub par: Option<f64>,
+    pub pdga_number: Option<f64>,
+    pub pdga_rating: Option<f64>,
+    pub place: f64,
+    pub player_id: cynic::Id,
+    pub results: Vec<SimpleResult>,
+    pub points: Option<f64>,
+    pub score: Option<f64>, // Tror denna är total score för runda
+}
+
+#[derive(cynic::QueryFragment, Debug, Clone)]
+pub struct SimpleResult {
+    pub hole: Hole,
+    pub score: f64,
+    pub is_circle_hit: bool,
+    pub is_inside_putt: bool,
+    pub is_out_of_bounds: bool,
+    pub is_outside_putt: bool,
+}
+impl SimpleResult {
+    pub fn actual_score(&self) -> f64 {
+        if let Some(par) = self.hole.par {
+            self.score - par
+        } else {
+            //log(&format!("no par for hole {}", self.hole.number));
+            self.score
+        }
+    }
+
+    pub fn get_score_colour(&self) -> &str {
+        match self.actual_score() as i64 {
+            4 => "AB8E77FF", // TODO FIX CORRECT COLOUR
+            3 => "AB8E77FF",
+            2 => "CA988DFF",
+            1 => "EC928FFF",
+            0 => "7E8490FF",
+            -1 => "A6F8BBFF",
+            -2 => "6A8BE7FF",
+            -3 => "DD6AC9FF",
+            _ => "AB8E77FF",
+        }
+    }
+
+    pub fn get_mov(&self) -> &str {
+        match self.actual_score() as i64 {
+            4 => "40 ouch.mov",
+            3 => "30 3xBogey.mov",
+            2 => "20 2xBogey.mov",
+            1 => "10 bogey.mov",
+            0 => "04 par.mov",
+            -1 => "03 birdie.mov",
+            -2 => "02 eagle.mov",
+            -3 => {
+                if self.score == 1.0 {
+                    "00 ace.mov"
+                } else {
+                    "01 albatross.mov"
+                }
+            }
+            _ => "",
+        }
+    }
+}
+#[derive(cynic::QueryFragment, Debug, Clone)]
+pub struct Pool {
+    pub status: PoolStatus,
+    pub layout_version: LayoutVersion,
+    pub leaderboard: Option<Vec<Option<PoolLeaderboardDivisionCombined>>>,
+    pub position: f64,
+}
+
+#[derive(cynic::QueryFragment, Debug, Clone)]
+pub struct LayoutVersion {
+    pub holes: Vec<Hole>,
+}
+
+#[derive(cynic::QueryFragment, Debug, Clone)]
+pub struct Hole {
+    pub par: Option<f64>,
+    pub number: f64,
+    pub length: Option<f64>,
+    pub measure_in_meters: Option<bool>,
+}
+
+impl Default for Hole {
+    fn default() -> Self {
+        Self {
+            par: None,
+            number: 0.0,
+            length: None,
+            measure_in_meters: None,
+        }
+    }
+}
+
+#[derive(cynic::InlineFragments, Debug, Clone)]
+pub enum PoolLeaderboardDivisionCombined {
+    Pld(PoolLeaderboardDivision),
+    #[cynic(fallback)]
+    Unknown,
+}
+
+#[derive(cynic::Enum, Clone, Copy, Debug)]
+pub enum PoolStatus {
+    Closed,
+    Prepare,
+    Open,
+    Completed,
+    Pause
+
+}
+
+#[cynic::schema("tjing")]
+mod schema {}
