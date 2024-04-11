@@ -2,6 +2,7 @@ mod get_data;
 mod utils;
 pub mod vmix_controller;
 mod queries;
+mod hole;
 
 use crate::get_data::HoleScoreOrDefault;
 use js_sys::JsString;
@@ -92,7 +93,7 @@ impl MyApp {
     }
     #[wasm_bindgen(setter = ip)]
     pub fn set_ip(&mut self, ip: String) {
-        self.consts.ip = ip.clone();
+        self.consts.ip.clone_from(&ip);
         self.score_card.consts.ip = ip;
         log(&format!("ip set to {}", &self.consts.ip));
     }
