@@ -4,7 +4,6 @@ pub mod vmix_controller;
 mod queries;
 mod hole;
 mod setup_helpers;
-mod macros;
 
 use crate::get_data::HoleScoreOrDefault;
 use js_sys::JsString;
