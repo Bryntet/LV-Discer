@@ -3,6 +3,8 @@ mod utils;
 pub mod vmix_controller;
 mod queries;
 mod hole;
+mod setup_helpers;
+mod macros;
 
 use crate::get_data::HoleScoreOrDefault;
 use js_sys::JsString;
@@ -30,22 +32,11 @@ pub fn init_panic_hook() {
     console_error_panic_hook::set_once();
 }
 
-#[wasm_bindgen]
-#[derive(Clone, Debug)]
-pub struct Constants {
-    ip: String,
-}
-impl Default for Constants {
-    fn default() -> Self {
-        Self {
-            ip: "192.168.120.135".to_string(),
-        }
-    }
-}
+
 
 #[wasm_bindgen]
 #[derive(Clone)]
-pub struct MyApp {
+pub struct FlipUpVMixCoordinator {
     #[wasm_bindgen(skip)]
     pub all_divs: Vec<queries::PoolLeaderboardDivision>,
     #[wasm_bindgen(getter_with_clone)]
@@ -54,7 +45,7 @@ pub struct MyApp {
     #[wasm_bindgen(skip)]
     pub selected_div: cynic::Id,
     foc_play_ind: usize,
-    consts: Constants,
+    ip: String,
     event_id: String,
     pools: Vec<queries::Pool>,
     handler: Option<get_data::RustHandler>,
@@ -64,15 +55,15 @@ pub struct MyApp {
     lb_thru: usize,
 }
 
-impl Default for MyApp {
-    fn default() -> MyApp {
-        MyApp {
+impl Default for FlipUpVMixCoordinator {
+    fn default() -> FlipUpVMixCoordinator {
+        FlipUpVMixCoordinator {
             score_card: ScoreCard::default(),
             all_divs: vec![],
             selected_div_ind: 0,
             selected_div: cynic::Id::from("cd094fcf-76c7-471e-bfe3-be3d5892bd81"),
             foc_play_ind: 0,
-            consts: Constants::default(),
+            ip: "".to_string(),
             pools: vec![],
             event_id: "75cceb0e-5a1d-4fba-a5c8-f2ff95f84495".into(),
             handler: None,
@@ -85,17 +76,18 @@ impl Default for MyApp {
 }
 
 #[wasm_bindgen]
-impl MyApp {
+impl FlipUpVMixCoordinator {
+    // Initialise main app
     #[wasm_bindgen(constructor)]
-    pub fn new() -> MyApp {
+    pub fn new() -> Self {
         utils::set_panic_hook();
-        MyApp::default()
+        Self::default()
     }
     #[wasm_bindgen(setter = ip)]
     pub fn set_ip(&mut self, ip: String) {
-        self.consts.ip.clone_from(&ip);
-        self.score_card.consts.ip = ip;
-        log(&format!("ip set to {}", &self.consts.ip));
+        self.ip.clone_from(&ip);
+        self.score_card.ip = ip;
+        log(&format!("ip set to {}", &self.ip));
     }
     #[wasm_bindgen(setter = div)]
     pub fn set_div(&mut self, idx: usize) {
@@ -114,7 +106,7 @@ impl MyApp {
     #[wasm_bindgen]
     pub fn set_leaderboard(&mut self, update_players: bool, lb_start_ind: Option<usize>) -> Vec<JsString> {
         let mut return_vec: Vec<JsString> = vec![];
-        return_vec.append(&mut MyApp::clear_lb(10));
+        return_vec.append(&mut FlipUpVMixCoordinator::clear_lb(10));
         log("set_leaderboard");
         //let mut lb_copy = self.clone();
         self.set_lb_thru();
@@ -569,7 +561,7 @@ impl MyApp {
         return_vec.append(&mut self.score_card.p2.reset_scores());
         return_vec.append(&mut self.score_card.p3.reset_scores());
         return_vec.append(&mut self.score_card.p4.reset_scores());
-        return_vec.append(&mut MyApp::clear_lb(10));
+        return_vec.append(&mut FlipUpVMixCoordinator::clear_lb(10));
         return_vec
     }
 
@@ -686,7 +678,7 @@ pub struct ScoreCard {
     pub p4: get_data::NewPlayer,
     #[wasm_bindgen(skip)]
     pub all_play_players: Vec<get_data::NewPlayer>,
-    consts: Constants,
+    ip: String,
 }
 
 #[wasm_bindgen]
@@ -758,8 +750,8 @@ mod tests {
         fn sendData(host: &str, port: u16, data: &str);
     }
 
-    async fn generate_app() -> MyApp {
-        let mut app = MyApp {
+    async fn generate_app() -> FlipUpVMixCoordinator {
+        let mut app = FlipUpVMixCoordinator {
             event_id: "5c243af9-ea9d-4f44-ab07-9c55be23bd8c".to_string(),
             ..Default::default()
         };

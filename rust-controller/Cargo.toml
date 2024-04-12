@@ -41,5 +41,5 @@ wasm-bindgen-test = "0.3.42"
 [build-dependencies]
 cynic-codegen = "3.5.0"
 
-[profile.release]
-opt-level = "s"
+[workspace]
+members = ["./wasm-macros", "."]

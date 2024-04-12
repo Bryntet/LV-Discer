@@ -6,7 +6,7 @@ import wasm from '../built/rust_pkg/rust_wasm_test_edvin';
 import "net";
 
 class LevandeVideoInstance extends InstanceBase<Config> {
-	public rust_main = new wasm.MyApp;
+	public rust_main = new wasm.FlipUpVMixCoordinator;
 	public config: Config = {
 		vmix_ip: 'localhost',
 		event_id: 'a57b4ed6-f64a-4710-8f20-f93e82d4fe79',
@@ -33,7 +33,7 @@ class LevandeVideoInstance extends InstanceBase<Config> {
 	async init(config: Config) {
 		console.log('HIII')
 		this.updateStatus(InstanceStatus.Ok)
-		this.rust_main = new wasm.MyApp()
+		this.rust_main = new wasm.FlipUpVMixCoordinator()
 		console.log('Rust module initialized')
 		this.config = config
 		

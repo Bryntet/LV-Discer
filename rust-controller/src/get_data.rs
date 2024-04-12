@@ -49,7 +49,6 @@ pub trait HoleScoreOrDefault {
     fn get_hole_info(&self, hole: usize) -> Vec<JsString>;
 }
 
-// Implement the trait for `Option<&PlayerRound>`
 impl HoleScoreOrDefault for Option<&PlayerRound> {
     fn hole_score(&self, hole: usize) -> i16 {
         match self {

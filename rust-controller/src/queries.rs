@@ -9,6 +9,9 @@ extern "C" {
 
 
 
+
+
+
 #[derive(cynic::QueryVariables, Debug)]
 pub struct EventQueryVariables {
     pub event_id: cynic::Id,
@@ -118,8 +121,8 @@ impl ReadableScore {
             ..=-3 => Self::Ace,
             1.. => Self::Bogey(BogeyType::new(actual_score as u8))
         }
-    } 
-    
+    }
+
     const fn to_colour(&self) -> &'static str {
         use ReadableScore::*;
         match self {
@@ -136,7 +139,7 @@ impl ReadableScore {
             Ace | Albatross => "DD6AC9FF"
         }
     }
-    
+
     const fn to_mov(&self) -> &'static str {
         use ReadableScore::*;
         match self {
@@ -164,11 +167,11 @@ impl SimpleResult {
             self.score
         }
     }
-    
+
     fn readable_score(&self) -> ReadableScore {
         self.into()
     }
-    
+
     pub fn get_score_colour(&self) -> &'static str {
         self.readable_score().to_colour()
     }
@@ -223,7 +226,6 @@ pub enum PoolStatus {
     Open,
     Completed,
     Pause
-
 }
 
 #[cynic::schema("tjing")]
