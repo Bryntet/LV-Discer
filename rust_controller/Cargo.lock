@@ -1000,6 +1000,7 @@ dependencies = [
  "wasm-bindgen",
  "wasm-bindgen-futures",
  "wasm-bindgen-test",
+ "wasm-macros",
 ]
 
 [[package]]
@@ -1519,9 +1520,12 @@ dependencies = [
 name = "wasm-macros"
 version = "0.1.0"
 dependencies = [
+ "js-sys",
  "proc-macro2",
  "quote",
  "syn",
+ "wasm-bindgen",
+ "wasm-bindgen-futures",
 ]
 
 [[package]]

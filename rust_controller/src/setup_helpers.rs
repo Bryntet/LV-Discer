@@ -38,7 +38,7 @@ macro_rules! make_js_async_fn {
     };
 }
 
-
+#[wasm_macros::wasm_async]
 async fn test() {
     
 }

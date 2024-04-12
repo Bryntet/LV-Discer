@@ -2,13 +2,13 @@
 <module type="EMPTY_MODULE" version="4">
   <component name="NewModuleRootManager">
     <content url="file://$MODULE_DIR$">
-      <sourceFolder url="file://$MODULE_DIR$/rust-controller/src" isTestSource="false" />
-      <sourceFolder url="file://$MODULE_DIR$/rust-controller/wasm-macros/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/rust_controller/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/rust_controller/wasm_macros/src" isTestSource="false" />
       <excludeFolder url="file://$MODULE_DIR$/built" />
       <excludeFolder url="file://$MODULE_DIR$/pkg" />
       <excludeFolder url="file://$MODULE_DIR$/target" />
       <excludeFolder url="file://$MODULE_DIR$/.idea/copilot/chatSessions" />
-      <excludeFolder url="file://$MODULE_DIR$/rust-controller/target" />
+      <excludeFolder url="file://$MODULE_DIR$/rust_controller/target" />
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
