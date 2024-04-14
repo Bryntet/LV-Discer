@@ -10,7 +10,7 @@ import { CompanionCommonCallbackContext } from "@companion-module/base/dist/modu
 
 
 export enum ActionId {
-	LeaderboadUpdate = 'leaderboard_update',
+	LeaderboardUpdate = 'leaderboard_update',
 	IncreaseScore = 'increase_score',
 	RevertScoreIncrease = 'revert_score_increase',
     ResetScore = 'reset_score',
@@ -37,7 +37,7 @@ async function parseAuto(context: CompanionCommonCallbackContext): Promise<numbe
 
 export const setActionDefinitions = (instance: InstanceBaseExt<Config>): CompanionActionDefinitions => {
     const actions: CompanionActionDefinitions = {};
-    actions[ActionId.LeaderboadUpdate] = {
+    actions[ActionId.LeaderboardUpdate] = {
         name: 'Leaderboard update',
         options: [],
         callback: () => {

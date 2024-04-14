@@ -34,9 +34,10 @@ class LevandeVideoInstance extends InstanceBase<Config> {
 		console.log('HIII')
 		this.updateStatus(InstanceStatus.Ok)
 		this.rust_main = new wasm.FlipUpVMixCoordinator()
+
 		console.log('Rust module initialized')
 		this.config = config
-		
+
 		this.setVariableDefinitions([
 			{
 				name: 'Focused player name',
