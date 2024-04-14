@@ -1,12 +1,8 @@
-use cynic::GraphQlResponse;
 use wasm_bindgen::prelude::*;
-use wasm_bindgen_futures::JsFuture;
 use crate::get_data;
-use wasm_bindgen_futures::future_to_promise;
-use js_sys::Promise;
 
 #[wasm_bindgen]
-struct SimpleRound {
+pub struct SimpleRound {
     round: usize,
     id: String,
 }
@@ -22,20 +18,13 @@ impl SimpleRound {
 
 #[wasm_bindgen]
 #[allow(unused)]
-struct Rounds(Vec<SimpleRound>);
+pub struct Rounds(Vec<SimpleRound>);
 
 
-
-
-
-
-
-
-
-#[wasm_macros::wasm_async]
-pub async fn get_rounds_from_api(event_id: String) -> Result<JsValue, JsValue> {
+#[wasm_bindgen]
+pub async fn get_rounds_from_api(event_id: String) -> Rounds {
     let request = get_data::post_status(event_id.into()).await;
-    match request.data.and_then(|t| {
+    Rounds(request.data.and_then(|t| {
         t.event.map(|event| {
             event.rounds.into_iter().flatten().enumerate()
                 .map(|(round_number, round)| SimpleRound {
@@ -43,8 +32,5 @@ pub async fn get_rounds_from_api(event_id: String) -> Result<JsValue, JsValue> {
                     id: round.id.into_inner(),
                 }).collect::<Vec<_>>()
         })
-    }) {
-        None => Err(JsValue::from_str("AAA")),
-        Some(rounds) => Ok(JsValue::from(Rounds(rounds)))
-    }
+    }).unwrap())
 }
