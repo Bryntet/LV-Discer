@@ -1,5 +1,5 @@
 import { DropdownChoice, InstanceBase } from "@companion-module/base";
-import { FlipUpVMixCoordinator } from "../built/rust_pkg/rust_wasm_test_edvin";
+import { FlipUpVMixCoordinator } from "../../rust_controller/pkg";
 
 
 export interface InstanceBaseExt<TConfig> extends InstanceBase<TConfig> {

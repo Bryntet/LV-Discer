@@ -1,3 +1,3 @@
 module.exports = {
-	extraFiles: ['built/*', "built/rust_pkg/rust_wasm_test_edvin_bg.wasm"]
+	extraFiles: ["../rust_controller/pkg/levandevideo_rust_bg.wasm"],
 }

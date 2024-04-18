@@ -53,10 +53,7 @@ pub struct FlipUpVMixCoordinator {
 
 impl Default for FlipUpVMixCoordinator {
     fn default() -> FlipUpVMixCoordinator {
-        let queue = Arc::new(
-            vmix::Queue::new("localhost".to_string())
-                .expect("Could not connect to vmix on localhost"),
-        );
+        let queue =Arc::new(Queue::new("127.0.0.1".to_string())); // This is your main async runtime
         FlipUpVMixCoordinator {
             all_divs: vec![],
             selected_div_ind: 0,

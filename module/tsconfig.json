@@ -2,7 +2,8 @@
 	"extends": "@companion-module/tools/tsconfig/node18/recommended",
 	"include": [
       "src/**/*.ts",
-      "src/**/*.cts"
+      "src/**/*.cts",
+		"node_modules/@types/node/"
     ],
 	"exclude": ["node_modules/**",
       "src/**/*spec.ts",
@@ -15,5 +16,7 @@
 		"paths": {
 			"*": ["./node_modules/*"]
 		}
-	}
+	},
+
+
 }

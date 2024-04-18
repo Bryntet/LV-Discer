@@ -2,13 +2,17 @@ import { InstanceBase, InstanceStatus, runEntrypoint, SomeCompanionConfigField, 
 import { Config, getConfigFields } from "./config";
 import { setActionDefinitions } from "./actions";
 import { setFeedbackDefinitions } from './feedbacks';
-import wasm from '../built/rust_pkg/rust_wasm_test_edvin';
-import "net";
+import wasm from '../../rust_controller/pkg';
+//import test from "../built/test-node-bindgen/index.node";
+//test.add()
+
+import t from "../../../../../testing-node-bindgen/dist";
+
 
 class LevandeVideoInstance extends InstanceBase<Config> {
 	public rust_main = new wasm.FlipUpVMixCoordinator;
 	public config: Config = {
-		vmix_ip: 'localhost',
+		vmix_ip: '10.170.120.134',
 		event_id: 'a57b4ed6-f64a-4710-8f20-f93e82d4fe79',
 		vmix_input_id: '506fbd14-52fc-495b-8d17-5b924fba64f3',
 		round: 1,
@@ -27,10 +31,12 @@ class LevandeVideoInstance extends InstanceBase<Config> {
 	public hole: number = 0;
 
 	constructor(internal: unknown) {
+		console.log("hi");
 		super(internal)
 	}
 
 	async init(config: Config) {
+		console.log(t.add(1,2));
 		console.log('HIII')
 		this.updateStatus(InstanceStatus.Ok)
 		this.rust_main = new wasm.FlipUpVMixCoordinator()
@@ -317,6 +323,7 @@ class LevandeVideoInstance extends InstanceBase<Config> {
 	
 }
 import { example_conversion } from './upgrades'
+import * as console from "console";
 const upgradeScripts: CompanionStaticUpgradeScript<Config>[] = [example_conversion]
 
 

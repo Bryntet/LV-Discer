@@ -8,15 +8,21 @@
 	},
 	"license": "MIT",
 	"dependencies": {
-		"@companion-module/base": "~1.4.1",
+		"@companion-module/base": "~1.7.0",
 		"axios": "^1.3.5",
-		"deasync": "^0.1.28",
+		"deasync": "^0.1.29",
 		"net": "^1.0.2",
 		"rimraf": "^5.0.1"
 	},
 	"devDependencies": {
 		"@companion-module/tools": "^1.3.2",
+		"node-loader": "^2.0.0",
+		"ts-loader": "^9.5.1",
 		"typescript": "^5.2.2"
 	},
-	"prettier": "@companion-module/tools/.prettierrc.json"
+	"prettier": "@companion-module/tools/.prettierrc.json",
+	"resolutions": {
+		"napi-test-hi": "portal:/home/brynte/new-napi-temp/napi-test-hi",
+		"levandevideo-rust": "portal:/home/brynte/tjing/dev-modules/companion-module-levandevideo-vmix/rust_controller/pkg"
+	}
 }

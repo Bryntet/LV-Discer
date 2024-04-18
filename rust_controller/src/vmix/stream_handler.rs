@@ -1,9 +1,11 @@
 use crate::vmix::functions::{LeaderBoardProperty, VMixFunction, VMixSelectionTrait};
 use std::collections::VecDeque;
 use std::io::{Read, Write};
-use std::net::TcpStream;
+use std::net::{IpAddr, Ipv4Addr, SocketAddr, TcpStream};
+use std::str::FromStr;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
+
 
 pub struct Queue {
     functions: Arc<Mutex<VecDeque<String>>>,
@@ -11,15 +13,14 @@ pub struct Queue {
 }
 
 impl Queue {
-    pub fn new(ip: String) -> Option<Self> {
-        let mut stream = TcpStream::connect(format!("{ip}:8099")).ok()?;
-        stream
+    pub fn new(ip: String) -> Self {
+        let mut stream = TcpStream::connect(SocketAddr::new(IpAddr::V4(Ipv4Addr::from_str(&ip).unwrap()), 8099)).unwrap();
+        /*stream
             .set_read_timeout(Some(Duration::from_millis(10)))
-            .expect("unable to set read timeout");
+            .expect("unable to set read timeout");*/
         let mut buff = String::new();
         loop {
             stream.read_to_string(&mut buff).ok();
-            println!("hi");
             if buff.contains("\r\n") {
                 break;
             }
@@ -35,7 +36,7 @@ impl Queue {
         let stream = me.stream.clone();
         let funcs = me.functions.clone();
         std::thread::spawn(move || Self::start_queue_thread(funcs, stream));
-        Some(me)
+        me
     }
 
     fn send(bytes: &[u8], stream: Arc<Mutex<TcpStream>>) -> Result<(), String> {
@@ -66,6 +67,8 @@ impl Queue {
     }
 
     fn start_queue_thread(funcs: Arc<Mutex<VecDeque<String>>>, stream: Arc<Mutex<TcpStream>>) {
+        
+        
         loop {
             if let Ok(mut functions) = funcs.lock() {
                 while let Some(f) = functions.pop_front() {
@@ -106,7 +109,7 @@ mod test {
     use std::time::Duration;
 
     fn connect() -> Queue {
-        Queue::new("10.170.120.134".to_string()).unwrap()
+        Queue::new("10.170.120.134".to_string())
     }
 
     #[test]

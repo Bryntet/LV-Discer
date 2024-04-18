@@ -28,7 +28,7 @@ export const getConfigFields = (div_names: DropdownChoice[], players: DropdownCh
 				label: 'vMix IP Adress',
 				width: 3,
 				regex: Regex.IP,
-				default: '192.168.120.135',
+				default: '10.170.120.134',
 			},
 			{
 				type: 'textinput',
