@@ -1,16 +1,14 @@
+use std::convert::Infallible;
+use js_sys::JsString;
+use crate::vmix::functions::{VMixFunction, VMixSelection, VMixSelectionTrait, VMixProperty};
 use wasm_bindgen::prelude::*;
+use crate::vmix::conversions::Score;
 
 #[wasm_bindgen]
 extern "C" {
     #[wasm_bindgen(js_namespace = console)]
     fn log(s: &str);
 }
-
-
-
-
-
-
 
 #[derive(cynic::QueryVariables, Debug)]
 pub struct EventQueryVariables {
@@ -74,89 +72,21 @@ pub struct SimpleResult {
     pub is_outside_putt: bool,
 }
 
-enum ReadableScore {
-    Bogey(BogeyType),
-    Par,
-    Birdie,
-    Eagle,
-    Albatross,
-    Ace,
-}
 
-enum BogeyType {
-    Single,
-    Double,
-    Triple,
-    Ouch
-}
-impl BogeyType {
-    const fn new(score: u8) -> Self {
-        match score {
-            1 => Self::Single,
-            2 => Self::Double,
-            3 => Self::Triple,
-            _ => Self::Ouch
-        }
-    }
-}
-impl From<&SimpleResult> for ReadableScore {
-    fn from(res: &SimpleResult) -> Self {
-        Self::new(res.score as i8,res.hole.par.map(|p|p as i8))
+
+
+
+impl From<&SimpleResult> for Score {
+
+    fn from(res: &SimpleResult) -> Self  {
+        let par = res.hole.par.unwrap() as usize;
+        Self::new(res.score as usize, par,res.hole.number as usize)
+
     }
 }
 
-impl ReadableScore {
-    const fn new(score: i8, par: Option<i8>) -> Self {
-        let actual_score = if let Some(par) = par {
-            score - par
-        } else {
-            score
-        };
-        match actual_score {
-            0 => Self::Par,
-            -1 => Self::Birdie,
-            -2 => Self::Eagle,
-            -3 if score == 1 => Self::Ace,
-            -3 => Self::Albatross,
-            ..=-3 => Self::Ace,
-            1.. => Self::Bogey(BogeyType::new(actual_score as u8))
-        }
-    }
 
-    const fn to_colour(&self) -> &'static str {
-        use ReadableScore::*;
-        match self {
-            Bogey(bogey_type) => {
-                match bogey_type {
-                    BogeyType::Triple | BogeyType::Ouch => "AB8E77FF",
-                    BogeyType::Double => "CA988DFF",
-                    BogeyType::Single => "EC928FFF",
-                }
-            },
-            Par => "7E8490FF",
-            Birdie => "A6F8BBFF",
-            Eagle => "6A8BE7FF",
-            Ace | Albatross => "DD6AC9FF"
-        }
-    }
 
-    const fn to_mov(&self) -> &'static str {
-        use ReadableScore::*;
-        match self {
-            Bogey(bogey_type) => match bogey_type {
-                BogeyType::Ouch => "40 ouch.mov",
-                BogeyType::Triple => "30 3xBogey.mov",
-                BogeyType::Double => "20 2xBogey.mov",
-                BogeyType::Single => "10 bogey.mov"
-            },
-            Par => "04 par.mov",
-            Birdie => "03 birdie.mov",
-            Eagle => "02 eagle.mov",
-            Albatross => "01 albatross.mov",
-            Ace => "00 ace.mov"
-        }
-    }
-}
 
 impl SimpleResult {
     pub fn actual_score(&self) -> f64 {
@@ -168,16 +98,16 @@ impl SimpleResult {
         }
     }
 
-    fn readable_score(&self) -> ReadableScore {
-        self.into()
+    fn to_score(&self) -> Score {
+        self.try_into().unwrap()
     }
 
-    pub fn get_score_colour(&self) -> &'static str {
-        self.readable_score().to_colour()
+    pub fn get_score_colour(&self, player: usize) -> VMixFunction<VMixProperty> {
+        self.to_score().to_vmix_colour_update(player)
     }
 
-    pub fn get_mov(&self) -> &'static str {
-        self.readable_score().to_mov()
+    pub fn get_mov(&self,player:usize) -> [VMixFunction<VMixProperty>; 3] {
+        self.to_score().play_mov_vmix(player,false)
     }
 }
 #[derive(cynic::QueryFragment, Debug, Clone)]
@@ -225,7 +155,7 @@ pub enum PoolStatus {
     Prepare,
     Open,
     Completed,
-    Pause
+    Pause,
 }
 
 #[cynic::schema("tjing")]
