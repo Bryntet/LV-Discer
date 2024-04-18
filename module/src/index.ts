@@ -170,16 +170,14 @@ class LevandeVideoInstance extends InstanceBase<Config> {
 		this.updateEventId();
 		this.updateDiv();
 		this.updateFocusedPlayers();
-		this.updatePList(config);
-		const p_list = this.generatePList([this.config.p1, this.config.p2, this.config.p3, this.config.p4]);
-		
+
 		this.initActions();
 		this.initFeedbacks();
 		this.setVariableValues(this.varValues());
 
 		this.setFocusedPlayerVariables();
-		this.updateRoundBasedOnConfig(config);
-		this.updateHoleIfNecessary(config, p_list);
+		this.updateRoundBasedOnConfig();
+		this.updateHoleIfNecessary();
 	}
 	updateVmixIp(config: Config) {
 		if (config.vmix_ip != this.config.vmix_ip) {
@@ -264,36 +262,21 @@ class LevandeVideoInstance extends InstanceBase<Config> {
 		}
 	}
 
-	updatePList(config: Config) {
-		let list = [this.config.p1, this.config.p2, this.config.p3, this.config.p4];
-		let p_list = this.generatePList(list);
 
-		if (p_list.length != 0) {
-			console.log("Sending p_list");
-			sendCommand(p_list.join(''), config);
-		}
-	}
-
-	generatePList(list: any[]): string[] {
-		let p_list: string[] = [];
+	generatePList(list: any[]) {
 		for (const [idx, player] of list.entries()) {
 			if (typeof player === 'string' && player !== 'none') {
-				let cmds = this.rust_main.set_player(idx + 1, player);
-				for (const cmd of cmds) {
-					p_list.push(cmd + '\r\n');
-				}
+				this.rust_main.set_player(idx + 1, player);
 			}
 		}
-		return p_list;
 	}
 
 	
 
-	updateHole(config: Config) {
-		if (this.config.hole != 0 && this.generatePList([this.config.p1, this.config.p2, this.config.p3, this.config.p4]).length != 0) {
-			setTimeout(() => {
-				sendCommand(this.rust_main.set_all_to_hole(this.config.hole).join('\r\n') + '\r\n', config);
-			}, 1000);
+	updateHole() {
+		if (this.config.hole != 0) {
+
+			this.rust_main.set_all_to_hole(this.config.hole);
 			this.setVariableValues({
 				hole: this.config.hole,
 			});
@@ -307,24 +290,22 @@ class LevandeVideoInstance extends InstanceBase<Config> {
 		});
 	}
 
-	updateRoundBasedOnConfig(config: Config) {
+	updateRoundBasedOnConfig() {
 		if (this.rust_main.round != this.config.round - 1) {
-			sendCommand(this.rust_main.set_round(this.config.round - 1).join('\r\n') + '\r\n', config);
+			this.rust_main.set_round(this.config.round - 1);
 			console.log('Round increased');
 		}
 	}
 
-	updateHoleIfNecessary(config: Config, p_list: string[]) {
+	updateHoleIfNecessary() {
 		console.log('hereeee');
 		console.log(this.config.hole);
-		console.log(p_list.length);
-		
-		if (this.config.hole != 0 && p_list.length != 0) {
+
+		if (this.config.hole != 0) {
 			console.log('setting hole');
 			console.log(this.config.hole);
-			setTimeout(() => {
-				sendCommand(this.rust_main.set_all_to_hole(this.config.hole).join('\r\n') + '\r\n', config);
-			}, 1000);
+			this.rust_main.set_all_to_hole(this.config.hole);
+
 			this.setVariableValues({
 				hole: this.config.hole,
 			});
@@ -336,7 +317,6 @@ class LevandeVideoInstance extends InstanceBase<Config> {
 	
 }
 import { example_conversion } from './upgrades'
-import { sendCommand } from './send';
 const upgradeScripts: CompanionStaticUpgradeScript<Config>[] = [example_conversion]
 
 

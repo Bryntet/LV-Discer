@@ -1,5 +1,4 @@
 import { CompanionActionDefinitions } from "@companion-module/base";
-import { sendCommand } from "./send";
 import { Config } from "./config";
 import { InstanceBaseExt } from "./util";
 import { FeedbackId } from "./feedbacks";
@@ -42,7 +41,7 @@ export const setActionDefinitions = (instance: InstanceBaseExt<Config>): Compani
         options: [],
         callback: () => {
             console.log("gonna send lb update")
-            sendCommand(instance.rust_main.set_leaderboard(true).join('\r\n') + '\r\n', instance.config)
+            instance.rust_main.set_leaderboard(true);
             console.log("sent lb update")
             instance.setVariableValues({
                 hole: instance.rust_main.hole,
@@ -67,8 +66,7 @@ export const setActionDefinitions = (instance: InstanceBaseExt<Config>): Compani
                 instance.rust_main.set_foc(foc_player)
             }
             if (instance.rust_main.focused_player_hole <= instance.rust_main.hole) {
-                let inc = instance.rust_main.increase_score()
-                sendCommand(inc.join('\r\n') + '\r\n', instance.config)
+                instance.rust_main.increase_score();
             }
                 let foc_player_ind = await parseAuto(context)
                 instance.rust_main.set_foc(foc_player_ind)
@@ -82,9 +80,8 @@ export const setActionDefinitions = (instance: InstanceBaseExt<Config>): Compani
         name: 'Revert score increase',
         options: [],
         callback: () => {
-            let inc = instance.rust_main.revert_score()
-            instance.setVariableValues({hole:instance.rust_main.get_hole(true)})
-            sendCommand(inc.join('\r\n') + '\r\n', instance.config)
+            instance.rust_main.revert_score();
+            instance.setVariableValues({hole:instance.rust_main.get_hole(true)});
         },
     }
 
@@ -92,7 +89,7 @@ export const setActionDefinitions = (instance: InstanceBaseExt<Config>): Compani
         name: 'Reset score',
         options: [],
         callback: () => {
-            sendCommand(instance.rust_main.reset_score().join('\r\n') + '\r\n', instance.config)
+            instance.rust_main.reset_score();
             instance.setVariableValues({
                 hole: instance.rust_main.hole,
             })
@@ -139,14 +136,11 @@ export const setActionDefinitions = (instance: InstanceBaseExt<Config>): Compani
         callback: async (action, context) => {
             const foc_player = action.options.focused_player
             if (typeof foc_player === "number") {
-                instance.rust_main.set_foc(foc_player)
+                instance.rust_main.set_foc(foc_player);
             }
-            let inc = [instance.rust_main.increase_throw()]
-            sendCommand(inc.join('\r\n') + '\r\n', instance.config)
+            instance.rust_main.increase_throw();
             let foc_player_ind = await parseAuto(context)
-            instance.rust_main.set_foc(foc_player_ind)
-
-            sendCommand(inc.join('\r\n') + '\r\n', instance.config)
+            instance.rust_main.set_foc(foc_player_ind);
         },
     }
     actions[ActionId.DecreaseThrow] = {
@@ -165,18 +159,17 @@ export const setActionDefinitions = (instance: InstanceBaseExt<Config>): Compani
             if (typeof foc_player === 'number') {
                 instance.rust_main.set_foc(foc_player)
             }
-            let inc = [instance.rust_main.decrease_throw()]
+            instance.rust_main.decrease_throw();
             //sendCommand(inc.join('\r\n') + '\r\n', instance.config)
             let foc_player_ind = await parseAuto(context)
-            instance.rust_main.set_foc(foc_player_ind)
-            sendCommand(inc.join('\r\n') + '\r\n', instance.config)
+            instance.rust_main.set_foc(foc_player_ind);
         },
     }
     actions[ActionId.OB] = {
         name: 'OB',
         options: [],
         callback: () => {
-            sendCommand(instance.rust_main.ob_anim().join('\r\n') + '\r\n', instance.config)
+            instance.rust_main.ob_anim();
         },
     }
     actions[ActionId.RunAnimation] = {
@@ -197,8 +190,7 @@ export const setActionDefinitions = (instance: InstanceBaseExt<Config>): Compani
             }
             instance.log("debug", "Running animation\nfoc play hole: " + instance.rust_main.focused_player_hole + " hole: " + instance.rust_main.hole)
             if (instance.rust_main.focused_player_hole <= instance.rust_main.hole) {
-                let thing = instance.rust_main.play_animation()
-                sendCommand(thing.join('\r\n') + '\r\n', instance.config)
+                instance.rust_main.play_animation();
             }
             let foc_player_ind = await parseAuto(context)
             instance.rust_main.set_foc(foc_player_ind)
@@ -211,7 +203,7 @@ export const setActionDefinitions = (instance: InstanceBaseExt<Config>): Compani
         options: [],
         callback: () => {
             if (instance.config.round !== undefined && instance.rust_main.round + 1 < instance.rust_main.rounds) {
-                sendCommand(instance.rust_main.set_round(instance.rust_main.round + 1).join('\r\n') + '\r\n', instance.config)
+                instance.rust_main.set_round(instance.rust_main.round + 1);
                 instance.setVariableValues({ round: instance.rust_main.round + 1 })
                 instance.config.round = instance.rust_main.round + 1
             }
@@ -223,7 +215,7 @@ export const setActionDefinitions = (instance: InstanceBaseExt<Config>): Compani
         options: [],
         callback: () => {
             if (instance.config.round !== undefined && instance.rust_main.round > 0) {
-                sendCommand(instance.rust_main.set_round(instance.rust_main.round - 1).join('\r\n') + '\r\n', instance.config)
+                instance.rust_main.set_round(instance.rust_main.round - 1);
                 instance.setVariableValues({ round: instance.rust_main.round + 1 })
                 instance.config.round = instance.rust_main.round + 1
             }
@@ -233,14 +225,14 @@ export const setActionDefinitions = (instance: InstanceBaseExt<Config>): Compani
         name: 'Show all positions',
         options: [],
         callback: () => {
-            sendCommand(instance.rust_main.show_all_pos().join('\r\n') + '\r\n', instance.config)
+            instance.rust_main.show_all_pos();
         },
     }
     actions[ActionId.HideAllPos] = {
         name: 'Hide all positions',
         options: [],
         callback: () => {
-            sendCommand(instance.rust_main.hide_all_pos().join('\r\n') + '\r\n', instance.config)
+            instance.rust_main.hide_all_pos();
         },
     }
     actions[ActionId.TogglePos] = {
@@ -259,7 +251,7 @@ export const setActionDefinitions = (instance: InstanceBaseExt<Config>): Compani
             if (typeof foc_player === 'number') {
                 instance.rust_main.set_foc(foc_player)
             }
-            sendCommand(instance.rust_main.toggle_pos().join('\r\n') + '\r\n', instance.config)
+            instance.rust_main.toggle_pos();
             let foc_player_ind = await parseAuto(context)
             instance.rust_main.set_foc(foc_player_ind)
         },
@@ -280,8 +272,8 @@ export const setActionDefinitions = (instance: InstanceBaseExt<Config>): Compani
             if (typeof foc_player === 'number') {
                 instance.rust_main.set_foc(foc_player)
             }
-            sendCommand(instance.rust_main.hide_pos().join('\r\n') + '\r\n', instance.config)
-            let foc_player_ind = await parseAuto(context)
+            instance.rust_main.hide_pos();
+            let foc_player_ind = await parseAuto(context);
             instance.rust_main.set_foc(foc_player_ind)
         },
     }
@@ -301,7 +293,7 @@ export const setActionDefinitions = (instance: InstanceBaseExt<Config>): Compani
             if (typeof foc_player === 'number') {
                 instance.rust_main.set_foc(foc_player)
             }
-            sendCommand(instance.rust_main.show_pos().join('\r\n') + '\r\n', instance.config)
+            instance.rust_main.show_pos();
             let foc_player_ind = await parseAuto(context)
             instance.rust_main.set_foc(foc_player_ind)
         }
@@ -310,8 +302,7 @@ export const setActionDefinitions = (instance: InstanceBaseExt<Config>): Compani
         name: 'Set hole info',
         options: [],
         callback: () => {
-            let info = instance.rust_main.make_hole_info().join('\r\n') + '\r\n'
-            sendCommand(info, instance.config)
+            instance.rust_main.make_hole_info();
         }
     }
     actions[ActionId.DoOtherLeaderboard] = {
@@ -329,7 +320,7 @@ export const setActionDefinitions = (instance: InstanceBaseExt<Config>): Compani
         callback: (action) => {
             let div = action.options.division
             if (typeof div === "number" ) {
-                sendCommand(instance.rust_main.make_separate_lb(div-1).join('\r\n') + '\r\n', instance.config)
+                instance.rust_main.make_separate_lb(div-1);
             }
         }
     }
