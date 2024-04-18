@@ -1,8 +1,8 @@
-use std::convert::Infallible;
-use js_sys::JsString;
-use crate::vmix::functions::{VMixFunction, VMixSelection, VMixSelectionTrait, VMixProperty};
-use wasm_bindgen::prelude::*;
 use crate::vmix::conversions::Score;
+use crate::vmix::functions::{VMixFunction, VMixProperty, VMixSelection, VMixSelectionTrait};
+use js_sys::JsString;
+use std::convert::Infallible;
+use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
 extern "C" {
@@ -72,21 +72,12 @@ pub struct SimpleResult {
     pub is_outside_putt: bool,
 }
 
-
-
-
-
 impl From<&SimpleResult> for Score {
-
-    fn from(res: &SimpleResult) -> Self  {
+    fn from(res: &SimpleResult) -> Self {
         let par = res.hole.par.unwrap() as usize;
-        Self::new(res.score as usize, par,res.hole.number as usize)
-
+        Self::new(res.score as usize, par, res.hole.number as usize)
     }
 }
-
-
-
 
 impl SimpleResult {
     pub fn actual_score(&self) -> f64 {
@@ -106,8 +97,8 @@ impl SimpleResult {
         self.to_score().to_vmix_colour_update(player)
     }
 
-    pub fn get_mov(&self,player:usize) -> [VMixFunction<VMixProperty>; 3] {
-        self.to_score().play_mov_vmix(player,false)
+    pub fn get_mov(&self, player: usize) -> [VMixFunction<VMixProperty>; 3] {
+        self.to_score().play_mov_vmix(player, false)
     }
 }
 #[derive(cynic::QueryFragment, Debug, Clone)]

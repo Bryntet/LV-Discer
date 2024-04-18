@@ -84,26 +84,26 @@ impl Queue {
     }
 
     pub fn add<T>(&self, functions: &[VMixFunction<T>])
-        where
-            T: VMixSelectionTrait + std::marker::Send + 'static+ std::marker::Sync, {
+    where
+        T: VMixSelectionTrait + std::marker::Send + 'static + std::marker::Sync,
+    {
         let funcs = self.functions.clone();
-        
+
         let mut funcs = loop {
             if let Ok(funcs) = funcs.lock() {
                 break funcs;
             }
         };
-        let a = functions.iter().map(|f|f.to_cmd()).collect::<Vec<_>>();
-        funcs.extend(a)
+        funcs.extend(functions.iter().map(|f| f.to_cmd()).collect::<Vec<_>>())
     }
 }
 
 #[cfg(test)]
 mod test {
-    use crate::vmix::functions::{VMixFunction, VMixSelection, VMixProperty};
+    use crate::vmix::conversions::ReadableScore;
+    use crate::vmix::functions::{VMixFunction, VMixProperty, VMixSelection};
     use crate::vmix::stream_handler::Queue;
     use std::time::Duration;
-    use crate::vmix::conversions::ReadableScore;
 
     fn connect() -> Queue {
         Queue::new("10.170.120.134".to_string()).unwrap()
@@ -117,7 +117,7 @@ mod test {
             .flat_map(|player| {
                 (1..=9).map(move |hole| VMixFunction::SetColor {
                     color: ReadableScore::Ace.to_colour(),
-                    input: VMixSelection(VMixProperty::ScoreColor{hole , player}),
+                    input: VMixSelection(VMixProperty::ScoreColor { hole, player }),
                 })
             })
             .collect::<Vec<_>>();

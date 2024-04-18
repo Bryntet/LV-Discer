@@ -1,4 +1,3 @@
-
 pub trait VMixSelectionTrait {
     fn get_selection(&self) -> String;
     fn get_id(&self) -> &'static str;
@@ -69,7 +68,7 @@ impl<InputEnum: VMixSelectionTrait> VMixFunction<InputEnum> {
             SetText { input, .. } => Some(input.get_selection()),
             SetColor { input, .. } => Some(input.get_selection()),
             OverlayInput4(mov) => Some(mov.to_string()),
-            OverlayInput4Off | SetPanX{..}=> None,
+            OverlayInput4Off | SetPanX { .. } => None,
             SetImage { input, .. } => Some(input.get_selection()),
             SetTextVisibleOn { input } => Some(input.get_selection()),
             SetTextVisibleOff { input } => Some(input.get_selection()),
@@ -178,10 +177,11 @@ pub enum VMixProperty {
 }
 
 impl VMixSelectionTrait for VMixProperty {
-    
     fn get_selection(&self) -> String {
         match self {
-            VMixProperty::Score{hole, player} => format!("SelectedName=s{}p{}.Text", hole, player + 1),
+            VMixProperty::Score { hole, player } => {
+                format!("SelectedName=s{}p{}.Text", hole, player + 1)
+            }
             VMixProperty::HoleNumber(v1, v2) => {
                 format!("SelectedName=HN{}p{}.Text", v1, v2 + 1)
             }

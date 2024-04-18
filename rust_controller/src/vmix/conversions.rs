@@ -1,18 +1,16 @@
 use crate::get_data::fix_score;
 use crate::vmix::functions::{VMixFunction, VMixProperty, VMixSelection};
 
-
-
 pub struct OverarchingScore {
     round: usize,
     round_score: isize,
     player: usize,
-    total_score: isize
+    total_score: isize,
 }
 
 pub enum RoundScore {
-    Shown([VMixFunction<VMixProperty>;2]),
-    Hidden(VMixFunction<VMixProperty>)
+    Shown([VMixFunction<VMixProperty>; 2]),
+    Hidden(VMixFunction<VMixProperty>),
 }
 
 impl OverarchingScore {
@@ -21,7 +19,7 @@ impl OverarchingScore {
             round,
             round_score,
             player,
-            total_score
+            total_score,
         }
     }
     pub fn set_round_score(&self) -> RoundScore {
@@ -48,18 +46,14 @@ impl OverarchingScore {
             input: VMixProperty::RoundScore(self.player).into(),
         }
     }
-    
+
     pub fn set_total_score(&self) -> VMixFunction<VMixProperty> {
         VMixFunction::SetText {
             value: fix_score(self.total_score),
             input: VMixProperty::TotalScore(self.player).into(),
         }
     }
-    
-   
 }
-
-
 
 pub enum BogeyType {
     Single,
@@ -135,39 +129,46 @@ pub struct Score {
     throws: usize,
     readable_score: ReadableScore,
     par: usize,
-    hole: usize
+    hole: usize,
 }
 impl Score {
-    pub(crate) const fn new(throws: usize, par: usize, hole:usize) -> Self {
+    pub(crate) const fn new(throws: usize, par: usize, hole: usize) -> Self {
         Self {
             throws,
             par,
             readable_score: ReadableScore::new(throws, par),
-            hole
+            hole,
         }
     }
 
-    pub const fn to_vmix_colour_update(
-        &self,
-        player: usize,
-    ) -> VMixFunction<VMixProperty> {
+    pub const fn to_vmix_colour_update(&self, player: usize) -> VMixFunction<VMixProperty> {
         VMixFunction::SetColor {
             color: self.readable_score.to_colour(),
-            input: VMixSelection(VMixProperty::ScoreColor { hole:self.hole, player }),
+            input: VMixSelection(VMixProperty::ScoreColor {
+                hole: self.hole,
+                player,
+            }),
         }
     }
-    pub fn to_vmix_score_update(&self, player: usize,) -> [VMixFunction<VMixProperty>; 3] {
-        [self.to_vmix_hole_score_text_update(player),self.to_vmix_show_hole_score_text(player),self.to_vmix_colour_update(player)]
+    pub fn to_vmix_score_update(&self, player: usize) -> [VMixFunction<VMixProperty>; 3] {
+        [
+            self.to_vmix_hole_score_text_update(player),
+            self.to_vmix_show_hole_score_text(player),
+            self.to_vmix_colour_update(player),
+        ]
     }
 
-    fn to_vmix_hole_score_text_update(&self, player:usize) -> VMixFunction<VMixProperty> {
+    fn to_vmix_hole_score_text_update(&self, player: usize) -> VMixFunction<VMixProperty> {
         VMixFunction::SetText {
             value: (self.throws - self.par).to_string(),
-            input: VMixSelection(VMixProperty::Score { hole:self.hole, player }),
+            input: VMixSelection(VMixProperty::Score {
+                hole: self.hole,
+                player,
+            }),
         }
     }
 
-    fn to_vmix_show_hole_score_text(&self, player:usize) -> VMixFunction<VMixProperty> {
+    fn to_vmix_show_hole_score_text(&self, player: usize) -> VMixFunction<VMixProperty> {
         VMixFunction::SetTextVisibleOn {
             input: VMixSelection(VMixProperty::Score {
                 hole: self.hole,
@@ -176,8 +177,12 @@ impl Score {
         }
     }
 
-    pub fn play_mov_vmix(&self, player: usize, ob: bool) -> [VMixFunction<VMixProperty>;3] {
-        [Self::stop_previous_mov(),self.set_input_pan(player),self.to_vmix_mov(ob)]
+    pub fn play_mov_vmix(&self, player: usize, ob: bool) -> [VMixFunction<VMixProperty>; 3] {
+        [
+            Self::stop_previous_mov(),
+            self.set_input_pan(player),
+            self.to_vmix_mov(ob),
+        ]
     }
 
     fn stop_previous_mov() -> VMixFunction<VMixProperty> {
@@ -192,12 +197,10 @@ impl Score {
             4 => -0.628 + 0.419 * 3.0,
             _ => -0.628,
         };
-        VMixFunction::SetPanX {
-            pan,
-        }
+        VMixFunction::SetPanX { pan }
     }
 
-    const fn to_vmix_mov(&self, ob:bool) -> VMixFunction<VMixProperty> {
+    const fn to_vmix_mov(&self, ob: bool) -> VMixFunction<VMixProperty> {
         if ob {
             VMixFunction::OverlayInput4("00 OB.mov")
         } else {
