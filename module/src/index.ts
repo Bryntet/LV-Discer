@@ -3,10 +3,7 @@ import { Config, getConfigFields } from "./config";
 import { setActionDefinitions } from "./actions";
 import { setFeedbackDefinitions } from './feedbacks';
 import wasm from '../../rust_controller/pkg';
-//import test from "../built/test-node-bindgen/index.node";
-//test.add()
-
-import t from "../../../../../testing-node-bindgen/dist";
+import t from "testing_node_bindgen";
 
 
 class LevandeVideoInstance extends InstanceBase<Config> {
@@ -31,6 +28,7 @@ class LevandeVideoInstance extends InstanceBase<Config> {
 	public hole: number = 0;
 
 	constructor(internal: unknown) {
+		console.log(t.add(1,2));
 		console.log("hi");
 		super(internal)
 	}

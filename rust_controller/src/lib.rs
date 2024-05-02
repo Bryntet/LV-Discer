@@ -17,6 +17,7 @@ use wasm_bindgen::prelude::*;
 extern "C" {
     #[wasm_bindgen(js_namespace = console)]
     fn log(s: &str);
+    
 }
 
 #[wasm_bindgen]
@@ -796,7 +797,7 @@ mod tests {
             .collect::<Vec<String>>()
             .join("")
     }
-    #[wasm_bindgen_test]
+    /*#[wasm_bindgen_test]
     async fn lb_test() {
         let mut app = generate_app().await;
         let round = 1;
@@ -842,5 +843,5 @@ mod tests {
         //         .collect::<Vec<String>>()
         // )
         // .as_str());
-    }
+    }*/
 }

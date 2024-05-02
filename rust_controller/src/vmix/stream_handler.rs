@@ -1,45 +1,119 @@
-use crate::vmix::functions::{LeaderBoardProperty, VMixFunction, VMixSelectionTrait};
 use std::collections::VecDeque;
 use std::io::{Read, Write};
-use std::net::{IpAddr, Ipv4Addr, SocketAddr, TcpStream};
-use std::str::FromStr;
-use std::sync::{Arc, Mutex};
-use std::time::Duration;
-
+use std::net::{IpAddr, SocketAddr, TcpStream};
+use std::sync::{Arc};
+use tokio::sync::Mutex;
+use wasm_bindgen::prelude::*;
 
 pub struct Queue {
     functions: Arc<Mutex<VecDeque<String>>>,
+    #[cfg(not(target_arch = "wasm32"))]
     stream: Arc<Mutex<TcpStream>>,
+    #[cfg(target_arch = "wasm32")]
+    ip: String
 }
+
+#[wasm_bindgen]
+extern "C" {
+    #[wasm_bindgen(js_namespace = globalThis)]
+    fn setTimeout(closure: &Closure<dyn FnMut()>, millis: i32) -> i32;
+}
+
+
+// A function to simulate sleep
+#[wasm_bindgen]
+pub fn sleep(millis: i32) -> js_sys::Promise {
+    js_sys::Promise::new(&mut |resolve, _| {
+        let closure = Closure::wrap(Box::new(move || {
+            resolve.call0(&JsValue::NULL).unwrap();
+        }) as Box<dyn FnMut()>);
+        setTimeout(&closure, millis);
+        closure.forget(); // Prevents the closure from being cleaned up
+    })
+}
+
+pub async fn sleep_rust(millis: i32) {
+    JsFuture::from(sleep(millis)).await;
+}
+
+use wasm_bindgen_futures::{JsFuture, spawn_local};
+use std::str::FromStr;
+use cynic::GraphQlResponse;
+use wasm_bindgen::JsValue;
+use wasm_bindgen::prelude::wasm_bindgen;
+use crate::{log, queries};
+use crate::vmix::functions::{VMixFunction, VMixSelectionTrait};
+
 
 impl Queue {
     pub fn new(ip: String) -> Self {
-        let mut stream = TcpStream::connect(SocketAddr::new(IpAddr::V4(Ipv4Addr::from_str(&ip).unwrap()), 8099)).unwrap();
-        /*stream
-            .set_read_timeout(Some(Duration::from_millis(10)))
-            .expect("unable to set read timeout");*/
-        let mut buff = String::new();
-        loop {
-            stream.read_to_string(&mut buff).ok();
-            if buff.contains("\r\n") {
-                break;
-            }
-        }
-        let thing = format!("Connected to VMix TCP API. Received response:\n{buff}");
-        //super::super::log(&thing);
-        println!("{thing}");
-
         let me = Self {
-            functions: Mutex::new(VecDeque::from(vec![])).into(),
-            stream: Mutex::new(stream).into(),
+            functions: Default::default(),
+            #[cfg(not(target_arch = "wasm32"))]
+            stream: Arc::new(Mutex::new(Self::make_tcp_stream(&ip))),
+            #[cfg(target_arch = "wasm32")]
+            ip: ip.clone(),
         };
-        let stream = me.stream.clone();
+
+        #[cfg(not(target_arch = "wasm32"))]
+            let stream = me.stream.clone();
         let funcs = me.functions.clone();
-        std::thread::spawn(move || Self::start_queue_thread(funcs, stream));
+
+
+        #[cfg(not(target_arch = "wasm32"))]
+        std::thread::spawn(move || Self::start_queue_thread(funcs,stream));
+
+        #[cfg(target_arch = "wasm32")]
+        spawn_local(async move {
+            loop {
+                Self::clear_queue(funcs.clone(),&ip).await;
+            }});
         me
     }
+    #[cfg(target_arch = "wasm32")]
+    async fn clear_queue(funcs: Arc<Mutex<VecDeque<String>>>, ip: &str) {
+        if let Ok(mut functions) = funcs.lock() {
+            while let Some(f) = functions.pop_front() {
+                log("here");
+                Queue::send(f, ip).await.unwrap();
+            }
+        }
+    } 
 
+    #[cfg(not(target_arch = "wasm32"))]
+    fn start_queue_thread(funcs: Arc<Mutex<VecDeque<String>>>, stream: Arc<Mutex<TcpStream>>) {
+        loop {
+            if let Ok(mut functions) = funcs.lock() {
+                while let Some(f) = functions.pop_front() {
+                    Queue::send(&f.into_bytes(), stream.clone());
+                }
+            }
+        }
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    fn make_tcp_stream(ip: &str) -> TcpStream {
+        TcpStream::connect(SocketAddr::new(IpAddr::from_str(ip).unwrap(), 8099)).unwrap()
+    }
+
+    #[cfg(target_arch = "wasm32")]
+    async fn send(body: String, ip: &str) -> Result<(), String> {
+        let response = reqwest::Client::new()
+            .post(format!("http://{ip}:8089/api/?{body}"))
+            .send()
+            .await
+            .expect("failed to send request");
+        let res = response
+            .text()
+            .await
+            .expect("failed to parse response");
+        log(&res);
+        Ok(())
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
     fn send(bytes: &[u8], stream: Arc<Mutex<TcpStream>>) -> Result<(), String> {
+
         let mut stream = loop {
             if let Ok(stream) = stream.lock() {
                 break stream;
@@ -66,18 +140,6 @@ impl Queue {
         Self::parse_buffer(String::from_utf8(response).unwrap())
     }
 
-    fn start_queue_thread(funcs: Arc<Mutex<VecDeque<String>>>, stream: Arc<Mutex<TcpStream>>) {
-        
-        
-        loop {
-            if let Ok(mut functions) = funcs.lock() {
-                while let Some(f) = functions.pop_front() {
-                    Queue::send(&f.into_bytes(), stream.clone());
-                }
-            }
-        }
-    }
-
     fn parse_buffer(buf: String) -> Result<(), String> {
         if buf.contains("OK") {
             Ok(())
@@ -87,13 +149,13 @@ impl Queue {
     }
 
     pub fn add<T>(&self, functions: &[VMixFunction<T>])
-    where
-        T: VMixSelectionTrait + std::marker::Send + 'static + std::marker::Sync,
+        where
+            T: VMixSelectionTrait + std::marker::Send + 'static + std::marker::Sync,
     {
         let funcs = self.functions.clone();
 
         let mut funcs = loop {
-            if let Ok(funcs) = funcs.lock() {
+            if let Ok(funcs) = funcs.blocking_lock() {
                 break funcs;
             }
         };
@@ -101,31 +163,49 @@ impl Queue {
     }
 }
 
+
+
 #[cfg(test)]
+#[cfg(target_arch = "wasm32")]
 mod test {
+    use wasm_bindgen::{JsValue, UnwrapThrowExt};
+    use wasm_bindgen_test::wasm_bindgen_test;
+
+    
+    
     use crate::vmix::conversions::ReadableScore;
     use crate::vmix::functions::{VMixFunction, VMixProperty, VMixSelection};
-    use crate::vmix::stream_handler::Queue;
+    use super::*;
     use std::time::Duration;
+    use wasm_bindgen::__rt::Start;
+    use crate::utils;
 
     fn connect() -> Queue {
         Queue::new("10.170.120.134".to_string())
     }
 
-    #[test]
-    fn set_all_colours() {
+    #[wasm_bindgen_test]
+    async fn set_all_colours() {
+        utils::set_panic_hook();
+
         let mut q = connect();
-        let time = std::time::Instant::now();
+        //let time = std::time::Instant::now();
         let funcs = (0..=4)
             .flat_map(|player| {
                 (1..=9).map(move |hole| VMixFunction::SetColor {
-                    color: ReadableScore::Ace.to_colour(),
+                    color: ReadableScore::Albatross.to_colour(),
                     input: VMixSelection(VMixProperty::ScoreColor { hole, player }),
                 })
             })
             .collect::<Vec<_>>();
         q.add(&funcs);
-        dbg!(std::time::Instant::now().duration_since(time));
-        std::thread::sleep(Duration::from_millis(1000))
+        Queue::clear_queue(q.functions.clone(),&q.ip).await;
+        //dbg!(std::time::Instant::now().duration_since(time));
+        sleep_rust(1000).await;
+
+
+        log("hi");
+        dbg!("hi");
+        panic!()
     }
 }
