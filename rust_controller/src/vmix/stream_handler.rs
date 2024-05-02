@@ -65,6 +65,7 @@ impl Queue {
 
         #[cfg(target_arch = "wasm32")]
         spawn_local(async move {
+            log("hello from local spawned");
             loop {
                 Self::clear_queue(funcs.clone(),&ip).await;
             }});
@@ -72,11 +73,10 @@ impl Queue {
     }
     #[cfg(target_arch = "wasm32")]
     async fn clear_queue(funcs: Arc<Mutex<VecDeque<String>>>, ip: &str) {
-        if let Ok(mut functions) = funcs.lock() {
-            while let Some(f) = functions.pop_front() {
-                log("here");
-                Queue::send(f, ip).await.unwrap();
-            }
+        let mut functions = funcs.lock().await;
+        while let Some(f) = functions.pop_front() {
+            log("cleared one");
+            Queue::send(f, ip).await.unwrap();
         }
     } 
 
@@ -98,8 +98,10 @@ impl Queue {
 
     #[cfg(target_arch = "wasm32")]
     async fn send(body: String, ip: &str) -> Result<(), String> {
+        log("send");
+        log(&format!("{body}"));
         let response = reqwest::Client::new()
-            .post(format!("http://{ip}:8089/api/?{body}"))
+            .post(format!("http://{ip}:8088/API/?{body}"))
             .send()
             .await
             .expect("failed to send request");
@@ -107,7 +109,7 @@ impl Queue {
             .text()
             .await
             .expect("failed to parse response");
-        log(&res);
+        //log(&res);
         Ok(())
     }
 
@@ -152,14 +154,15 @@ impl Queue {
         where
             T: VMixSelectionTrait + std::marker::Send + 'static + std::marker::Sync,
     {
+        log("add");
         let funcs = self.functions.clone();
-
-        let mut funcs = loop {
-            if let Ok(funcs) = funcs.blocking_lock() {
-                break funcs;
-            }
-        };
-        funcs.extend(functions.iter().map(|f| f.to_cmd()).collect::<Vec<_>>())
+        let mut funcs = funcs.blocking_lock();
+        funcs.extend(functions.iter().map(|f| {
+            
+            let cmd = f.to_cmd();
+            log(&cmd);
+            cmd
+        }).collect::<Vec<_>>())
     }
 }
 
@@ -173,12 +176,27 @@ mod test {
 
     
     
-    use crate::vmix::conversions::ReadableScore;
+    use crate::vmix::conversions::{BogeyType, ReadableScore};
     use crate::vmix::functions::{VMixFunction, VMixProperty, VMixSelection};
     use super::*;
     use std::time::Duration;
     use wasm_bindgen::__rt::Start;
     use crate::utils;
+
+    use rand::Rng;
+
+    fn random_number() -> ReadableScore {
+        let mut rng = rand::thread_rng();
+        let num = rng.gen_range(0..=6);
+        match num  {
+            0 => ReadableScore::Ace,
+            1 => ReadableScore::Albatross,
+            2 => ReadableScore::Birdie,
+            3 => ReadableScore::Eagle,
+            4 => ReadableScore::Par,
+            _ => ReadableScore::Bogey(BogeyType::Ouch)
+        }
+    }
 
     fn connect() -> Queue {
         Queue::new("10.170.120.134".to_string())
@@ -190,22 +208,27 @@ mod test {
 
         let mut q = connect();
         //let time = std::time::Instant::now();
-        let funcs = (0..=4)
+        let funcs = (0..=3)
             .flat_map(|player| {
                 (1..=9).map(move |hole| VMixFunction::SetColor {
-                    color: ReadableScore::Albatross.to_colour(),
+                    color: ReadableScore::Birdie.to_colour(),
                     input: VMixSelection(VMixProperty::ScoreColor { hole, player }),
                 })
             })
             .collect::<Vec<_>>();
         q.add(&funcs);
-        Queue::clear_queue(q.functions.clone(),&q.ip).await;
+        //Queue::clear_queue(q.functions.clone(),&q.ip).await;
         //dbg!(std::time::Instant::now().duration_since(time));
-        sleep_rust(1000).await;
 
 
         log("hi");
         dbg!("hi");
-        panic!()
+        /*loop {
+            let lock =  q.functions.lock().await;
+            //log("hi1");
+            if lock.len() == 0 {
+                break;
+            }
+        }*/
     }
 }

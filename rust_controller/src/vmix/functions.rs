@@ -1,6 +1,6 @@
 pub trait VMixSelectionTrait {
     fn get_selection(&self) -> String;
-    fn get_id(&self) -> &'static str;
+    fn get_id(&self) -> String;
 }
 #[derive(Clone)]
 pub struct VMixSelection<T: VMixSelectionTrait>(pub T);
@@ -78,7 +78,7 @@ impl<InputEnum: VMixSelectionTrait> VMixFunction<InputEnum> {
     fn get_value(&self) -> Option<String> {
         match self {
             Self::SetText { value, .. } => Some(value.clone()),
-            Self::SetColor { color, .. } => Some("#".to_string() + color),
+            Self::SetColor { color, .. } => Some(if cfg!(not(target_arch = "wasm32")) { "#".to_string() } else {"%23".to_string()} + color),
             Self::OverlayInput4Off => None,
             Self::OverlayInput4(_) => None,
             Self::SetImage { value, .. } => Some(value.to_string()),
@@ -105,25 +105,34 @@ impl<InputEnum: VMixSelectionTrait> VMixFunction<InputEnum> {
     }
 
     pub fn to_cmd(&self) -> String {
-        let cmd = "FUNCTION ".to_string() + self.get_start_cmd();
+        let cmd = self.get_start_cmd();
         let input = self.get_input();
         let value = self.get_value();
-        let command = match (input, value) {
-            (Some(input), Some(value)) => format!(
-                "{cmd} Input=506fbd14-52fc-495b-8d17-5b924fba64f3&{}&{}",
-                input, value
-            ),
-            (Some(input), None) => format!("{cmd} Input={}", input),
-            (None, Some(value)) => format!("{cmd} Value={}", value),
-            (None, None) => cmd,
-        };
-        command + "\r\n"
+        
+        
+        // wasm32 uses http api
+        if cfg!(target_arch = "wasm32") {
+            "Function=".to_string() + &(match (input, value) {
+                (Some(input), Some(value)) => format!("{cmd}&{input}&{value}"),
+                (Some(input), None) => format!("{cmd}&{}", input),
+                (None, Some(value)) => format!("{cmd}&{value}"),
+                (None, None) => cmd.to_string(),
+            })
+        } else {
+            "FUNCTION ".to_string() + &(match (input, value) {
+                (Some(input), Some(value)) => format!(
+                    "{cmd} {input}&{value}", ),
+                (Some(input), None) => format!("{cmd} {input}"),
+                (None, Some(value)) => format!("{cmd} {value}", ),
+                (None, None) => cmd.to_string(),
+            }) + "\r\n"
+        }
     }
 }
 
 impl VMixSelectionTrait for LeaderBoardProperty {
     fn get_selection(&self) -> String {
-        match self {
+        self.get_id() + &(match self {
             LeaderBoardProperty::Position { pos, lb_pos, tied } => {
                 if *tied && lb_pos != &0 {
                     format!("SelectedName=pos#{}.Text&Value=T{}", pos, lb_pos)
@@ -148,11 +157,11 @@ impl VMixSelectionTrait for LeaderBoardProperty {
             LeaderBoardProperty::Arrow { pos, .. } => format!("SelectedName=arw{}.Source", pos),
             LeaderBoardProperty::Thru(pos) => format!("SelectedName=thru#{}.Text", pos),
             LeaderBoardProperty::CheckinText => "SelectedName=checkintext.Text".to_string(),
-        }
+        })
     }
 
-    fn get_id(&self) -> &'static str {
-        "0e76d38f-6e8d-4f7d-b1a6-e76f695f2094"
+    fn get_id(&self) -> String {
+        "Input=0e76d38f-6e8d-4f7d-b1a6-e76f695f2094&".to_string()
     }
 }
 
@@ -178,7 +187,7 @@ pub enum VMixProperty {
 
 impl VMixSelectionTrait for VMixProperty {
     fn get_selection(&self) -> String {
-        match self {
+        self.get_id() + &(match self {
             VMixProperty::Score { hole, player } => {
                 format!("SelectedName=s{}p{}.Text", hole, player + 1)
             }
@@ -204,10 +213,10 @@ impl VMixSelectionTrait for VMixProperty {
             VMixProperty::HoleFeet => "SelectedName=feetnr.Text".to_string(),
             VMixProperty::HolePar => "SelectedName=parnr.Text".to_string(),
             VMixProperty::Hole => "SelectedName=hole.Text".to_string(),
-        }
+        })
     }
 
-    fn get_id(&self) -> &'static str {
-        "0e76d38f-6e8d-4f7d-b1a6-e76f695f2094"
+    fn get_id(&self) -> String {
+        "Input=506fbd14-52fc-495b-8d17-5b924fba64f3&".to_string()
     }
 }

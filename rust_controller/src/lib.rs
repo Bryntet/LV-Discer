@@ -51,7 +51,6 @@ pub struct FlipUpVMixCoordinator {
     lb_thru: usize,
     queue: Arc<vmix::Queue>,
 }
-
 impl Default for FlipUpVMixCoordinator {
     fn default() -> FlipUpVMixCoordinator {
         let queue =Arc::new(Queue::new("127.0.0.1".to_string())); // This is your main async runtime
