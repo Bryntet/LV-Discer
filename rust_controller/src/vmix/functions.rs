@@ -78,7 +78,14 @@ impl<InputEnum: VMixSelectionTrait> VMixFunction<InputEnum> {
     fn get_value(&self) -> Option<String> {
         match self {
             Self::SetText { value, .. } => Some(value.clone()),
-            Self::SetColor { color, .. } => Some(if cfg!(not(target_arch = "wasm32")) { "#".to_string() } else {"%23".to_string()} + color),
+            #[cfg(not(target_arch = "wasm32"))]
+            Self::SetColor {color,..} => Some(
+                "#".to_string() + color
+            ),
+            #[cfg(target_arch = "wasm32")]
+            Self::SetColor { color, .. } => Some(
+                "%23".to_string() + color
+            ),
             Self::OverlayInput4Off => None,
             Self::OverlayInput4(_) => None,
             Self::SetImage { value, .. } => Some(value.to_string()),
@@ -111,14 +118,17 @@ impl<InputEnum: VMixSelectionTrait> VMixFunction<InputEnum> {
         
         
         // wasm32 uses http api
-        if cfg!(target_arch = "wasm32") {
+        #[cfg(target_arch = "wasm32")]
+        {
             "Function=".to_string() + &(match (input, value) {
                 (Some(input), Some(value)) => format!("{cmd}&{input}&{value}"),
                 (Some(input), None) => format!("{cmd}&{}", input),
                 (None, Some(value)) => format!("{cmd}&{value}"),
                 (None, None) => cmd.to_string(),
             })
-        } else {
+        } 
+        #[cfg(not(target_arch = "wasm32"))]
+        {
             "FUNCTION ".to_string() + &(match (input, value) {
                 (Some(input), Some(value)) => format!(
                     "{cmd} {input}&{value}", ),

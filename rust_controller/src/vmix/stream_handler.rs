@@ -5,6 +5,12 @@ use std::sync::{Arc};
 use tokio::sync::Mutex;
 use wasm_bindgen::prelude::*;
 
+use futures::channel::mpsc;
+use futures::StreamExt;
+use js_sys::Promise;
+use wasm_bindgen::prelude::*;
+use wasm_futures_executor::ThreadPool;
+
 pub struct Queue {
     functions: Arc<Mutex<VecDeque<String>>>,
     #[cfg(not(target_arch = "wasm32"))]
@@ -39,6 +45,8 @@ pub async fn sleep_rust(millis: i32) {
 use wasm_bindgen_futures::{JsFuture, spawn_local};
 use std::str::FromStr;
 use cynic::GraphQlResponse;
+use futures::task::SpawnExt;
+use tokio::spawn;
 use wasm_bindgen::JsValue;
 use wasm_bindgen::prelude::wasm_bindgen;
 use crate::{log, queries};
@@ -65,18 +73,23 @@ impl Queue {
 
         #[cfg(target_arch = "wasm32")]
         spawn_local(async move {
-            log("hello from local spawned");
             loop {
-                Self::clear_queue(funcs.clone(),&ip).await;
-            }});
+                Self::clear_queue(funcs.clone(),ip.clone()).await;
+            }
+        });
+
+        
         me
     }
+    
+    
+    
     #[cfg(target_arch = "wasm32")]
-    async fn clear_queue(funcs: Arc<Mutex<VecDeque<String>>>, ip: &str) {
+    async fn clear_queue(funcs: Arc<Mutex<VecDeque<String>>>, ip: String) {
         let mut functions = funcs.lock().await;
         while let Some(f) = functions.pop_front() {
             log("cleared one");
-            Queue::send(f, ip).await.unwrap();
+            Queue::send(f, &ip).await.unwrap();
         }
     } 
 
@@ -158,7 +171,7 @@ impl Queue {
         let funcs = self.functions.clone();
         let mut funcs = funcs.blocking_lock();
         funcs.extend(functions.iter().map(|f| {
-            
+
             let cmd = f.to_cmd();
             log(&cmd);
             cmd

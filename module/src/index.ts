@@ -2,8 +2,7 @@ import { InstanceBase, InstanceStatus, runEntrypoint, SomeCompanionConfigField, 
 import { Config, getConfigFields } from "./config";
 import { setActionDefinitions } from "./actions";
 import { setFeedbackDefinitions } from './feedbacks';
-import wasm from '../../rust_controller/pkg';
-import t from "testing_node_bindgen";
+import wasm from 'levandevideo-rust';
 
 
 class LevandeVideoInstance extends InstanceBase<Config> {
@@ -28,13 +27,11 @@ class LevandeVideoInstance extends InstanceBase<Config> {
 	public hole: number = 0;
 
 	constructor(internal: unknown) {
-		console.log(t.add(1,2));
 		console.log("hi");
 		super(internal)
 	}
 
 	async init(config: Config) {
-		console.log(t.add(1,2));
 		console.log('HIII')
 		this.updateStatus(InstanceStatus.Ok)
 		this.rust_main = new wasm.FlipUpVMixCoordinator()
