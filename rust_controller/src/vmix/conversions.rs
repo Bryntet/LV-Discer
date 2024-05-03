@@ -108,8 +108,6 @@ impl ReadableScore {
         }
     }
 
-    
-
     const fn to_mov(&self) -> &'static str {
         use ReadableScore::*;
         match self {
@@ -159,17 +157,13 @@ impl Score {
             self.update_score_colour(player),
         ]
     }
-    
+
     fn get_score_text(&self) -> String {
         match self.readable_score {
             ReadableScore::Par => "E".to_string(),
             _ => {
                 let score = self.throws as i32 - self.par as i32;
-                String::from(if score > 0 {
-                    "+"
-                } else {
-                    ""
-                }) + score.to_string().as_str()
+                String::from(if score > 0 { "+" } else { "" }) + score.to_string().as_str()
             }
         }
     }

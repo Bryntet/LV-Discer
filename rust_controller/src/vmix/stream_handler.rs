@@ -3,10 +3,9 @@ use std::collections::VecDeque;
 #[cfg(not(target_arch = "wasm32"))]
 use std::io::{Read, Write};
 
-use std::sync::{Arc};
-use tokio::sync::{Mutex};
+use std::sync::Arc;
+use tokio::sync::Mutex;
 use wasm_bindgen::prelude::*;
-
 
 pub struct Queue {
     functions: VecDeque<String>,
@@ -15,7 +14,7 @@ pub struct Queue {
     #[cfg(target_arch = "wasm32")]
     ip: String,
     #[cfg(target_arch = "wasm32")]
-    client: reqwest::Client
+    client: reqwest::Client,
 }
 
 #[wasm_bindgen]
@@ -23,7 +22,6 @@ extern "C" {
     #[wasm_bindgen(js_namespace = globalThis)]
     fn setTimeout(closure: &Closure<dyn FnMut()>, millis: i32) -> i32;
 }
-
 
 // A function to simulate sleep
 /*#[wasm_bindgen]
@@ -41,12 +39,11 @@ pub async fn sleep_rust(millis: i32) {
     JsFuture::from(sleep(millis)).await;
 }*/
 
-use std::str::FromStr;
-use futures::task::SpawnExt;
-use wasm_bindgen::prelude::wasm_bindgen;
-use crate::{log};
+use crate::log;
 use crate::vmix::functions::{VMixFunction, VMixSelectionTrait};
-
+use futures::task::SpawnExt;
+use std::str::FromStr;
+use wasm_bindgen::prelude::wasm_bindgen;
 
 impl Queue {
     pub fn new(ip: String) -> Self {
@@ -57,29 +54,24 @@ impl Queue {
             #[cfg(target_arch = "wasm32")]
             ip: ip.clone(),
             #[cfg(target_arch = "wasm32")]
-            client: reqwest::Client::new()
+            client: reqwest::Client::new(),
         };
 
         #[cfg(not(target_arch = "wasm32"))]
-            let stream = me.stream.clone();
-
+        let stream = me.stream.clone();
 
         #[cfg(not(target_arch = "wasm32"))]
-        std::thread::spawn(move || Self::start_queue_thread(funcs,stream));
+        std::thread::spawn(move || Self::start_queue_thread(funcs, stream));
 
-       
-
-        
         me
     }
-
 
     #[cfg(target_arch = "wasm32")]
     pub async fn clear_queue(&mut self) {
         while let Some(f) = self.functions.pop_front() {
             self.send(f).await.unwrap();
         }
-    } 
+    }
 
     #[cfg(not(target_arch = "wasm32"))]
     fn start_queue_thread(funcs: Arc<Mutex<VecDeque<String>>>, stream: Arc<Mutex<TcpStream>>) {
@@ -99,21 +91,18 @@ impl Queue {
 
     #[cfg(target_arch = "wasm32")]
     async fn send(&self, body: String) -> Result<(), String> {
-        let response = self.client
+        let response = self
+            .client
             .post(format!("http://{}:8088/API/?{body}", self.ip))
             .send()
             .await
             .expect("failed to send request");
-        response
-            .text()
-            .await
-            .expect("failed to parse response");
+        response.text().await.expect("failed to parse response");
         Ok(())
     }
 
     #[cfg(not(target_arch = "wasm32"))]
     fn send(bytes: &[u8], stream: Arc<Mutex<TcpStream>>) -> Result<(), String> {
-
         let mut stream = loop {
             if let Ok(stream) = stream.lock() {
                 break stream;
@@ -149,25 +138,26 @@ impl Queue {
     }
 
     pub fn add<T>(&mut self, functions: &[VMixFunction<T>])
-        where
-            T: VMixSelectionTrait,
+    where
+        T: VMixSelectionTrait,
     {
-        self.functions.extend(functions.iter().map(VMixFunction::to_cmd).collect::<Vec<_>>())
+        self.functions.extend(
+            functions
+                .iter()
+                .map(VMixFunction::to_cmd)
+                .collect::<Vec<_>>(),
+        )
     }
 }
-
-
 
 #[cfg(test)]
 mod test {
     use wasm_bindgen_test::wasm_bindgen_test;
 
-    
-    
-    use crate::vmix::conversions::{BogeyType, ReadableScore, Score};
-    use crate::vmix::functions::{VMixFunction, VMixProperty, VMixSelection};
     use super::*;
     use crate::utils;
+    use crate::vmix::conversions::{BogeyType, ReadableScore, Score};
+    use crate::vmix::functions::{VMixFunction, VMixProperty, VMixSelection};
 
     use rand::Rng;
 
@@ -181,7 +171,6 @@ mod test {
         Queue::new("10.170.120.134".to_string())
     }
 
-
     #[cfg(target_arch = "wasm32")]
     #[wasm_bindgen_test]
     async fn set_all_colours() {
@@ -194,7 +183,6 @@ mod test {
             })
             .collect::<Vec<VMixFunction<_>>>();
         q.add(&funcs);
-
 
         /*loop {
             let lock =  q.functions.lock().await;

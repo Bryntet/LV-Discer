@@ -18,7 +18,7 @@ use wasm_bindgen::prelude::*;
 extern "C" {
     #[wasm_bindgen(js_namespace = console)]
     fn log(s: &str);
-    
+
 }
 
 #[wasm_bindgen]
@@ -54,7 +54,7 @@ pub struct FlipUpVMixCoordinator {
 }
 impl Default for FlipUpVMixCoordinator {
     fn default() -> FlipUpVMixCoordinator {
-        let queue =Arc::new(Mutex::new(Queue::new("127.0.0.1".to_string()))); // This is your main async runtime
+        let queue = Arc::new(Mutex::new(Queue::new("127.0.0.1".to_string()))); // This is your main async runtime
         FlipUpVMixCoordinator {
             all_divs: vec![],
             selected_div_ind: 0,
@@ -222,7 +222,6 @@ impl FlipUpVMixCoordinator {
         }
         None
     }
-
 
     fn queue_add<T: VMixSelectionTrait>(&self, funcs: &[VMixFunction<T>]) {
         self.queue.blocking_lock().add(funcs)

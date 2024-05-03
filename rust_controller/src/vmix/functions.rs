@@ -79,13 +79,9 @@ impl<InputEnum: VMixSelectionTrait> VMixFunction<InputEnum> {
         match self {
             Self::SetText { value, .. } => Some(value.clone()),
             #[cfg(not(target_arch = "wasm32"))]
-            Self::SetColor {color,..} => Some(
-                "#".to_string() + color
-            ),
+            Self::SetColor { color, .. } => Some("#".to_string() + color),
             #[cfg(target_arch = "wasm32")]
-            Self::SetColor { color, .. } => Some(
-                "%23".to_string() + color
-            ),
+            Self::SetColor { color, .. } => Some("%23".to_string() + color),
             Self::OverlayInput4Off => None,
             Self::OverlayInput4(_) => None,
             Self::SetImage { value, .. } => Some(value.to_string()),
@@ -115,59 +111,63 @@ impl<InputEnum: VMixSelectionTrait> VMixFunction<InputEnum> {
         let cmd = self.get_start_cmd();
         let input = self.get_input();
         let value = self.get_value();
-        
-        
+
         // wasm32 uses http api
         #[cfg(target_arch = "wasm32")]
         {
-            "Function=".to_string() + &(match (input, value) {
-                (Some(input), Some(value)) => format!("{cmd}&{input}&{value}"),
-                (Some(input), None) => format!("{cmd}&{}", input),
-                (None, Some(value)) => format!("{cmd}&{value}"),
-                (None, None) => cmd.to_string(),
-            })
-        } 
+            "Function=".to_string()
+                + &(match (input, value) {
+                    (Some(input), Some(value)) => format!("{cmd}&{input}&{value}"),
+                    (Some(input), None) => format!("{cmd}&{}", input),
+                    (None, Some(value)) => format!("{cmd}&{value}"),
+                    (None, None) => cmd.to_string(),
+                })
+        }
         #[cfg(not(target_arch = "wasm32"))]
         {
-            "FUNCTION ".to_string() + &(match (input, value) {
-                (Some(input), Some(value)) => format!(
-                    "{cmd} {input}&{value}", ),
-                (Some(input), None) => format!("{cmd} {input}"),
-                (None, Some(value)) => format!("{cmd} {value}", ),
-                (None, None) => cmd.to_string(),
-            }) + "\r\n"
+            "FUNCTION ".to_string()
+                + &(match (input, value) {
+                    (Some(input), Some(value)) => format!("{cmd} {input}&{value}",),
+                    (Some(input), None) => format!("{cmd} {input}"),
+                    (None, Some(value)) => format!("{cmd} {value}",),
+                    (None, None) => cmd.to_string(),
+                })
+                + "\r\n"
         }
     }
 }
 
 impl VMixSelectionTrait for LeaderBoardProperty {
     fn get_selection(&self) -> String {
-        self.get_id() + &(match self {
-            LeaderBoardProperty::Position { pos, lb_pos, tied } => {
-                if *tied && lb_pos != &0 {
-                    format!("SelectedName=pos#{}.Text&Value=T{}", pos, lb_pos)
-                } else {
-                    format!(
-                        "SelectedName=pos#{}.Text&Value={}",
-                        pos,
-                        if lb_pos != &0 {
-                            lb_pos.to_string()
-                        } else {
-                            "".to_string()
-                        }
-                    )
+        self.get_id()
+            + &(match self {
+                LeaderBoardProperty::Position { pos, lb_pos, tied } => {
+                    if *tied && lb_pos != &0 {
+                        format!("SelectedName=pos#{}.Text&Value=T{}", pos, lb_pos)
+                    } else {
+                        format!(
+                            "SelectedName=pos#{}.Text&Value={}",
+                            pos,
+                            if lb_pos != &0 {
+                                lb_pos.to_string()
+                            } else {
+                                "".to_string()
+                            }
+                        )
+                    }
                 }
-            }
-            LeaderBoardProperty::Name(pos) => format!("SelectedName=name#{}.Text", pos),
-            LeaderBoardProperty::HotRound(pos) => format!("SelectedName=hrp{}.Source", pos),
-            LeaderBoardProperty::RoundScore(pos) => format!("SelectedName=rs#{}.Text", pos),
-            LeaderBoardProperty::TotalScore { pos, .. } => format!("SelectedName=ts#{}.Text", pos),
-            LeaderBoardProperty::TotalScoreTitle => "SelectedName=ts.Text".to_string(),
-            LeaderBoardProperty::Move { pos, .. } => format!("SelectedName=move{}.Text", pos),
-            LeaderBoardProperty::Arrow { pos, .. } => format!("SelectedName=arw{}.Source", pos),
-            LeaderBoardProperty::Thru(pos) => format!("SelectedName=thru#{}.Text", pos),
-            LeaderBoardProperty::CheckinText => "SelectedName=checkintext.Text".to_string(),
-        })
+                LeaderBoardProperty::Name(pos) => format!("SelectedName=name#{}.Text", pos),
+                LeaderBoardProperty::HotRound(pos) => format!("SelectedName=hrp{}.Source", pos),
+                LeaderBoardProperty::RoundScore(pos) => format!("SelectedName=rs#{}.Text", pos),
+                LeaderBoardProperty::TotalScore { pos, .. } => {
+                    format!("SelectedName=ts#{}.Text", pos)
+                }
+                LeaderBoardProperty::TotalScoreTitle => "SelectedName=ts.Text".to_string(),
+                LeaderBoardProperty::Move { pos, .. } => format!("SelectedName=move{}.Text", pos),
+                LeaderBoardProperty::Arrow { pos, .. } => format!("SelectedName=arw{}.Source", pos),
+                LeaderBoardProperty::Thru(pos) => format!("SelectedName=thru#{}.Text", pos),
+                LeaderBoardProperty::CheckinText => "SelectedName=checkintext.Text".to_string(),
+            })
     }
 
     fn get_id(&self) -> String {
@@ -197,33 +197,36 @@ pub enum VMixProperty {
 
 impl VMixSelectionTrait for VMixProperty {
     fn get_selection(&self) -> String {
-        self.get_id() + &(match self {
-            VMixProperty::Score { hole, player } => {
-                format!("SelectedName=s{}p{}.Text", hole, player + 1)
-            }
-            VMixProperty::HoleNumber(v1, v2) => {
-                format!("SelectedName=HN{}p{}.Text", v1, v2 + 1)
-            }
-            VMixProperty::ScoreColor { hole, player } => {
-                format!("SelectedName=h{}p{}.Fill.Color", hole, player + 1)
-            }
-            VMixProperty::PosRightTriColor(v1) => {
-                format!("SelectedName=rghtri{}.Fill.Color", v1 + 1)
-            }
-            VMixProperty::PosSquareColor(v1) => format!("SelectedName=rekt{}.Fill.Color", v1 + 1),
-            VMixProperty::Name(ind) => format!("SelectedName=namep{}.Text", ind + 1),
-            VMixProperty::Surname(ind) => format!("SelectedName=surnamep{}.Text", ind + 1),
-            VMixProperty::TotalScore(ind) => format!("SelectedName=scoretotp{}.Text", ind + 1),
-            VMixProperty::RoundScore(ind) => format!("SelectedName=scorerndp{}.Text", ind + 1),
-            VMixProperty::Throw(ind) => format!("SelectedName=t#p{}.Text", ind + 1),
-            VMixProperty::Mov(id) => format!("SelectedName={}", id),
-            VMixProperty::PlayerPosition(pos) => format!("SelectedName=posp{}.Text", pos + 1),
+        self.get_id()
+            + &(match self {
+                VMixProperty::Score { hole, player } => {
+                    format!("SelectedName=s{}p{}.Text", hole, player + 1)
+                }
+                VMixProperty::HoleNumber(v1, v2) => {
+                    format!("SelectedName=HN{}p{}.Text", v1, v2 + 1)
+                }
+                VMixProperty::ScoreColor { hole, player } => {
+                    format!("SelectedName=h{}p{}.Fill.Color", hole, player + 1)
+                }
+                VMixProperty::PosRightTriColor(v1) => {
+                    format!("SelectedName=rghtri{}.Fill.Color", v1 + 1)
+                }
+                VMixProperty::PosSquareColor(v1) => {
+                    format!("SelectedName=rekt{}.Fill.Color", v1 + 1)
+                }
+                VMixProperty::Name(ind) => format!("SelectedName=namep{}.Text", ind + 1),
+                VMixProperty::Surname(ind) => format!("SelectedName=surnamep{}.Text", ind + 1),
+                VMixProperty::TotalScore(ind) => format!("SelectedName=scoretotp{}.Text", ind + 1),
+                VMixProperty::RoundScore(ind) => format!("SelectedName=scorerndp{}.Text", ind + 1),
+                VMixProperty::Throw(ind) => format!("SelectedName=t#p{}.Text", ind + 1),
+                VMixProperty::Mov(id) => format!("SelectedName={}", id),
+                VMixProperty::PlayerPosition(pos) => format!("SelectedName=posp{}.Text", pos + 1),
 
-            VMixProperty::HoleMeters => "SelectedName=meternr.Text".to_string(),
-            VMixProperty::HoleFeet => "SelectedName=feetnr.Text".to_string(),
-            VMixProperty::HolePar => "SelectedName=parnr.Text".to_string(),
-            VMixProperty::Hole => "SelectedName=hole.Text".to_string(),
-        })
+                VMixProperty::HoleMeters => "SelectedName=meternr.Text".to_string(),
+                VMixProperty::HoleFeet => "SelectedName=feetnr.Text".to_string(),
+                VMixProperty::HolePar => "SelectedName=parnr.Text".to_string(),
+                VMixProperty::Hole => "SelectedName=hole.Text".to_string(),
+            })
     }
 
     fn get_id(&self) -> String {
