@@ -81,8 +81,8 @@ pub enum ReadableScore {
 }
 impl ReadableScore {
     const fn new(throws: usize, par: usize) -> Self {
-        let score = throws - par;
-        match score as i8 {
+        let score = throws as i8 - par as i8;
+        match score {
             0 => Self::Par,
             -1 => Self::Birdie,
             -2 => Self::Eagle,
@@ -107,6 +107,8 @@ impl ReadableScore {
             Ace | Albatross => "DD6AC9FF",
         }
     }
+
+    
 
     const fn to_mov(&self) -> &'static str {
         use ReadableScore::*;
@@ -141,7 +143,7 @@ impl Score {
         }
     }
 
-    pub const fn to_vmix_colour_update(&self, player: usize) -> VMixFunction<VMixProperty> {
+    pub const fn update_score_colour(&self, player: usize) -> VMixFunction<VMixProperty> {
         VMixFunction::SetColor {
             color: self.readable_score.to_colour(),
             input: VMixSelection(VMixProperty::ScoreColor {
@@ -150,17 +152,31 @@ impl Score {
             }),
         }
     }
-    pub fn to_vmix_score_update(&self, player: usize) -> [VMixFunction<VMixProperty>; 3] {
+    pub fn update_score(&self, player: usize) -> [VMixFunction<VMixProperty>; 3] {
         [
-            self.to_vmix_hole_score_text_update(player),
-            self.to_vmix_show_hole_score_text(player),
-            self.to_vmix_colour_update(player),
+            self.update_score_text(player),
+            self.show_score(player),
+            self.update_score_colour(player),
         ]
     }
+    
+    fn get_score_text(&self) -> String {
+        match self.readable_score {
+            ReadableScore::Par => "E".to_string(),
+            _ => {
+                let score = self.throws as i32 - self.par as i32;
+                String::from(if score > 0 {
+                    "+"
+                } else {
+                    ""
+                }) + score.to_string().as_str()
+            }
+        }
+    }
 
-    fn to_vmix_hole_score_text_update(&self, player: usize) -> VMixFunction<VMixProperty> {
+    fn update_score_text(&self, player: usize) -> VMixFunction<VMixProperty> {
         VMixFunction::SetText {
-            value: (self.throws - self.par).to_string(),
+            value: self.get_score_text(),
             input: VMixSelection(VMixProperty::Score {
                 hole: self.hole,
                 player,
@@ -168,7 +184,7 @@ impl Score {
         }
     }
 
-    fn to_vmix_show_hole_score_text(&self, player: usize) -> VMixFunction<VMixProperty> {
+    fn show_score(&self, player: usize) -> VMixFunction<VMixProperty> {
         VMixFunction::SetTextVisibleOn {
             input: VMixSelection(VMixProperty::Score {
                 hole: self.hole,

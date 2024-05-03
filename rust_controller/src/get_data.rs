@@ -373,7 +373,7 @@ impl NewPlayer {
         self.make_tot_score();
 
         // Update score text, visibility, and colour
-        return_vec.extend(self.get_score().to_vmix_score_update(self.ind));
+        return_vec.extend(self.get_score().update_score(self.ind));
 
         let overarching = self.overarching_score_representation();
         return_vec.push(self.set_tot_score());

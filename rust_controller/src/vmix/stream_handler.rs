@@ -1,22 +1,21 @@
 use std::collections::VecDeque;
+
+#[cfg(not(target_arch = "wasm32"))]
 use std::io::{Read, Write};
-use std::net::{IpAddr, SocketAddr, TcpStream};
+
 use std::sync::{Arc};
-use tokio::sync::Mutex;
+use tokio::sync::{Mutex};
 use wasm_bindgen::prelude::*;
 
-use futures::channel::mpsc;
-use futures::StreamExt;
-use js_sys::Promise;
-use wasm_bindgen::prelude::*;
-use wasm_futures_executor::ThreadPool;
 
 pub struct Queue {
-    functions: Arc<Mutex<VecDeque<String>>>,
+    functions: VecDeque<String>,
     #[cfg(not(target_arch = "wasm32"))]
     stream: Arc<Mutex<TcpStream>>,
     #[cfg(target_arch = "wasm32")]
-    ip: String
+    ip: String,
+    #[cfg(target_arch = "wasm32")]
+    client: reqwest::Client
 }
 
 #[wasm_bindgen]
@@ -27,7 +26,7 @@ extern "C" {
 
 
 // A function to simulate sleep
-#[wasm_bindgen]
+/*#[wasm_bindgen]
 pub fn sleep(millis: i32) -> js_sys::Promise {
     js_sys::Promise::new(&mut |resolve, _| {
         let closure = Closure::wrap(Box::new(move || {
@@ -40,16 +39,12 @@ pub fn sleep(millis: i32) -> js_sys::Promise {
 
 pub async fn sleep_rust(millis: i32) {
     JsFuture::from(sleep(millis)).await;
-}
+}*/
 
-use wasm_bindgen_futures::{JsFuture, spawn_local};
 use std::str::FromStr;
-use cynic::GraphQlResponse;
 use futures::task::SpawnExt;
-use tokio::spawn;
-use wasm_bindgen::JsValue;
 use wasm_bindgen::prelude::wasm_bindgen;
-use crate::{log, queries};
+use crate::{log};
 use crate::vmix::functions::{VMixFunction, VMixSelectionTrait};
 
 
@@ -61,35 +56,28 @@ impl Queue {
             stream: Arc::new(Mutex::new(Self::make_tcp_stream(&ip))),
             #[cfg(target_arch = "wasm32")]
             ip: ip.clone(),
+            #[cfg(target_arch = "wasm32")]
+            client: reqwest::Client::new()
         };
 
         #[cfg(not(target_arch = "wasm32"))]
             let stream = me.stream.clone();
-        let funcs = me.functions.clone();
 
 
         #[cfg(not(target_arch = "wasm32"))]
         std::thread::spawn(move || Self::start_queue_thread(funcs,stream));
 
-        #[cfg(target_arch = "wasm32")]
-        spawn_local(async move {
-            loop {
-                Self::clear_queue(funcs.clone(),ip.clone()).await;
-            }
-        });
+       
 
         
         me
     }
-    
-    
-    
+
+
     #[cfg(target_arch = "wasm32")]
-    async fn clear_queue(funcs: Arc<Mutex<VecDeque<String>>>, ip: String) {
-        let mut functions = funcs.lock().await;
-        while let Some(f) = functions.pop_front() {
-            log("cleared one");
-            Queue::send(f, &ip).await.unwrap();
+    pub async fn clear_queue(&mut self) {
+        while let Some(f) = self.functions.pop_front() {
+            self.send(f).await.unwrap();
         }
     } 
 
@@ -110,19 +98,16 @@ impl Queue {
     }
 
     #[cfg(target_arch = "wasm32")]
-    async fn send(body: String, ip: &str) -> Result<(), String> {
-        log("send");
-        log(&format!("{body}"));
-        let response = reqwest::Client::new()
-            .post(format!("http://{ip}:8088/API/?{body}"))
+    async fn send(&self, body: String) -> Result<(), String> {
+        let response = self.client
+            .post(format!("http://{}:8088/API/?{body}", self.ip))
             .send()
             .await
             .expect("failed to send request");
-        let res = response
+        response
             .text()
             .await
             .expect("failed to parse response");
-        //log(&res);
         Ok(())
     }
 
@@ -163,79 +148,54 @@ impl Queue {
         }
     }
 
-    pub fn add<T>(&self, functions: &[VMixFunction<T>])
+    pub fn add<T>(&mut self, functions: &[VMixFunction<T>])
         where
-            T: VMixSelectionTrait + std::marker::Send + 'static + std::marker::Sync,
+            T: VMixSelectionTrait,
     {
-        log("add");
-        let funcs = self.functions.clone();
-        let mut funcs = funcs.blocking_lock();
-        funcs.extend(functions.iter().map(|f| {
-
-            let cmd = f.to_cmd();
-            log(&cmd);
-            cmd
-        }).collect::<Vec<_>>())
+        self.functions.extend(functions.iter().map(VMixFunction::to_cmd).collect::<Vec<_>>())
     }
 }
 
 
 
 #[cfg(test)]
-#[cfg(target_arch = "wasm32")]
 mod test {
-    use wasm_bindgen::{JsValue, UnwrapThrowExt};
     use wasm_bindgen_test::wasm_bindgen_test;
 
     
     
-    use crate::vmix::conversions::{BogeyType, ReadableScore};
+    use crate::vmix::conversions::{BogeyType, ReadableScore, Score};
     use crate::vmix::functions::{VMixFunction, VMixProperty, VMixSelection};
     use super::*;
-    use std::time::Duration;
-    use wasm_bindgen::__rt::Start;
     use crate::utils;
 
     use rand::Rng;
 
-    fn random_number() -> ReadableScore {
+    fn random_score_type(hole: usize) -> Score {
         let mut rng = rand::thread_rng();
-        let num = rng.gen_range(0..=6);
-        match num  {
-            0 => ReadableScore::Ace,
-            1 => ReadableScore::Albatross,
-            2 => ReadableScore::Birdie,
-            3 => ReadableScore::Eagle,
-            4 => ReadableScore::Par,
-            _ => ReadableScore::Bogey(BogeyType::Ouch)
-        }
+        let throws = rng.gen_range(1..=6);
+        Score::new(throws, 5, hole)
     }
 
     fn connect() -> Queue {
         Queue::new("10.170.120.134".to_string())
     }
 
+
+    #[cfg(target_arch = "wasm32")]
     #[wasm_bindgen_test]
     async fn set_all_colours() {
         utils::set_panic_hook();
 
         let mut q = connect();
-        //let time = std::time::Instant::now();
         let funcs = (0..=3)
             .flat_map(|player| {
-                (1..=9).map(move |hole| VMixFunction::SetColor {
-                    color: ReadableScore::Birdie.to_colour(),
-                    input: VMixSelection(VMixProperty::ScoreColor { hole, player }),
-                })
+                (1..=9).flat_map(move |hole| random_score_type(hole).update_score(player))
             })
-            .collect::<Vec<_>>();
+            .collect::<Vec<VMixFunction<_>>>();
         q.add(&funcs);
-        //Queue::clear_queue(q.functions.clone(),&q.ip).await;
-        //dbg!(std::time::Instant::now().duration_since(time));
 
 
-        log("hi");
-        dbg!("hi");
         /*loop {
             let lock =  q.functions.lock().await;
             //log("hi1");
@@ -243,5 +203,6 @@ mod test {
                 break;
             }
         }*/
+        q.clear_queue().await;
     }
 }

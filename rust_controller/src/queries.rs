@@ -94,7 +94,7 @@ impl SimpleResult {
     }
 
     pub fn get_score_colour(&self, player: usize) -> VMixFunction<VMixProperty> {
-        self.to_score().to_vmix_colour_update(player)
+        self.to_score().update_score_colour(player)
     }
 
     pub fn get_mov(&self, player: usize) -> [VMixFunction<VMixProperty>; 3] {

@@ -6,10 +6,11 @@ mod utils;
 pub mod vmix;
 
 use crate::get_data::HoleScoreOrDefault;
-use crate::vmix::functions::VMixProperty;
+use crate::vmix::functions::{VMixProperty, VMixSelectionTrait};
 use crate::vmix::Queue;
 use js_sys::JsString;
 use std::sync::Arc;
+use tokio::sync::Mutex;
 use vmix::functions::{LeaderBoardProperty, VMixFunction};
 use wasm_bindgen::prelude::*;
 
@@ -49,11 +50,11 @@ pub struct FlipUpVMixCoordinator {
     round_ind: usize,
     lb_div_ind: usize,
     lb_thru: usize,
-    queue: Arc<vmix::Queue>,
+    queue: Arc<Mutex<vmix::Queue>>,
 }
 impl Default for FlipUpVMixCoordinator {
     fn default() -> FlipUpVMixCoordinator {
-        let queue =Arc::new(Queue::new("127.0.0.1".to_string())); // This is your main async runtime
+        let queue =Arc::new(Mutex::new(Queue::new("127.0.0.1".to_string()))); // This is your main async runtime
         FlipUpVMixCoordinator {
             all_divs: vec![],
             selected_div_ind: 0,
@@ -107,7 +108,7 @@ impl FlipUpVMixCoordinator {
     #[wasm_bindgen]
     pub fn set_leaderboard(&mut self, update_players: bool, lb_start_ind: Option<usize>) {
         let mut return_vec: Vec<VMixFunction<VMixProperty>> = vec![];
-        self.queue.add(&FlipUpVMixCoordinator::clear_lb(10));
+        self.queue_add(&FlipUpVMixCoordinator::clear_lb(10));
         log("set_leaderboard");
         //let mut lb_copy = self.clone();
         self.set_lb_thru();
@@ -136,7 +137,7 @@ impl FlipUpVMixCoordinator {
             }
 
             let f = self.make_lb();
-            self.queue.add(&f);
+            self.queue_add(&f);
 
             let players = [
                 &self.score_card.p1,
@@ -167,7 +168,7 @@ impl FlipUpVMixCoordinator {
         } else {
             log("PANIC, hole > 18");
         }
-        self.queue.add(&return_vec);
+        self.queue_add(&return_vec);
     }
 
     fn clear_lb(idx: u16) -> Vec<VMixFunction<LeaderBoardProperty>> {
@@ -206,7 +207,7 @@ impl FlipUpVMixCoordinator {
             }
         })
         .collect::<Vec<_>>();
-        self.queue.add(&instructions)
+        self.queue_add(&instructions)
     }
 
     fn find_same(&self, player: &get_data::NewPlayer) -> Option<get_data::NewPlayer> {
@@ -222,16 +223,10 @@ impl FlipUpVMixCoordinator {
         None
     }
 
-    // #[wasm_bindgen(setter = lb_div)]
-    // pub fn set_lb_div(&mut self, idx: usize) {
-    //     self.lb_div_ind = idx;
-    //     self.handler
-    //         .clone()
-    //         .expect("handler!")
-    //         .set_chosen_by_ind(idx);
-    //     self.get_players(true);
-    //     self.fix_players();
-    // }
+
+    fn queue_add<T: VMixSelectionTrait>(&self, funcs: &[VMixFunction<T>]) {
+        self.queue.blocking_lock().add(funcs)
+    }
 
     fn set_lb_thru(&mut self) {
         let focused_players = [
@@ -379,7 +374,7 @@ impl FlipUpVMixCoordinator {
     #[wasm_bindgen]
     pub fn make_hole_info(&mut self) {
         if self.get_hole(true) <= 18 {
-            self.queue.add(
+            self.queue_add(
                 &self
                     .score_card
                     .p1
@@ -409,7 +404,8 @@ impl FlipUpVMixCoordinator {
     pub fn set_round(&mut self, idx: usize) {
         self.round_ind = idx;
         self.lb_thru = 0;
-        self.queue.add(&self.score_card.set_round(idx));
+        let funcs = self.score_card.set_round(idx);
+        self.queue_add(&funcs);
     }
 
     #[wasm_bindgen(getter = rounds)]
@@ -469,14 +465,14 @@ impl FlipUpVMixCoordinator {
                     focused.shift_scores(false)
                 }
             };
-            self.queue.add(&f);
+            self.queue_add(&f);
         }
     }
 
     #[wasm_bindgen]
     pub fn show_pos(&mut self) {
         let f = self.get_focused().show_pos();
-        self.queue.add(&f)
+        self.queue_add(&f)
     }
 
     #[wasm_bindgen]
@@ -486,13 +482,13 @@ impl FlipUpVMixCoordinator {
         return_vec.extend(self.score_card.p2.show_pos());
         return_vec.extend(self.score_card.p3.show_pos());
         return_vec.extend(self.score_card.p4.show_pos());
-        self.queue.add(&return_vec);
+        self.queue_add(&return_vec);
     }
 
     #[wasm_bindgen]
     pub fn hide_pos(&mut self) {
         let f = self.get_focused().hide_pos();
-        self.queue.add(&f)
+        self.queue_add(&f)
     }
 
     #[wasm_bindgen]
@@ -502,12 +498,12 @@ impl FlipUpVMixCoordinator {
         return_vec.extend(self.score_card.p2.hide_pos());
         return_vec.extend(self.score_card.p3.hide_pos());
         return_vec.extend(self.score_card.p4.hide_pos());
-        self.queue.add(&return_vec);
+        self.queue_add(&return_vec);
     }
 
     pub fn toggle_pos(&mut self) {
         let f = self.get_focused().toggle_pos();
-        self.queue.add(&f)
+        self.queue_add(&f)
     }
 
     #[wasm_bindgen]
@@ -518,7 +514,7 @@ impl FlipUpVMixCoordinator {
                 .get_focused()
                 .get_score()
                 .play_mov_vmix(self.foc_play_ind, false);
-            self.queue.add(&f);
+            self.queue_add(&f);
         }
     }
 
@@ -530,7 +526,7 @@ impl FlipUpVMixCoordinator {
             .get_focused()
             .get_score()
             .play_mov_vmix(self.foc_play_ind, true);
-        self.queue.add(&f)
+        self.queue_add(&f)
     }
 
     fn get_focused(&mut self) -> &mut get_data::NewPlayer {
@@ -555,13 +551,13 @@ impl FlipUpVMixCoordinator {
     #[wasm_bindgen]
     pub fn revert_score(&mut self) {
         let f = self.get_focused().revert_hole_score();
-        self.queue.add(&f);
+        self.queue_add(&f);
     }
     #[wasm_bindgen]
     pub fn reset_score(&mut self) {
         self.lb_thru = 0;
         let f = self.get_focused().reset_scores();
-        self.queue.add(&f)
+        self.queue_add(&f)
     }
 
     #[wasm_bindgen]
@@ -571,8 +567,8 @@ impl FlipUpVMixCoordinator {
         return_vec.extend(self.score_card.p2.reset_scores());
         return_vec.extend(self.score_card.p3.reset_scores());
         return_vec.extend(self.score_card.p4.reset_scores());
-        self.queue.add(&FlipUpVMixCoordinator::clear_lb(10));
-        self.queue.add(&return_vec);
+        self.queue_add(&FlipUpVMixCoordinator::clear_lb(10));
+        self.queue_add(&return_vec);
     }
 
     #[wasm_bindgen]
@@ -617,14 +613,14 @@ impl FlipUpVMixCoordinator {
     pub fn increase_throw(&mut self) {
         self.get_focused().throws += 1;
         let f = [self.get_focused().set_throw()];
-        self.queue.add(&f)
+        self.queue_add(&f)
     }
 
     #[wasm_bindgen]
     pub fn decrease_throw(&mut self) {
         self.get_focused().throws -= 1;
         let f = &[self.get_focused().set_throw()];
-        self.queue.add(f);
+        self.queue_add(f);
     }
 
     #[wasm_bindgen]
@@ -688,7 +684,7 @@ pub struct ScoreCard {
     #[wasm_bindgen(skip)]
     pub all_play_players: Vec<get_data::NewPlayer>,
     ip: String,
-    queue: Option<Arc<Queue>>,
+    queue: Option<Arc<Mutex<Queue>>>,
 }
 
 #[wasm_bindgen]
@@ -714,7 +710,7 @@ impl ScoreCard {
         }
         log(&format!("player_id: {}", player_id));
         if let Some(queue) = self.queue.clone() {
-            queue.add(&out_vec);
+            queue.blocking_lock().add(&out_vec);
         }
     }
 
