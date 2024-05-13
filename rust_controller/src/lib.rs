@@ -673,6 +673,8 @@ impl FlipUpVMixCoordinator {
 #[derive(Default, Clone)]
 pub struct ScoreCard {
     #[wasm_bindgen(skip)]
+    pub players: [get_data::NewPlayer; 4],
+    #[wasm_bindgen(skip)]
     pub p1: get_data::NewPlayer,
     #[wasm_bindgen(skip)]
     pub p2: get_data::NewPlayer,

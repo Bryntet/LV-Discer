@@ -2,7 +2,7 @@ import { InstanceBase, InstanceStatus, runEntrypoint, SomeCompanionConfigField, 
 import { Config, getConfigFields } from "./config";
 import { setActionDefinitions } from "./actions";
 import { setFeedbackDefinitions } from './feedbacks';
-import wasm from 'levandevideo-rust';
+import wasm from '../../rust_controller/pkg';
 
 
 class LevandeVideoInstance extends InstanceBase<Config> {

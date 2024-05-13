@@ -1,20 +1,29 @@
 use std::collections::VecDeque;
 
 #[cfg(not(target_arch = "wasm32"))]
-use std::io::{Read, Write};
+use {std::io::{Read, Write}, std::sync::Mutex, std::net::{IpAddr,TcpStream, SocketAddr, }};
 
 use std::sync::Arc;
+#[cfg(target_arch = "wasm32")]
 use tokio::sync::Mutex;
+
 use wasm_bindgen::prelude::*;
 
+
+#[cfg(target_arch = "wasm32")]
 pub struct Queue {
+    #[cfg(target_arch = "wasm32")]
     functions: VecDeque<String>,
-    #[cfg(not(target_arch = "wasm32"))]
-    stream: Arc<Mutex<TcpStream>>,
     #[cfg(target_arch = "wasm32")]
     ip: String,
     #[cfg(target_arch = "wasm32")]
     client: reqwest::Client,
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+pub struct Queue { 
+    stream: Arc<Mutex<TcpStream>>,
+    functions: Arc<Mutex<VecDeque<String>>>
 }
 
 #[wasm_bindgen]
@@ -46,23 +55,25 @@ use std::str::FromStr;
 use wasm_bindgen::prelude::wasm_bindgen;
 
 impl Queue {
+    #[cfg(not(target_arch = "wasm32"))]
     pub fn new(ip: String) -> Self {
         let me = Self {
             functions: Default::default(),
-            #[cfg(not(target_arch = "wasm32"))]
             stream: Arc::new(Mutex::new(Self::make_tcp_stream(&ip))),
-            #[cfg(target_arch = "wasm32")]
+        };
+        me
+    }
+    #[cfg(target_arch = "wasm32")]
+    pub fn new(ip: String) -> Self {
+        let me = Self {
+            functions: Default::default(),
             ip: ip.clone(),
-            #[cfg(target_arch = "wasm32")]
             client: reqwest::Client::new(),
         };
-
-        #[cfg(not(target_arch = "wasm32"))]
+        let funcs = me.functions.clone();
         let stream = me.stream.clone();
-
         #[cfg(not(target_arch = "wasm32"))]
-        std::thread::spawn(move || Self::start_queue_thread(funcs, stream));
-
+        std::thread::spawn(move || Self::start_queue_thread(funcs,stream));        
         me
     }
 
@@ -137,9 +148,8 @@ impl Queue {
         }
     }
 
-    pub fn add<T>(&mut self, functions: &[VMixFunction<T>])
-    where
-        T: VMixSelectionTrait,
+    #[cfg(target_arch = "wasm32")]
+    pub fn add<T: VMixSelectionTrait>(&mut self, functions: &[VMixFunction<T>])
     {
         self.functions.extend(
             functions
@@ -148,6 +158,16 @@ impl Queue {
                 .collect::<Vec<_>>(),
         )
     }
+    #[cfg(not(target_arch = "wasm32"))]
+    pub fn add<T: VMixSelectionTrait>(&mut self, functions: &[VMixFunction<T>]) {
+        loop {
+            if let Ok(mut funcs) = self.functions.lock() {
+                funcs.extend(functions.iter().map(VMixFunction::to_cmd).collect::<Vec<_>>());
+                break;
+            }
+        }
+    }
+    
 }
 
 #[cfg(test)]
