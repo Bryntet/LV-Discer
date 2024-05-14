@@ -77,100 +77,8 @@ impl Default for FlipUpVMixCoordinator {
     }
 }
 
-#[wasm_bindgen]
 impl FlipUpVMixCoordinator {
     // Initialise main app
-    #[wasm_bindgen(constructor)]
-    pub fn new() -> Self {
-        utils::set_panic_hook();
-        Self::default()
-    }
-    #[wasm_bindgen(setter = ip)]
-    pub fn set_ip(&mut self, ip: String) {
-        self.ip.clone_from(&ip);
-        self.score_card.ip = ip;
-        log(&format!("ip set to {}", &self.ip));
-    }
-    #[wasm_bindgen(setter = div)]
-    pub fn set_div(&mut self, idx: usize) {
-        log(&format!("div set to {}", idx));
-        self.selected_div_ind = idx;
-        if let Some(handler) = &mut self.handler {
-            handler.set_chosen_by_ind(idx);
-        }
-        log("did that");
-        self.fetch_players(false);
-        log("here now hah");
-        // self.selected_div = Some(self.all_divs[idx].clone());
-        // self.score_card.all_play_players = self.selected_div.as_ref().unwrap().players.clone();
-    }
-
-    #[wasm_bindgen]
-    pub fn set_leaderboard(&mut self, update_players: bool, lb_start_ind: Option<usize>) {
-        let mut return_vec: Vec<VMixFunction<VMixProperty>> = vec![];
-        self.queue_add(&FlipUpVMixCoordinator::clear_lb(10));
-        log("set_leaderboard");
-        //let mut lb_copy = self.clone();
-        self.set_lb_thru();
-        log("past set_lb_thru");
-        if self.get_hole(false) <= 19 {
-            log("hole <= 19");
-            self.lb_div_ind = self.selected_div_ind;
-            self.fetch_players(true);
-            log(&format!(
-                "{:#?}",
-                self.score_card
-                    .all_play_players
-                    .iter()
-                    .map(|p| p.name.clone())
-                    .collect::<Vec<String>>()
-            ));
-            log("past get_players");
-            self.fix_players();
-
-            if let Some(pop) = lb_start_ind {
-                self.score_card.all_play_players.drain(0..pop);
-                self.score_card
-                    .all_play_players
-                    .iter_mut()
-                    .for_each(|p| p.position -= pop as u16);
-            }
-
-            let f = self.make_lb();
-            self.queue_add(&f);
-
-            let players = [
-                &self.score_card.p1,
-                &self.score_card.p2,
-                &self.score_card.p3,
-                &self.score_card.p4,
-            ];
-            for player in players {
-                let same = self.find_same(player);
-                let mut cloned_player = player.clone();
-                if cloned_player.hole > 7 {
-                    cloned_player.hole -= 1;
-                    let shift_scores = cloned_player.shift_scores(true);
-                    if update_players {
-                        return_vec.extend(shift_scores)
-                    };
-                }
-                if let Some(same) = same {
-                    if let Some(pos) = same.set_pos() {
-                        return_vec.push(pos);
-                    }
-                }
-            }
-            // return_vec.push(self.find_same(&self.score_card.p1).unwrap().set_pos());
-            // return_vec.push(self.find_same(&self.score_card.p2).unwrap().set_pos());
-            // return_vec.push(self.find_same(&self.score_card.p3).unwrap().set_pos());
-            // return_vec.push(self.find_same(&self.score_card.p4).unwrap().set_pos());
-        } else {
-            log("PANIC, hole > 18");
-        }
-        self.queue_add(&return_vec);
-    }
-
     fn clear_lb(idx: u16) -> Vec<VMixFunction<LeaderBoardProperty>> {
         let mut new_player = get_data::NewPlayer::default();
         new_player.lb_vmix_id = "2ef7178b-61ab-445c-9bbd-2f1c2c781e86".into();
@@ -182,34 +90,7 @@ impl FlipUpVMixCoordinator {
         }
         r_v
     }
-
-    #[wasm_bindgen]
-    pub fn set_all_to_hole(&mut self, hole: usize) {
-        let instructions = [
-            &mut self.score_card.p1,
-            &mut self.score_card.p2,
-            &mut self.score_card.p3,
-            &mut self.score_card.p4,
-        ]
-        .iter_mut()
-        .flat_map(|player| {
-            if hole >= 9 {
-                player.hole = hole - 1;
-                player.shift_scores(true)
-            } else {
-                let mut r_vec: Vec<VMixFunction<VMixProperty>> = vec![];
-                for x in 1..=hole {
-                    log(&format!("hello im here: {}", x));
-                    player.hole = x;
-                    r_vec.extend(player.set_hole_score());
-                }
-                r_vec
-            }
-        })
-        .collect::<Vec<_>>();
-        self.queue_add(&instructions)
-    }
-
+    
     fn find_same(&self, player: &get_data::NewPlayer) -> Option<get_data::NewPlayer> {
         for p in &self.score_card.all_play_players {
             if p.player_id == player.player_id {
@@ -237,22 +118,7 @@ impl FlipUpVMixCoordinator {
         self.lb_thru = focused_players.iter().map(|p| p.hole).min().unwrap_or(0);
     }
 
-    #[wasm_bindgen]
-    pub fn get_hole(&mut self, check_thru: bool) -> usize {
-        if check_thru {
-            self.set_lb_thru();
-        }
-        self.lb_thru + 1
-    }
-
-    #[wasm_bindgen(getter = focused_player_hole)]
-    pub fn focused_player_hole(&mut self) -> usize {
-        self.get_focused().hole + 1
-    }
-    #[wasm_bindgen(getter = hole)]
-    pub fn get_hole_js(&self) -> usize {
-        self.lb_thru + 1
-    }
+    
 
     fn fix_players(&mut self) {
         if self.round_ind != 0 {
@@ -370,6 +236,153 @@ impl FlipUpVMixCoordinator {
         }
     }
 
+    
+
+    fn make_lb(&mut self) -> Vec<VMixFunction<LeaderBoardProperty>> {
+        let mut r_vec: Vec<VMixFunction<LeaderBoardProperty>> = self
+            .score_card
+            .all_play_players
+            .iter_mut()
+            .flat_map(|player| player.set_lb())
+            .collect();
+        r_vec.push(self.make_checkin_text());
+        r_vec
+    }
+
+    pub fn toggle_pos(&mut self) {
+        let f = self.get_focused().toggle_pos();
+        self.queue_add(&f)
+    }
+
+    fn get_focused(&mut self) -> &mut get_data::NewPlayer {
+        match self.foc_play_ind {
+            0 => &mut self.score_card.p1,
+            1 => &mut self.score_card.p2,
+            2 => &mut self.score_card.p3,
+            3 => &mut self.score_card.p4,
+            _ => &mut self.score_card.p1,
+        }
+    }
+
+    
+}
+
+// public wasm functions
+#[wasm_bindgen]
+impl FlipUpVMixCoordinator {
+    #[wasm_bindgen(constructor)]
+    pub fn new() -> Self {
+        utils::set_panic_hook();
+        Self::default()
+    }
+    #[wasm_bindgen(setter = ip)]
+    pub fn set_ip(&mut self, ip: String) {
+        self.ip.clone_from(&ip);
+        self.score_card.ip = ip;
+        log(&format!("ip set to {}", &self.ip));
+    }
+    #[wasm_bindgen(setter = div)]
+    pub fn set_div(&mut self, idx: usize) {
+        log(&format!("div set to {}", idx));
+        self.selected_div_ind = idx;
+        if let Some(handler) = &mut self.handler {
+            handler.set_chosen_by_ind(idx);
+        }
+        self.fetch_players(false);
+    }
+    
+    #[wasm_bindgen]
+    pub fn set_leaderboard(&mut self, update_players: bool, lb_start_ind: Option<usize>) {
+        let mut return_vec: Vec<VMixFunction<VMixProperty>> = vec![];
+        self.queue_add(&FlipUpVMixCoordinator::clear_lb(10));
+        log("set_leaderboard");
+        //let mut lb_copy = self.clone();
+        self.set_lb_thru();
+        log("past set_lb_thru");
+        if self.get_hole(false) <= 19 {
+            log("hole <= 19");
+            self.lb_div_ind = self.selected_div_ind;
+            self.fetch_players(true);
+            log(&format!(
+                "{:#?}",
+                self.score_card
+                    .all_play_players
+                    .iter()
+                    .map(|p| p.name.clone())
+                    .collect::<Vec<String>>()
+            ));
+            log("past get_players");
+            self.fix_players();
+
+            if let Some(pop) = lb_start_ind {
+                self.score_card.all_play_players.drain(0..pop);
+                self.score_card
+                    .all_play_players
+                    .iter_mut()
+                    .for_each(|p| p.position -= pop as u16);
+            }
+
+            let f = self.make_lb();
+            self.queue_add(&f);
+
+            let players = [
+                &self.score_card.p1,
+                &self.score_card.p2,
+                &self.score_card.p3,
+                &self.score_card.p4,
+            ];
+            for player in players {
+                let same = self.find_same(player);
+                let mut cloned_player = player.clone();
+                if cloned_player.hole > 7 {
+                    cloned_player.hole -= 1;
+                    let shift_scores = cloned_player.shift_scores(true);
+                    if update_players {
+                        return_vec.extend(shift_scores)
+                    };
+                }
+                if let Some(same) = same {
+                    if let Some(pos) = same.set_pos() {
+                        return_vec.push(pos);
+                    }
+                }
+            }
+            // return_vec.push(self.find_same(&self.score_card.p1).unwrap().set_pos());
+            // return_vec.push(self.find_same(&self.score_card.p2).unwrap().set_pos());
+            // return_vec.push(self.find_same(&self.score_card.p3).unwrap().set_pos());
+            // return_vec.push(self.find_same(&self.score_card.p4).unwrap().set_pos());
+        } else {
+            log("PANIC, hole > 18");
+        }
+        self.queue_add(&return_vec);
+    }
+
+    #[wasm_bindgen]
+    pub fn set_all_to_hole(&mut self, hole: usize) {
+        let instructions = [
+            &mut self.score_card.p1,
+            &mut self.score_card.p2,
+            &mut self.score_card.p3,
+            &mut self.score_card.p4,
+        ]
+            .iter_mut()
+            .flat_map(|player| {
+                if hole >= 9 {
+                    player.hole = hole - 1;
+                    player.shift_scores(true)
+                } else {
+                    let mut r_vec: Vec<VMixFunction<VMixProperty>> = vec![];
+                    for x in 1..=hole {
+                        log(&format!("hello im here: {}", x));
+                        player.hole = x;
+                        r_vec.extend(player.set_hole_score());
+                    }
+                    r_vec
+                }
+            })
+            .collect::<Vec<_>>();
+        self.queue_add(&instructions)
+    }
     #[wasm_bindgen]
     pub fn make_hole_info(&mut self) {
         if self.get_hole(true) <= 18 {
@@ -383,17 +396,22 @@ impl FlipUpVMixCoordinator {
         }
     }
 
-    fn make_lb(&mut self) -> Vec<VMixFunction<LeaderBoardProperty>> {
-        let mut r_vec: Vec<VMixFunction<LeaderBoardProperty>> = self
-            .score_card
-            .all_play_players
-            .iter_mut()
-            .flat_map(|player| player.set_lb())
-            .collect();
-        r_vec.push(self.make_checkin_text());
-        r_vec
+    #[wasm_bindgen]
+    pub fn get_hole(&mut self, check_thru: bool) -> usize {
+        if check_thru {
+            self.set_lb_thru();
+        }
+        self.lb_thru + 1
     }
 
+    #[wasm_bindgen(getter = focused_player_hole)]
+    pub fn focused_player_hole(&mut self) -> usize {
+        self.get_focused().hole + 1
+    }
+    #[wasm_bindgen(getter = hole)]
+    pub fn get_hole_js(&self) -> usize {
+        self.lb_thru + 1
+    }
     #[wasm_bindgen(getter = round)]
     pub fn get_round(&self) -> usize {
         self.round_ind
@@ -428,28 +446,7 @@ impl FlipUpVMixCoordinator {
         let result = wasm_bindgen_futures::JsFuture::from(promise).await?;
         Ok(result)
     }
-
-    // #[wasm_bindgen]
-    // pub async fn get_divs(&mut self) -> Result<JsValue, JsValue> {
-    //     self.all_divs = vec![];
-
-    //     if let Some(pool) = self.pool {
-    //         if let Some(lb) = pool.leaderboard {
-    //             for div in lb {
-    //                 if let Some(div) = div {
-    //                     match div {
-    //                         queries::PoolLeaderboardDivisionCombined::PoolLeaderboardDivision(d) => {
-    //                             self.all_divs.push(d);
-    //                         }
-    //                         _ => {}
-    //                     }
-    //                 }
-    //             }
-    //         }
-    //     }
-
-    // }
-
+    
     #[wasm_bindgen]
     pub fn increase_score(&mut self) {
         let hole = self.get_focused().hole;
@@ -499,12 +496,7 @@ impl FlipUpVMixCoordinator {
         return_vec.extend(self.score_card.p4.hide_pos());
         self.queue_add(&return_vec);
     }
-
-    pub fn toggle_pos(&mut self) {
-        let f = self.get_focused().toggle_pos();
-        self.queue_add(&f)
-    }
-
+    
     #[wasm_bindgen]
     pub fn play_animation(&mut self) {
         log("play_animation");
@@ -527,17 +519,6 @@ impl FlipUpVMixCoordinator {
             .play_mov_vmix(self.foc_play_ind, true);
         self.queue_add(&f)
     }
-
-    fn get_focused(&mut self) -> &mut get_data::NewPlayer {
-        match self.foc_play_ind {
-            0 => &mut self.score_card.p1,
-            1 => &mut self.score_card.p2,
-            2 => &mut self.score_card.p3,
-            3 => &mut self.score_card.p4,
-            _ => &mut self.score_card.p1,
-        }
-    }
-
     #[wasm_bindgen]
     pub fn set_player(&mut self, idx: usize, player: JsString) {
         self.score_card.set_player(idx, player, self.round_ind);
@@ -630,9 +611,9 @@ impl FlipUpVMixCoordinator {
             self.score_card.p3.clone(),
             self.score_card.p4.clone(),
         ]
-        .iter()
-        .map(|player| player.name.clone().into())
-        .collect()
+            .iter()
+            .map(|player| player.name.clone().into())
+            .collect()
     }
     #[wasm_bindgen(setter)]
     pub fn set_event_id(&mut self, event_id: JsString) {
@@ -668,6 +649,7 @@ impl FlipUpVMixCoordinator {
         }
     }
 }
+
 
 #[wasm_bindgen]
 #[derive(Default, Clone)]
