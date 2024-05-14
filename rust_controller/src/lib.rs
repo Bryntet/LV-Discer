@@ -4,6 +4,7 @@ mod queries;
 mod setup_helpers;
 mod utils;
 pub mod vmix;
+mod flipup_vmix_controls;
 
 use crate::get_data::HoleScoreOrDefault;
 use crate::vmix::functions::{VMixProperty, VMixSelectionTrait};
@@ -11,7 +12,8 @@ use crate::vmix::Queue;
 use js_sys::JsString;
 use std::sync::Arc;
 use tokio::sync::Mutex;
-use vmix::functions::{LeaderBoardProperty, VMixFunction};
+use vmix::functions::{VMixFunction};
+use flipup_vmix_controls::LeaderBoardProperty;
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
@@ -46,7 +48,7 @@ pub struct FlipUpVMixCoordinator {
     event_id: String,
     pools: Vec<queries::Pool>,
     handler: Option<get_data::RustHandler>,
-    available_players: Vec<get_data::NewPlayer>,
+    available_players: Vec<get_data::Player>,
     round_ind: usize,
     lb_div_ind: usize,
     lb_thru: usize,
@@ -79,8 +81,8 @@ impl Default for FlipUpVMixCoordinator {
 
 impl FlipUpVMixCoordinator {
     // Initialise main app
-    fn clear_lb(idx: u16) -> Vec<VMixFunction<LeaderBoardProperty>> {
-        let mut new_player = get_data::NewPlayer::default();
+    fn clear_lb(idx: usize) -> Vec<VMixFunction<LeaderBoardProperty>> {
+        let mut new_player = get_data::Player::default();
         new_player.lb_vmix_id = "2ef7178b-61ab-445c-9bbd-2f1c2c781e86".into();
 
         let mut r_v: Vec<VMixFunction<LeaderBoardProperty>> = vec![];
@@ -91,7 +93,7 @@ impl FlipUpVMixCoordinator {
         r_v
     }
     
-    fn find_same(&self, player: &get_data::NewPlayer) -> Option<get_data::NewPlayer> {
+    fn find_same(&self, player: &get_data::Player) -> Option<get_data::Player> {
         for p in &self.score_card.all_play_players {
             if p.player_id == player.player_id {
                 return Some({
@@ -137,7 +139,7 @@ impl FlipUpVMixCoordinator {
             player.old_pos = player.lb_pos;
             player.set_round(self.round_ind);
             //log(&format!("player.hole: {}", player.hole));
-            player.thru = self.lb_thru as u8;
+            player.thru = self.lb_thru;
             player.hole = if self.lb_thru > 0 {
                 self.lb_thru - 1
             } else {
@@ -180,23 +182,23 @@ impl FlipUpVMixCoordinator {
             }
 
             let player = &mut self.score_card.all_play_players[i];
-            player.position = i as u16 + 1;
+            player.position = i + 1;
 
             if let Some(next_play) = next_play.clone() {
                 if let Some(prev_play) = prev_play.clone() {
                     if player.total_score != prev_play.total_score {
-                        player.lb_pos = i as u16 + 1;
+                        player.lb_pos = i + 1;
                     } else {
                         player.lb_pos = prev_play.lb_pos;
                     }
                 } else {
-                    player.lb_pos = i as u16 + 1;
+                    player.lb_pos = i + 1;
                 }
                 if player.total_score == next_play.total_score {
                     player.lb_even = true
                 }
             } else {
-                player.lb_pos = play_len as u16
+                player.lb_pos = play_len
             }
             if let Some(prev_play) = prev_play {
                 if player.total_score == prev_play.total_score {
@@ -254,7 +256,7 @@ impl FlipUpVMixCoordinator {
         self.queue_add(&f)
     }
 
-    fn get_focused(&mut self) -> &mut get_data::NewPlayer {
+    fn get_focused(&mut self) -> &mut get_data::Player {
         match self.foc_play_ind {
             0 => &mut self.score_card.p1,
             1 => &mut self.score_card.p2,
@@ -316,10 +318,9 @@ impl FlipUpVMixCoordinator {
 
             if let Some(pop) = lb_start_ind {
                 self.score_card.all_play_players.drain(0..pop);
-                self.score_card
-                    .all_play_players
-                    .iter_mut()
-                    .for_each(|p| p.position -= pop as u16);
+                for player in &mut self.score_card.all_play_players {
+                    player.position -= pop;
+                }
             }
 
             let f = self.make_lb();
@@ -655,17 +656,17 @@ impl FlipUpVMixCoordinator {
 #[derive(Default, Clone)]
 pub struct ScoreCard {
     #[wasm_bindgen(skip)]
-    pub players: [get_data::NewPlayer; 4],
+    pub players: [get_data::Player; 4],
     #[wasm_bindgen(skip)]
-    pub p1: get_data::NewPlayer,
+    pub p1: get_data::Player,
     #[wasm_bindgen(skip)]
-    pub p2: get_data::NewPlayer,
+    pub p2: get_data::Player,
     #[wasm_bindgen(skip)]
-    pub p3: get_data::NewPlayer,
+    pub p3: get_data::Player,
     #[wasm_bindgen(skip)]
-    pub p4: get_data::NewPlayer,
+    pub p4: get_data::Player,
     #[wasm_bindgen(skip)]
-    pub all_play_players: Vec<get_data::NewPlayer>,
+    pub all_play_players: Vec<get_data::Player>,
     ip: String,
     queue: Option<Arc<Mutex<Queue>>>,
 }
@@ -768,13 +769,7 @@ mod tests {
     fn send(data: &str) {
         sendData("37.123.135.170", 8099, data);
     }
-    fn handle_js_vec(js_vec: Vec<JsString>) -> String {
-        js_vec
-            .iter()
-            .map(|s| String::from(s) + "\r\n")
-            .collect::<Vec<String>>()
-            .join("")
-    }
+    
     /*#[wasm_bindgen_test]
     async fn lb_test() {
         let mut app = generate_app().await;

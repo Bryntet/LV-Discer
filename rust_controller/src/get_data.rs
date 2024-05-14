@@ -1,11 +1,11 @@
+use crate::LeaderBoardProperty;
 use cynic::GraphQlResponse;
-use js_sys::JsString;
 use wasm_bindgen::prelude::*;
 
 use crate::queries;
 use crate::queries::Division;
-use crate::vmix::conversions::*;
 use crate::vmix::functions::*;
+use crate::flipup_vmix_controls::{Score, OverarchingScore};
 
 #[wasm_bindgen]
 extern "C" {
@@ -73,11 +73,11 @@ impl HoleScoreOrDefault for Option<&PlayerRound> {
 }
 
 impl RankUpDown {
-    fn get_instructions(&self, pos: u16) -> [VMixFunction<LeaderBoardProperty>; 2] {
+    fn get_instructions(&self, pos: usize) -> [VMixFunction<LeaderBoardProperty>; 2] {
         [self.make_move(pos).into(), self.make_arrow(pos)]
     }
 
-    fn make_move(&self, pos: u16) -> VMixFunction<LeaderBoardProperty> {
+    fn make_move(&self, pos: usize) -> VMixFunction<LeaderBoardProperty> {
         let movement = match self {
             RankUpDown::Up(val) => val.to_string(),
             RankUpDown::Down(val) => val.to_string(),
@@ -90,7 +90,7 @@ impl RankUpDown {
         }
     }
 
-    fn make_arrow(&self, pos: u16) -> VMixFunction<LeaderBoardProperty> {
+    fn make_arrow(&self, pos: usize) -> VMixFunction<LeaderBoardProperty> {
         let img = match self {
             RankUpDown::Up(_) => r"x:\FLIPUP\grafik\greentri.png",
             RankUpDown::Down(_) => r"x:\FLIPUP\grafik\redtri.png",
@@ -175,7 +175,7 @@ pub(crate) fn fix_score(score: isize) -> String {
 }
 
 #[derive(Debug, Clone)]
-pub struct NewPlayer {
+pub struct Player {
     pub player_id: cynic::Id,
     pub name: String,
     first_name: String,
@@ -192,21 +192,21 @@ pub struct NewPlayer {
     pub throws: u8,
     shift: usize,
     pub ob: bool,
-    pub position: u16,
+    pub position: usize,
     pub lb_even: bool,
     pub hot_round: bool,
     pub lb_vmix_id: String,
-    pub lb_pos: u16,
-    pub old_pos: u16,
+    pub lb_pos: usize,
+    pub old_pos: usize,
     pos_visible: bool,
     pub lb_shown: bool,
     pub dnf: bool,
     pub first_scored: bool,
-    pub thru: u8,
+    pub thru: usize,
     pub visible_player: bool,
 }
 
-impl Default for NewPlayer {
+impl Default for Player {
     fn default() -> Self {
         Self {
             player_id: cynic::Id::from(""),
@@ -239,8 +239,8 @@ impl Default for NewPlayer {
     }
 }
 
-impl From<&NewPlayer> for OverarchingScore {
-    fn from(player: &NewPlayer) -> Self {
+impl From<&Player> for crate::flipup_vmix_controls::OverarchingScore {
+    fn from(player: &Player) -> Self {
         Self::new(
             player.round_ind,
             player.round_score,
@@ -250,7 +250,7 @@ impl From<&NewPlayer> for OverarchingScore {
     }
 }
 
-impl NewPlayer {
+impl Player {
     pub fn new(
         id: cynic::Id,
         f_name: String,
@@ -311,10 +311,6 @@ impl NewPlayer {
         (&self.current_round().unwrap().results[self.hole]).into()
     }
 
-    fn get_col(&self) -> VMixFunction<VMixProperty> {
-        self.current_round().unwrap().results[self.hole].get_score_colour(self.ind)
-    }
-
     pub fn current_round(&self) -> Option<&PlayerRound> {
         self.rounds.get(self.round_ind)
     }
@@ -334,15 +330,7 @@ impl NewPlayer {
         //log(&format!("total_score {}", self.total_score));
     }
 
-    pub fn check_pos(&mut self) {
-        if self.old_pos < self.lb_pos && self.round_ind != 0 {
-            self.rank = RankUpDown::Down((self.old_pos as i16 - self.lb_pos as i16).abs());
-        } else if self.old_pos > self.lb_pos && self.round_ind != 0 {
-            self.rank = RankUpDown::Up((self.lb_pos as i16 - self.old_pos as i16).abs());
-        } else {
-            self.rank = RankUpDown::Same;
-        }
-    }
+    
 
     // Below goes JS TCP Strings
 
@@ -376,11 +364,9 @@ impl NewPlayer {
         return_vec.extend(self.get_score().update_score(self.ind));
 
         let overarching = self.overarching_score_representation();
+
         return_vec.push(self.set_tot_score());
-        match overarching.set_round_score() {
-            RoundScore::Shown(instructions) => return_vec.extend(instructions),
-            RoundScore::Hidden(instruction) => return_vec.push(instruction),
-        }
+        return_vec.extend(overarching.set_round_score());
         self.hole += 1;
         self.throws = 0;
         return_vec.push(self.set_throw());
@@ -395,10 +381,7 @@ impl NewPlayer {
     }
 
     fn add_round_score(&self, outside_instructions: &mut Vec<VMixFunction<VMixProperty>>) {
-        match self.overarching_score_representation().set_round_score() {
-            RoundScore::Shown(instructions) => outside_instructions.extend(instructions),
-            RoundScore::Hidden(instruction) => outside_instructions.push(instruction),
-        }
+        outside_instructions.extend(self.overarching_score_representation().set_round_score())
     }
     pub fn revert_hole_score(&mut self) -> Vec<VMixFunction<VMixProperty>> {
         let mut return_vec = vec![];
@@ -736,9 +719,9 @@ impl RustHandler {
         divs
     }
 
-    pub fn get_players(&self) -> Vec<NewPlayer> {
+    pub fn get_players(&self) -> Vec<Player> {
         let mut players: Vec<queries::PoolLeaderboardPlayer> = vec![];
-        let mut out_vec: Vec<NewPlayer> = vec![];
+        let mut out_vec: Vec<Player> = vec![];
 
         let len_of_pools = self.event.rounds[self.round_ind]
             .clone()
@@ -768,7 +751,7 @@ impl RustHandler {
             }
         }
         for player in players {
-            out_vec.push(NewPlayer::new(
+            out_vec.push(Player::new(
                 player.player_id,
                 player.first_name,
                 player.last_name,

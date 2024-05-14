@@ -702,6 +702,7 @@ dependencies = [
  "cynic-codegen",
  "futures",
  "getrandom",
+ "itertools",
  "js-sys",
  "log",
  "paste",

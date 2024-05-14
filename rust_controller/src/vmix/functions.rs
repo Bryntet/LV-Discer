@@ -11,29 +11,14 @@ impl<T: VMixSelectionTrait> VMixSelection<T> {
     }
 }
 
-impl From<LeaderBoardProperty> for VMixSelection<LeaderBoardProperty> {
-    fn from(prop: LeaderBoardProperty) -> Self {
-        VMixSelection(prop)
-    }
-}
+
 
 impl From<VMixProperty> for VMixSelection<VMixProperty> {
     fn from(prop: VMixProperty) -> Self {
         VMixSelection(prop)
     }
 }
-pub enum LeaderBoardProperty {
-    Position { pos: u16, lb_pos: u16, tied: bool },
-    Name(u16),
-    HotRound(u16),
-    RoundScore(u16),
-    TotalScore { pos: u16 },
-    Move { pos: u16 },
-    Arrow { pos: u16 },
-    Thru(u16),
-    CheckinText,
-    TotalScoreTitle,
-}
+
 
 pub enum VMixFunction<InputEnum: VMixSelectionTrait> {
     SetText {
@@ -137,43 +122,6 @@ impl<InputEnum: VMixSelectionTrait> VMixFunction<InputEnum> {
     }
 }
 
-impl VMixSelectionTrait for LeaderBoardProperty {
-    fn get_selection(&self) -> String {
-        self.get_id()
-            + &(match self {
-                LeaderBoardProperty::Position { pos, lb_pos, tied } => {
-                    if *tied && lb_pos != &0 {
-                        format!("SelectedName=pos#{}.Text&Value=T{}", pos, lb_pos)
-                    } else {
-                        format!(
-                            "SelectedName=pos#{}.Text&Value={}",
-                            pos,
-                            if lb_pos != &0 {
-                                lb_pos.to_string()
-                            } else {
-                                "".to_string()
-                            }
-                        )
-                    }
-                }
-                LeaderBoardProperty::Name(pos) => format!("SelectedName=name#{}.Text", pos),
-                LeaderBoardProperty::HotRound(pos) => format!("SelectedName=hrp{}.Source", pos),
-                LeaderBoardProperty::RoundScore(pos) => format!("SelectedName=rs#{}.Text", pos),
-                LeaderBoardProperty::TotalScore { pos, .. } => {
-                    format!("SelectedName=ts#{}.Text", pos)
-                }
-                LeaderBoardProperty::TotalScoreTitle => "SelectedName=ts.Text".to_string(),
-                LeaderBoardProperty::Move { pos, .. } => format!("SelectedName=move{}.Text", pos),
-                LeaderBoardProperty::Arrow { pos, .. } => format!("SelectedName=arw{}.Source", pos),
-                LeaderBoardProperty::Thru(pos) => format!("SelectedName=thru#{}.Text", pos),
-                LeaderBoardProperty::CheckinText => "SelectedName=checkintext.Text".to_string(),
-            })
-    }
-
-    fn get_id(&self) -> String {
-        "Input=0e76d38f-6e8d-4f7d-b1a6-e76f695f2094&".to_string()
-    }
-}
 
 #[derive(Clone)]
 pub enum VMixProperty {

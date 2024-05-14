@@ -1,7 +1,7 @@
 use std::collections::VecDeque;
 
 #[cfg(not(target_arch = "wasm32"))]
-use {std::io::{Read, Write}, std::sync::Mutex, std::net::{IpAddr,TcpStream, SocketAddr, }};
+use {std::io::{Read, Write}, std::sync::Mutex, std::net::{IpAddr,TcpStream, SocketAddr, },std::str::FromStr};
 
 use std::sync::Arc;
 #[cfg(target_arch = "wasm32")]
@@ -29,26 +29,8 @@ extern "C" {
     fn setTimeout(closure: &Closure<dyn FnMut()>, millis: i32) -> i32;
 }
 
-// A function to simulate sleep
-/*#[wasm_bindgen]
-pub fn sleep(millis: i32) -> js_sys::Promise {
-    js_sys::Promise::new(&mut |resolve, _| {
-        let closure = Closure::wrap(Box::new(move || {
-            resolve.call0(&JsValue::NULL).unwrap();
-        }) as Box<dyn FnMut()>);
-        setTimeout(&closure, millis);
-        closure.forget(); // Prevents the closure from being cleaned up
-    })
-}
 
-pub async fn sleep_rust(millis: i32) {
-    JsFuture::from(sleep(millis)).await;
-}*/
-
-use crate::log;
 use crate::vmix::functions::{VMixFunction, VMixSelectionTrait};
-use futures::task::SpawnExt;
-use std::str::FromStr;
 use wasm_bindgen::prelude::wasm_bindgen;
 
 impl Queue {
@@ -172,8 +154,8 @@ mod test {
 
     use super::*;
     use crate::utils;
-    use crate::vmix::conversions::{BogeyType, ReadableScore, Score};
-    use crate::vmix::functions::{VMixFunction, VMixProperty, VMixSelection};
+    use crate::flipup_vmix_controls::{Score};
+    use crate::vmix::functions::{VMixFunction};
 
     use rand::Rng;
 

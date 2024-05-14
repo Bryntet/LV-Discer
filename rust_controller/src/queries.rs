@@ -1,7 +1,6 @@
-use crate::vmix::conversions::Score;
-use crate::vmix::functions::{VMixFunction, VMixProperty, VMixSelection, VMixSelectionTrait};
+use crate::flipup_vmix_controls::Score;
+use crate::vmix::functions::{VMixFunction, VMixProperty, VMixSelectionTrait};
 use js_sys::JsString;
-use std::convert::Infallible;
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]

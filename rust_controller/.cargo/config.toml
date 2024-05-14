@@ -7,3 +7,5 @@ build-std = ["panic_abort", "std",]
 #[build]
 #rustflags = ["--cfg", "tokio_unstable"]
 
+[build]
+target = "wasm32-unknown-unknown"
