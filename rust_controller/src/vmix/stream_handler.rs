@@ -12,11 +12,8 @@ use wasm_bindgen::prelude::*;
 
 #[cfg(target_arch = "wasm32")]
 pub struct Queue {
-    #[cfg(target_arch = "wasm32")]
     functions: VecDeque<String>,
-    #[cfg(target_arch = "wasm32")]
     ip: String,
-    #[cfg(target_arch = "wasm32")]
     client: reqwest::Client,
 }
 
@@ -61,6 +58,9 @@ impl Queue {
             functions: Default::default(),
             stream: Arc::new(Mutex::new(Self::make_tcp_stream(&ip))),
         };
+        let funcs = me.functions.clone();
+        let stream = me.stream.clone();
+        std::thread::spawn(move || Self::start_queue_thread(funcs,stream));
         me
     }
     #[cfg(target_arch = "wasm32")]
@@ -70,10 +70,6 @@ impl Queue {
             ip: ip.clone(),
             client: reqwest::Client::new(),
         };
-        let funcs = me.functions.clone();
-        let stream = me.stream.clone();
-        #[cfg(not(target_arch = "wasm32"))]
-        std::thread::spawn(move || Self::start_queue_thread(funcs,stream));        
         me
     }
 
