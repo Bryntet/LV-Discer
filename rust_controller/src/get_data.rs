@@ -1,5 +1,7 @@
 use crate::LeaderBoardProperty;
 use cynic::GraphQlResponse;
+use log::warn;
+use serde::Serialize;
 use wasm_bindgen::prelude::*;
 
 use crate::queries;
@@ -19,14 +21,14 @@ pub async fn post_status(event_id: cynic::Id) -> cynic::GraphQlResponse<queries:
     let operation = EventQuery::build(EventQueryVariables {
         event_id: event_id.clone(),
     });
-    println!("operation: {:#?}", event_id);
-
     let response = reqwest::Client::new()
         .post("https://api.tjing.se/graphql")
         .json(&operation)
         .send()
         .await
         .expect("failed to send request");
+    
+    log("hello this is a test to see if things actually update!");
     response
         .json::<GraphQlResponse<queries::EventQuery>>()
         .await
@@ -261,8 +263,7 @@ impl Player {
         let mut rounds: Vec<PlayerRound> = vec![];
         for rnd in event.rounds {
             for pool in rnd.expect("no round").pools {
-                for player in pool.leaderboard.expect("no lb") {
-                    match player {
+                    match pool.leaderboard {
                         Some(queries::PoolLeaderboardDivisionCombined::Pld(division)) => {
                             if division.id == div_id {
                                 for player in division.players {
@@ -275,7 +276,6 @@ impl Player {
                         Some(queries::PoolLeaderboardDivisionCombined::Unknown) => {}
                         None => {}
                     }
-                }
             }
         }
         Self {
@@ -308,7 +308,7 @@ impl Player {
     }
 
     pub fn get_score(&self) -> Score {
-        (&self.current_round().unwrap().results[self.hole]).into()
+        (&self.current_round().expect("Current round should exist").results[self.hole]).into()
     }
 
     pub fn current_round(&self) -> Option<&PlayerRound> {
@@ -330,7 +330,7 @@ impl Player {
         //log(&format!("total_score {}", self.total_score));
     }
 
-    
+
 
     // Below goes JS TCP Strings
 
@@ -729,15 +729,13 @@ impl RustHandler {
             .pools
             .len();
         for ind in 0..len_of_pools {
-            for div in &self.event.rounds[self.round_ind]
-                .clone()
-                .expect("no round")
-                .pools[ind]
-                .clone()
-                .leaderboard
-                .expect("no leaderboard")
-            {
-                match div {
+            
+                match self.event.rounds[self.round_ind]
+                    .clone()
+                    .expect("no round")
+                    .pools[ind]
+                    .clone()
+                    .leaderboard {
                     Some(queries::PoolLeaderboardDivisionCombined::Pld(division)) => {
                         if division.id == self.chosen_division {
                             for player in &division.players {
@@ -746,8 +744,8 @@ impl RustHandler {
                         }
                     }
                     Some(queries::PoolLeaderboardDivisionCombined::Unknown) => {}
-                    None => {}
-                }
+                    None => {warn!("No leaderboard")}
+                
             }
         }
         for player in players {

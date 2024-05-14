@@ -1,6 +1,5 @@
 use crate::flipup_vmix_controls::Score;
-use crate::vmix::functions::{VMixFunction, VMixProperty, VMixSelectionTrait};
-use js_sys::JsString;
+use crate::vmix::functions::{VMixFunction, VMixProperty};
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
@@ -104,7 +103,7 @@ impl SimpleResult {
 pub struct Pool {
     pub status: PoolStatus,
     pub layout_version: LayoutVersion,
-    pub leaderboard: Option<Vec<Option<PoolLeaderboardDivisionCombined>>>,
+    pub leaderboard: Option<PoolLeaderboardDivisionCombined>,
     pub position: f64,
 }
 

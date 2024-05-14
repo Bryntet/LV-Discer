@@ -75,7 +75,7 @@ type RootQuery {
     """
     Specify the event to get players from
     """
-    divisionId: ID!
+    divisionId: ID
     """
     Return the first x. Default is 50. Max is 100
     """
@@ -126,9 +126,9 @@ type RootQuery {
     """
     eventId: ID!
     """
-    Specify the division to filter by
+    Specify the division to filter by, if un specified all divisions will be returned.
     """
-    divisionId: ID!
+    divisionId: ID
     """
     Specify what status to collect users from
     """
@@ -155,11 +155,7 @@ type RootQuery {
     """
     Specify the division to filter by
     """
-    divisionId: ID!
-    """
-    Specify what status to collect users from
-    """
-    status: RegistrationStatus!
+    divisionId: ID
     """
     Return the first x. Default is 50. Max is 100
     """
@@ -1502,6 +1498,7 @@ type Event {
   description: String
   isPublished: Boolean
   maxSpots: Float
+  maxRegistrations: Float
   maxWildcards: Float
   isRegistrationOpen: Boolean!
   registrationOpenAt: DateTime
@@ -1513,7 +1510,7 @@ type Event {
   phone: String
   email: String
   registrationFeesInfo: String
-  registrationFeeOverrides: [EventRegistrationFee]!
+  registrationFeeOverrides: [EventDivisionOverride]!
   paymentInfo: String
   location: String
   city: City
@@ -1620,13 +1617,18 @@ type Event {
   """
   stats(divisionId: ID): Stats
   """
+  Caching result for 0 seconds
+  """
+  leaderboard(divisionId: ID, page: Int): EventLeaderboardDivisionCombined
+  """
   Caching result for 90 seconds
   """
-  leaderboard: [EventLeaderboardDivisionCombined]
-  """
-  Caching result for 90 seconds
-  """
-  statsLeaderboards(first: Float): EventStatsLeaderboard
+  statsLeaderboards(
+    divisionId: ID
+    page: Float
+    direction: SortOrderType
+    orderBy: TourStatsOrderByInput
+  ): EventStatsLeaderboard!
   """
   If provided a userid returns a summary of the users stats for the entire event. 
           Only applicable to singles events.
@@ -1654,7 +1656,8 @@ type Event {
   """
   Check if the current event/tour has an active subscription
   """
-  hasActiveSubscription: Boolean
+  subscriptionTier: PackageTierEnum
+  divisionInPool: [DivisionInPoolType]!
   divisions: [Division]!
   """
   Require licence from association to register
@@ -1664,10 +1667,6 @@ type Event {
   Define if licence is required from foreign players, only applicable if requireLicenceFrom is set
   """
   requireLicenceFromForeignPlayers: Boolean
-  """
-  Information about the current usage of subscription
-  """
-  currentUsage: CurrentUsage
   documents: [EvenDocument]!
   registrationQuestions: [RegistrationQuestion]!
   """
@@ -1683,13 +1682,16 @@ type Event {
 """
 An event level override for the registration fees specified on the tour divisions
 """
-type EventRegistrationFee {
+type EventDivisionOverride {
   id: ID!
   eventId: ID!
   event: Event!
   divisionId: ID!
   division: Division!
-  registrationFee: Float!
+  registrationFee: Float
+  maxSpots: Float
+  reservedSpots: Float
+  maxRegistrations: Float
   createdAt: DateTime!
   updatedAt: DateTime!
 }
@@ -1797,16 +1799,23 @@ type Tour {
   """
   Caching result for 90 seconds
   """
-  statsLeaderboards(first: Float): StatsLeaderboard
+  statsLeaderboards(
+    divisionId: ID
+    page: Float
+    direction: SortOrderType
+    orderBy: TourStatsOrderByInput
+  ): StatsLeaderboard!
   """
-  Caching result for 90 seconds
+  Caching result for 0 seconds. Must specify a divisionId.
   """
   leaderboard(
+    divisionId: ID
+    page: Int
     numberOfEvents: Int
     includeEventsWithoutResults: Boolean = false
     includeUncompletedEvents: Boolean = false
     scoringType: EventsScoringType
-  ): [TourLeaderboardDivision]
+  ): TourLeaderboardDivision
   """
   Returns a custom point map if one has been created. If it is used or not is controlled by the ScoringType
   """
@@ -1827,6 +1836,10 @@ type Tour {
   Allow adjusting the currency, until a transaction has been made.
   """
   allowChangeCurrency: Boolean!
+  """
+  Check if the current event/tour has an active subscription
+  """
+  subscriptionTier: PackageTierEnum
   """
   Check if the current event/tour has an active subscription
   """
@@ -2233,17 +2246,21 @@ type Pool {
   """
   stats(divisionId: ID): Stats
   """
-  Caching result for 60 seconds
+  If provided a userid returns a summary of the users stats for the pool. 
+          Only applicable to singles events.
+        
   """
-  livescore: [PoolLivescoreDivisionCombined!]
+  userStats(userId: ID!): Stats
+  """
+  Caching result for 60 seconds. Fixed pagination to 144 players. Can only be fetched if the pool is in status OPEN or PAUSE.
+  """
+  livescore(divisionId: ID, page: Int): PoolLivescoreDivisionCombined
   """
 
-        Caching result for 90 seconds
-        ErrorCodes:
-          * POOL_NOT_COMPLETED - Leaderboard can only be fetched when pool has status COMPLETED
+        Caching result for 0 seconds. Fixed pagination to 144 players. Can only be fetched while the pool is in status COMPLETED.
       
   """
-  leaderboard: [PoolLeaderboardDivisionCombined]
+  leaderboard(divisionId: ID, page: Int): PoolLeaderboardDivisionCombined
 }
 
 enum PoolStatus {
@@ -2604,6 +2621,7 @@ type Stats {
   holesPlayed: Float!
   layoutsPlayed: Float!
   coursesPlayed: Float!
+  totalPar: Float
 }
 
 union PoolLivescoreDivisionCombined = PoolLivescoreDivision | PoolLivescoreDivisionTeam
@@ -2613,6 +2631,7 @@ type PoolLivescoreDivision {
   name: String!
   type: String!
   players: [PoolLivescorePlayer!]!
+  totalPlayers: Float!
 }
 
 type PoolLivescorePlayer {
@@ -2648,6 +2667,7 @@ type PoolLivescoreDivisionTeam {
   name: String!
   type: String!
   players: [PoolLivescoreTeamPlayer!]!
+  totalPlayers: Float!
 }
 
 type PoolLivescoreTeamPlayer {
@@ -2669,6 +2689,7 @@ type PoolLeaderboardDivision {
   name: String!
   type: String!
   players: [PoolLeaderboardPlayer!]!
+  totalPlayers: Float!
 }
 
 type PoolLeaderboardPlayer {
@@ -2703,6 +2724,7 @@ type PoolLeaderboardDivisionTeam {
   name: String!
   type: String!
   players: [PoolLeaderboardTeamPlayer!]!
+  totalPlayers: Float!
 }
 
 type PoolLeaderboardTeamPlayer {
@@ -2747,6 +2769,7 @@ type TeamPlayer {
   onSite: Boolean!
   hasPaid: Boolean!
   dnfDns: DNFDNS!
+  registration: TeamRegistration!
   team: Team!
   division: Division!
   event: Event!
@@ -2761,6 +2784,29 @@ type DNFDNS {
   dnfDns: String
   dnfDnsErType: String
   reportedById: ID
+}
+
+"""
+Team registration to Event & Division
+"""
+type TeamRegistration {
+  id: ID!
+  date: DateTime!
+  status: RegistrationStatus!
+  createdAt: DateTime!
+  statusUpdatedAt: DateTime!
+  division: Division!
+  team: Team!
+  hasPaid: Boolean!
+  """
+  Team Player in the event. Possible null if the registration is not accepted
+          or if the player has been removed
+  """
+  player: TeamPlayer
+  event: Event!
+  logs: [RegistrationLog!]
+  message: String
+  responses: [RegistrationQuestionResponse]
 }
 
 """
@@ -2786,29 +2832,6 @@ type RegistrationQuestionOption {
   position: Float!
   createdAt: DateTime!
   updatedAt: DateTime!
-}
-
-"""
-Team registration to Event & Division
-"""
-type TeamRegistration {
-  id: ID!
-  date: DateTime!
-  status: RegistrationStatus!
-  createdAt: DateTime!
-  statusUpdatedAt: DateTime!
-  division: Division!
-  team: Team!
-  hasPaid: Boolean!
-  """
-  Team Player in the event. Possible null if the registration is not accepted
-          or if the player has been removed
-  """
-  player: TeamPlayer
-  event: Event!
-  logs: [RegistrationLog!]
-  message: String
-  responses: [RegistrationQuestionResponse]
 }
 
 type TeamTourPass {
@@ -2852,61 +2875,83 @@ enum AdministratorRole {
 }
 
 type StatsLeaderboard {
-  bestRound: [StatsLeaderboardCombinedRound]
-  birdies: [StatsLeaderboardCombined]
-  pars: [StatsLeaderboardCombined]
-  aces: [StatsLeaderboardCombined]
-  eagles: [StatsLeaderboardCombined]
-  leastBogeys: [StatsLeaderboardCombined]
-  circleHits: [StatsLeaderboardCombined]
-  circleHitConversions: [StatsLeaderboardCombined]
-  insidePutts: [StatsLeaderboardCombined]
-  outsidePutts: [StatsLeaderboardCombined]
-  outOfBounds: [StatsLeaderboardCombined]
+  bestRound: StatsLeaderboardTop
+  mostAces: StatsLeaderboardTop
+  mostEagles: StatsLeaderboardTop
+  mostBirdies: StatsLeaderboardTop
+  mostPars: StatsLeaderboardTop
+  mostCircleHits: StatsLeaderboardTop
+  mostCircleHitConversions: StatsLeaderboardTop
+  mostInsidePutts: StatsLeaderboardTop
+  mostOutsidePutts: StatsLeaderboardTop
+  leaderboardCount: Float!
+  leaderboard: [StatsLeaderboardPlayer]
 }
 
-union StatsLeaderboardCombinedRound = StatsLeaderboardPlayerRound | StatsLeaderboardTeamRound
-
-type StatsLeaderboardPlayerRound {
-  userId: ID!
-  place: Float!
-  roundId: ID!
-  par: Float!
-  user: User!
-  round: Round!
+type StatsLeaderboardTop {
+  user: User
+  team: Team
+  par: Float
+  part: Float
+  count: Float
 }
-
-type StatsLeaderboardTeamRound {
-  teamId: ID!
-  place: Float!
-  roundId: ID!
-  par: Float!
-  team: Team!
-  round: Round!
-}
-
-union StatsLeaderboardCombined = StatsLeaderboardPlayer | StatsLeaderboardTeam
 
 type StatsLeaderboardPlayer {
-  userId: ID!
-  place: Float!
-  user: User!
+  position: Float!
+  user: User
+  team: Team
+  division: Division!
+  bestRound: BestTourRound
+  birdies: TourStat
+  pars: TourStat
+  aces: TourStat
+  eagles: TourStat
+  bogeys: TourStat
+  doubleBogeys: TourStat
+  trippleBogeysAbove: TourStat
+  circleHits: TourStat
+  circleHitConversions: TourStat
+  insidePutts: TourStat
+  outsidePutts: TourStat
+  outOfBounds: TourStat
+}
+
+type BestTourRound {
+  roundId: ID!
+  par: Float!
+}
+
+type TourStat {
   count: Float!
   part: Float!
 }
 
-type StatsLeaderboardTeam {
-  teamId: ID!
-  place: Float!
-  team: Team!
-  count: Float!
-  part: Float!
+enum SortOrderType {
+  ASC
+  DESC
+}
+
+enum TourStatsOrderByInput {
+  BEST_ROUND
+  ACE
+  EAGLE
+  BIRDIE
+  PAR
+  BOGEY
+  DOUBLE_BOGEY
+  TRIPLE_BOGEY_ABOVE
+  CIRCLE_HIT
+  CIRCLE_HIT_CONVERSION
+  INSIDE_PUTT
+  OUTSIDE_PUTT
+  OUT_OF_BOUNDS
 }
 
 type TourLeaderboardDivision {
   id: ID!
   name: String!
   type: String!
+  leaderboardCount: Float!
   players: [TourLeaderboardDivisionTypeCombined!]!
 }
 
@@ -3168,11 +3213,6 @@ type OrganizationConnectedOrganizationsCount {
   pendingApproval: Float!
 }
 
-enum SortOrderType {
-  ASC
-  DESC
-}
-
 enum OrganizationConnectionStatus {
   PENDING_APPROVAL
   APPROVED
@@ -3311,6 +3351,12 @@ type MembershipOrder {
   createdAt: DateTime!
   comment: String
   refundHistory: [Refund]!
+}
+
+enum PackageTierEnum {
+  FREE
+  ESSENTIAL
+  PRO
 }
 
 """
@@ -3534,6 +3580,7 @@ type EventLeaderboardDivision {
   name: String!
   type: String!
   players: [EventLeaderboardPlayer!]!
+  totalPlayers: Float!
 }
 
 type EventLeaderboardPlayer {
@@ -3566,9 +3613,11 @@ type EventLeaderboardDivisionTeam {
   name: String!
   type: String!
   players: [EventLeaderboardTeamPlayer!]!
+  totalPlayers: Float!
 }
 
 type EventLeaderboardTeamPlayer {
+  eventTeamId: ID!
   place: Float!
   team: Team!
   dnfDns: String
@@ -3588,34 +3637,37 @@ type EventTeamLeaderboardPool {
 }
 
 type EventStatsLeaderboard {
-  bestRound: [EventStatsLeaderboardPlayerRound]
-  birdies: [EventStatsLeaderboardPlayer]
-  pars: [EventStatsLeaderboardPlayer]
-  aces: [EventStatsLeaderboardPlayer]
-  eagles: [EventStatsLeaderboardPlayer]
-  leastBogeys: [EventStatsLeaderboardPlayer]
-  circleHits: [EventStatsLeaderboardPlayer]
-  circleHitConversions: [EventStatsLeaderboardPlayer]
-  insidePutts: [EventStatsLeaderboardPlayer]
-  outsidePutts: [EventStatsLeaderboardPlayer]
-  outOfBounds: [EventStatsLeaderboardPlayer]
-}
-
-type EventStatsLeaderboardPlayerRound {
-  userId: ID!
-  place: Float!
-  roundId: ID!
-  par: Float!
-  user: User!
-  round: Round!
+  bestRound: StatsLeaderboardTop
+  mostAces: StatsLeaderboardTop
+  mostEagles: StatsLeaderboardTop
+  mostBirdies: StatsLeaderboardTop
+  mostPars: StatsLeaderboardTop
+  mostCircleHits: StatsLeaderboardTop
+  mostCircleHitConversions: StatsLeaderboardTop
+  mostInsidePutts: StatsLeaderboardTop
+  mostOutsidePutts: StatsLeaderboardTop
+  leaderboardCount: Float!
+  leaderboard: [EventStatsLeaderboardPlayer]
 }
 
 type EventStatsLeaderboardPlayer {
-  userId: ID!
-  place: Float!
-  user: User!
-  count: Float!
-  part: Float!
+  position: Float!
+  user: User
+  team: Team
+  division: Division!
+  bestRound: BestTourRound
+  birdies: TourStat
+  pars: TourStat
+  aces: TourStat
+  eagles: TourStat
+  bogeys: TourStat
+  doubleBogeys: TourStat
+  trippleBogeysAbove: TourStat
+  circleHits: TourStat
+  circleHitConversions: TourStat
+  insidePutts: TourStat
+  outsidePutts: TourStat
+  outOfBounds: TourStat
 }
 
 type GeneralOrderType {
@@ -3673,50 +3725,9 @@ type EventTeamMeta {
   favourite: FavouriteEvent
 }
 
-"""
-Information about current usage
-"""
-type CurrentUsage {
-  packageType: String
-  flatUsage: Int!
-  meteredUsage: Int!
-  currency: String
-  countOfPlayers: Int
-  usedFeatures: PaidEventFeatures!
-}
-
-"""
-Information about event features included in paid tier
-"""
-type PaidEventFeatures {
-  pools: EventFeature!
-  rounds: EventFeature!
-  pdgaExport: EventFeature!
-  exports: EventFeature!
-  checkIn: EventFeature!
-  tieBreaks: EventFeature!
-  signature: EventFeature!
-  verifier: EventFeature!
-  autoOpenRegistration: EventFeature!
-  registrationStages: EventFeature!
-  registrationQuestions: EventFeature!
-  teeTimeStart: EventFeature!
-  eventMessages: EventFeature!
-  groupSignup: EventFeature!
-}
-
-"""
-Information on feature use and what package it is in
-"""
-type EventFeature {
-  active: Boolean
-  package: PackageTypeEnum
-}
-
-enum PackageTypeEnum {
-  FREE
-  BASIC
-  PRO
+type DivisionInPoolType {
+  poolId: ID!
+  divisionId: ID!
 }
 
 """
@@ -3874,15 +3885,21 @@ type SubscriptionWithPackage {
   id: String!
   subscriptionId: String
   status: String!
+  recurrence: Recurrence!
   currentPeriodStart: Int
   currentPeriodEnd: Int
   startDate: Int
   endDate: Int
   cancelDate: Int
   monthlyFee: String
-  basicFee: String
-  proFee: String
+  yearlyFee: String
   currency: String
+  tier: PackageTierEnum
+}
+
+enum Recurrence {
+  MONTHLY
+  ANNUALLY
 }
 
 input ToursFilterInput {
@@ -4114,8 +4131,7 @@ type PackagePrices {
   id: String!
   currency: String
   monthlyFee: Int!
-  basicPackageFee: Int
-  proPackageFee: Int
+  yearlyFee: Int!
   isActive: Boolean
 }
 
@@ -4516,6 +4532,7 @@ type RootMutation {
   DeletePool(poolId: ID!): Boolean
   """
 
+    Only available to a Tour Admin.
     ErrorCodes:
       * POOL_NOT_OPEN - Pool is not open
       * GROUP_NOT_OPEN - Group is not open
@@ -4524,6 +4541,7 @@ type RootMutation {
   DeleteResult(resultId: ID!): Boolean
   """
 
+    Only available to a Tour Admin.
     ErrorCodes:
       * POOL_NOT_OPEN - Pool is not open
       * GROUP_NOT_OPEN - Group is not open
@@ -5090,6 +5108,14 @@ type RootMutation {
     Currency code it will be used to fetch Stripe Price Id and add to subscription item
     """
     currency: String!
+    """
+    Package type it will be used to fetch Stripe Price Id and add to subscription item
+    """
+    tier: PackageTierEnum!
+    """
+    Recurrence type it will be used to fetch Stripe Price Id and add to subscription item
+    """
+    recurrence: RecurrenceEnum!
   ): Subscription
   """
 
@@ -5134,23 +5160,24 @@ type RootMutation {
   CancelTransferTourOwnership(transferId: ID!): TransferTourOwnershipType
   AcceptRejectTransferTourOwnership(token: String!, status: TourTransferStatus!): TransferTourOwnershipType
   """
+  Create a division attributes override for a division on an event.
+  """
+  CreateDivisionOverride(eventId: ID!, divisionId: ID!, input: CreateEventDivisionOverrideInput!): EventDivisionOverride
+  """
 
-
+    Update the event division override
     
   """
-  CreateRegistrationFee(eventId: ID!, divisionId: ID!, registrationFee: Float!): EventRegistrationFee
+  UpdateDivisionOverride(
+    eventRegistrationFeeId: ID!
+    input: UpdateEventDivisionOverrideInput!
+  ): EventDivisionOverride
   """
 
-    Update the registration fee for the fee override
+      Remove event division override
     
   """
-  UpdateRegistrationFee(eventRegistrationFeeId: ID!, registrationFee: Float!): EventRegistrationFee
-  """
-
-      Remove event registration fee override
-    
-  """
-  DeleteRegistrationFee(eventRegistrationFeeId: ID!): Boolean
+  DeleteDivisionOverride(divisionOverrideId: ID!): Boolean
   """
 
   """
@@ -5494,6 +5521,13 @@ input EventInput {
         
   """
   maxSpots: Float
+  """
+
+          minValue: 1
+          maxValue: 999
+        
+  """
+  maxRegistrations: Float
   """
 
           minValue: 0
@@ -5906,6 +5940,13 @@ input ExtendedEventInput {
   maxSpots: Float
   """
 
+          minValue: 1
+          maxValue: 999
+        
+  """
+  maxRegistrations: Float
+  """
+
           minValue: 0
           maxValue: 99
         
@@ -6211,6 +6252,13 @@ input UpdateEventInput {
         
   """
   maxSpots: Float
+  """
+
+          minValue: 1
+          maxValue: 999
+        
+  """
+  maxRegistrations: Float
   isRegistrationOpen: Boolean
   """
 
@@ -6833,6 +6881,11 @@ type Subscription {
   url: String
 }
 
+enum RecurrenceEnum {
+  MONTHLY
+  ANNUALLY
+}
+
 enum TourPaymentVariant {
   SINGLES
   TEAMS
@@ -6866,6 +6919,76 @@ enum TourTransferStatus {
   ACTIVE
   CANCELED
   REJECTED
+}
+
+"""
+Leaving a field emtpty will default to the division's value.
+"""
+input CreateEventDivisionOverrideInput {
+  """
+
+          minValue: 1
+          maxValue: 999
+        
+  """
+  maxSpots: Float
+  """
+
+          minValue: 1
+          maxValue: 999
+        
+  """
+  reservedSpots: Float
+  """
+
+          minValue: 999
+          maxValue: 1
+        
+  """
+  maxRegistrations: Float
+  """
+
+          Can also be set to 0 to make the registration free.
+          minValue: 0
+          maxValue: 10000
+        
+  """
+  registrationFee: Float
+}
+
+"""
+Will update the override to matcht the new input, fields left out will be nulled.
+"""
+input UpdateEventDivisionOverrideInput {
+  """
+
+          minValue: 1
+          maxValue: 999
+        
+  """
+  maxSpots: Float
+  """
+
+          minValue: 1
+          maxValue: 999
+        
+  """
+  reservedSpots: Float
+  """
+
+          minValue: 999
+          maxValue: 1
+        
+  """
+  maxRegistrations: Float
+  """
+
+          Can also be set to 0 to make the registration free.
+          minValue: 0
+          maxValue: 10000
+        
+  """
+  registrationFee: Float
 }
 
 input CreateFreeOrderInputType {

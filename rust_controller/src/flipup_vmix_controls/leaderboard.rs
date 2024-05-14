@@ -1,16 +1,17 @@
 use crate::get_data::Player;
 use crate::vmix::functions::{VMixFunction, VMixSelection, VMixSelectionTrait};
 use itertools::Itertools;
-#[derive(Debug)]
-struct Leaderboard {
+#[derive(Debug, Clone, Default)]
+pub struct Leaderboard {
     states: Vec<LeaderboardState>,
 }
 #[derive(Debug, Clone)]
-struct LeaderboardState{
+pub struct LeaderboardState{
     hole: usize,
     round: usize,
     players: Vec<Player>
 }
+
 impl Leaderboard {
     pub fn new(state: LeaderboardState) -> Self {
         Self{states: vec![state]}
@@ -30,7 +31,11 @@ impl Leaderboard {
     }
 
     pub fn update_players(&mut self, new_state: LeaderboardState) {
-        self.states.push(new_state);
+        if let Some(state) = self.states.iter_mut().find(|state|state.round== new_state.round) {
+            *state = new_state;
+        } else {
+            self.states.push(new_state);
+        }
     }
     
     pub fn to_vmix_instructions(&self) -> Vec<VMixFunction<LeaderBoardProperty>> {
@@ -39,7 +44,8 @@ impl Leaderboard {
 }
 impl LeaderboardState {
 
-    pub fn new(hole: usize, round: usize, mut players: Vec<Player>) -> Self {
+    pub fn new(round: usize, mut players: Vec<Player>) -> Self {
+        let hole = players.iter().map(|p|p.hole).max().expect("Vec not empty");
         Self::sort_players(&mut players);
         Self{hole, round, players}
     }
@@ -297,7 +303,7 @@ mod test {
 
     #[test]
     fn test() {
-        let p = LeaderboardState::new(1,1,vec![Player::default()]);
+        let p = LeaderboardState::new(1,vec![Player::default()]);
         let mut a = Leaderboard::new(p.clone());
         dbg!(a.to_vmix_instructions().iter().map(|a|a.to_cmd()).collect_vec());
         panic!()

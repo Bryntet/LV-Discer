@@ -251,7 +251,7 @@ export const setActionDefinitions = (instance: InstanceBaseExt<Config>): Compani
             if (typeof foc_player === 'number') {
                 instance.rust_main.set_foc(foc_player)
             }
-            instance.rust_main.toggle_pos();
+            //instance.rust_main.toggle_pos();
             let foc_player_ind = await parseAuto(context)
             instance.rust_main.set_foc(foc_player_ind)
         },

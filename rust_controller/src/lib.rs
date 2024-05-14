@@ -15,6 +15,7 @@ use tokio::sync::Mutex;
 use vmix::functions::{VMixFunction};
 use flipup_vmix_controls::LeaderBoardProperty;
 use wasm_bindgen::prelude::*;
+use crate::flipup_vmix_controls::{Leaderboard, LeaderboardState};
 
 #[wasm_bindgen]
 extern "C" {
@@ -43,6 +44,7 @@ pub struct FlipUpVMixCoordinator {
     selected_div_ind: usize,
     #[wasm_bindgen(skip)]
     pub selected_div: cynic::Id,
+    leaderboard: Leaderboard,
     foc_play_ind: usize,
     ip: String,
     event_id: String,
@@ -75,6 +77,7 @@ impl Default for FlipUpVMixCoordinator {
                 ..Default::default()
             },
             queue,
+            leaderboard: Leaderboard::default(),
         }
     }
 }
@@ -121,96 +124,8 @@ impl FlipUpVMixCoordinator {
     }
 
     
-
-    fn fix_players(&mut self) {
-        if self.round_ind != 0 {
-            for player in &mut self.score_card.all_play_players {
-                player.old_pos = player.lb_pos;
-                player.set_round(self.round_ind - 1);
-                player.hole = 17;
-                player.make_tot_score();
-            }
-            self.assign_position();
-            self.set_hot_round();
-        }
-        for player in &mut self.score_card.all_play_players {
-            player.hot_round = false;
-            player.lb_even = false;
-            player.old_pos = player.lb_pos;
-            player.set_round(self.round_ind);
-            //log(&format!("player.hole: {}", player.hole));
-            player.thru = self.lb_thru;
-            player.hole = if self.lb_thru > 0 {
-                self.lb_thru - 1
-            } else {
-                0
-            };
-            //log(&format!("player.hole after: {}", player.hole));
-            player.make_tot_score();
-        }
-        self.assign_position();
-        self.set_hot_round();
-    }
-
-    pub fn assign_position(&mut self) {
-        // Sort players in descending order by total_score
-
-        self.score_card.all_play_players.sort_unstable_by(|a, b| {
-            {
-                if !a.dnf {
-                    a.total_score
-                } else {
-                    isize::MAX
-                }
-            }
-            .cmp(if !b.dnf { &b.total_score } else { &isize::MAX })
-        });
-
-        // Iterate over sorted players to assign position
-
-        let play_len = self.score_card.all_play_players.len();
-        log(&format!("Length of play_len: {play_len}"));
-        for i in 0..play_len {
-            let mut next_play = None;
-            let mut prev_play = None;
-
-            if i != 0 {
-                prev_play = Some(self.score_card.all_play_players[i - 1].clone());
-            }
-            if i + 1 < play_len {
-                next_play = Some(self.score_card.all_play_players[i + 1].clone());
-            }
-
-            let player = &mut self.score_card.all_play_players[i];
-            player.position = i + 1;
-
-            if let Some(next_play) = next_play.clone() {
-                if let Some(prev_play) = prev_play.clone() {
-                    if player.total_score != prev_play.total_score {
-                        player.lb_pos = i + 1;
-                    } else {
-                        player.lb_pos = prev_play.lb_pos;
-                    }
-                } else {
-                    player.lb_pos = i + 1;
-                }
-                if player.total_score == next_play.total_score {
-                    player.lb_even = true
-                }
-            } else {
-                player.lb_pos = play_len
-            }
-            if let Some(prev_play) = prev_play {
-                if player.total_score == prev_play.total_score {
-                    if next_play.is_none() {
-                        player.lb_pos = prev_play.lb_pos
-                    }
-                    player.lb_even = true;
-                }
-            }
-            player.check_pos();
-        }
-    }
+    
+    
 
     fn make_checkin_text(&self) -> VMixFunction<LeaderBoardProperty> {
         let value = String::from(self.get_div_names()[self.selected_div_ind].to_string())
@@ -314,8 +229,7 @@ impl FlipUpVMixCoordinator {
                     .collect::<Vec<String>>()
             ));
             log("past get_players");
-            self.fix_players();
-
+            
             if let Some(pop) = lb_start_ind {
                 self.score_card.all_play_players.drain(0..pop);
                 for player in &mut self.score_card.all_play_players {
@@ -323,8 +237,8 @@ impl FlipUpVMixCoordinator {
                 }
             }
 
-            let f = self.make_lb();
-            self.queue_add(&f);
+            self.leaderboard.update_players(LeaderboardState::new(self.round_ind, self.score_card.all_play_players.clone()));
+            self.queue_add(&self.leaderboard.to_vmix_instructions());
 
             let players = [
                 &self.score_card.p1,
@@ -727,11 +641,6 @@ mod tests {
     use super::*;
     use wasm_bindgen_test::*;
 
-    #[wasm_bindgen(module = "src/test_module.js")]
-    extern "C" {
-        fn sendData(host: &str, port: u16, data: &str);
-    }
-
     async fn generate_app() -> FlipUpVMixCoordinator {
         let mut app = FlipUpVMixCoordinator {
             event_id: "5c243af9-ea9d-4f44-ab07-9c55be23bd8c".to_string(),
@@ -766,10 +675,6 @@ mod tests {
     //     send(&handle_js_vec(app.set_all_to_hole(13)));
     // }
 
-    fn send(data: &str) {
-        sendData("37.123.135.170", 8099, data);
-    }
-    
     /*#[wasm_bindgen_test]
     async fn lb_test() {
         let mut app = generate_app().await;
