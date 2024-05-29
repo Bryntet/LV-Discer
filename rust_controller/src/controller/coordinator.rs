@@ -1,20 +1,16 @@
-mod get_data;
-mod hole;
-mod queries;
-mod setup_helpers;
-pub mod vmix;
-mod flipup_vmix_controls;
-
-use crate::get_data::{HoleScoreOrDefault, Player};
-use crate::vmix::functions::{VMixProperty, VMixSelectionTrait};
-use crate::vmix::Queue;
+use super::*;
+use crate::vmix;
+use crate::flipup_vmix_controls;
+use get_data::{HoleScoreOrDefault, Player};
+use vmix::functions::{VMixProperty, VMixSelectionTrait};
+use vmix::Queue;
 use std::sync::Arc;
 use itertools::Itertools;
 use log::warn;
 use vmix::functions::{VMixFunction};
 use flipup_vmix_controls::LeaderBoardProperty;
-use crate::flipup_vmix_controls::{Leaderboard, LeaderboardState};
-
+use flipup_vmix_controls::{Leaderboard, LeaderboardState};
+use crate::controller::get_data::RustHandler;
 
 
 mod old_public {
@@ -26,7 +22,7 @@ mod old_public {
 
 
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct FlipUpVMixCoordinator {
     pub all_divs: Vec<queries::PoolLeaderboardDivision>,
     pub score_card: ScoreCard,
@@ -37,16 +33,16 @@ pub struct FlipUpVMixCoordinator {
     ip: String,
     event_id: String,
     pools: Vec<queries::Pool>,
-    handler: Option<get_data::RustHandler>,
-    available_players: Vec<get_data::Player>,
+    handler: Option<RustHandler>,
+    available_players: Vec<Player>,
     round_ind: usize,
     lb_div_ind: usize,
     lb_thru: usize,
-    queue: Option<Arc<vmix::Queue>>,
+    queue: Option<Arc<Queue>>,
 }
 impl Default for FlipUpVMixCoordinator {
     fn default() -> FlipUpVMixCoordinator {
-        let queue = Queue::new("10.170.120.134".to_string()).map(|q|Arc::new(q)); // This is your main async runtime
+        let queue = Queue::new("10.170.120.134".to_string()).map(Arc::new); // This is your main async runtime
         FlipUpVMixCoordinator {
             all_divs: vec![],
             selected_div_ind: 0,
@@ -81,7 +77,7 @@ impl FlipUpVMixCoordinator {
         r_v
     }
 
-    fn find_same(&self, player: &get_data::Player) -> Option<get_data::Player> {
+    fn find_same(&self, player: &Player) -> Option<Player> {
         for p in &self.score_card.all_play_players {
             if p.player_id == player.player_id {
                 return Some({
@@ -517,7 +513,7 @@ impl FlipUpVMixCoordinator {
 
 
 
-#[derive(Default, Clone)]
+#[derive(Default, Clone, Debug)]
 pub struct ScoreCard {
     pub players: [get_data::Player; 4],
     pub p1: get_data::Player,
@@ -552,10 +548,10 @@ impl ScoreCard {
             }
         }
         println!("player_id: {}", player_id);
-        
+
         self.queue_add(&out_vec).expect("Queue should exist");
     }
-    
+
     fn queue_add<T: VMixSelectionTrait>(&self, functions: &[VMixFunction<T>]) -> Result<(),()> {
         if let Some(q) = &self.queue {
             q.add(functions);
@@ -563,7 +559,7 @@ impl ScoreCard {
         } else {
             Err(())
         }
-        
+
     }
 
     pub fn set_total_score(&mut self, player_num: usize, new_score: isize) {
@@ -587,11 +583,11 @@ impl ScoreCard {
         return_vec.extend(self.p4.set_round(round));
         return_vec
     }
-    
+
     fn get_all_players_ref(&self) -> [&Player; 4] {
         [&self.p1,&self.p2,&self.p3,&self.p4]
     }
-    
+
     fn get_all_player_mut(&mut self) -> [&mut Player; 4] {
         [&mut self.p1,&mut self.p2,&mut self.p3,&mut self.p4]
     }

@@ -1,11 +1,8 @@
 [package]
-name = "levandevideo-rust"
+name = "flipup-sm-coordinator"
 version = "0.1.0"
 authors = ["Edvin Bryntesson <epost@edvinbryntesson.se>"]
 edition = "2021"
-
-[lib]
-crate-type = ["cdylib"]
 
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -21,12 +18,13 @@ anyhow = "1.0.81"
 paste = "1.0.14"
 quote = "1.0.35"
 getrandom = { version = "0.2.12" }
-reqwest = { version = "0.12.4", features = ["json", "blocking"] }
+reqwest = { version = "0.12.4", features = ["json"] }
 regex = "1.10.3"
 cynic-codegen = "3.5.0"
 rand = "0.9.0-alpha.1"
 itertools = "0.13.0"
-rocket = "0.5.1"
+rocket = "0.5.0"
+rocket_okapi = "0.8.0"
 #wasm-futures-executor = "0.2.0"
 
 [dev-dependencies]

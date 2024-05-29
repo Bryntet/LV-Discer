@@ -16,7 +16,7 @@ pub struct Queue {
 }
 
 #[cfg(not(target_arch = "wasm32"))]
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Queue { 
     stream: Arc<Mutex<TcpStream>>,
     functions: Arc<Mutex<VecDeque<String>>>
@@ -41,9 +41,9 @@ impl Queue {
     }
     
 
-    fn start_queue_thread(funcs: Arc<Mutex<VecDeque<String>>>, stream: Arc<Mutex<TcpStream>>) {
+    fn start_queue_thread(functions: Arc<Mutex<VecDeque<String>>>, stream: Arc<Mutex<TcpStream>>) {
         loop {
-            if let Ok(mut functions) = funcs.lock() {
+            if let Ok(mut functions) = functions.lock() {
                 while let Some(f) = functions.pop_front() {
                     Queue::send(&f.into_bytes(), stream.clone());
                 }

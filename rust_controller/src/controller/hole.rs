@@ -1,4 +1,4 @@
-use crate::queries::SimpleResult;
+use super::queries::SimpleResult;
 
 struct RoundStats<'results> {
     round: u8,

@@ -1,5 +1,4 @@
-use crate::get_data;
-
+use super::get_data;
 pub struct SimpleRound {
     round: usize,
     id: String,

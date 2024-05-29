@@ -1,6 +1,5 @@
-use crate::get_data::fix_score;
+use crate::controller::fix_score;
 use crate::vmix::functions::{VMixFunction, VMixProperty, VMixSelection};
-use crate::flipup_vmix_controls::LeaderBoardProperty;
 pub struct OverarchingScore {
     round: usize,
     round_score: isize,

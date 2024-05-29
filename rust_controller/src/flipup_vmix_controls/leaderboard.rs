@@ -1,4 +1,4 @@
-use crate::get_data::Player;
+use crate::controller::Player;
 use crate::vmix::functions::{VMixFunction};
 use itertools::Itertools;
 #[derive(Debug, Clone, Default)]

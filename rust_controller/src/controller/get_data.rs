@@ -1,10 +1,10 @@
-use crate::LeaderBoardProperty;
+use crate::flipup_vmix_controls::LeaderBoardProperty;
 use cynic::GraphQlResponse;
 use log::warn;
 use serde::Serialize;
 
-use crate::queries;
-use crate::queries::Division;
+use super::queries;
+use queries::Division;
 use crate::vmix::functions::*;
 use crate::flipup_vmix_controls::{Score, OverarchingScore};
 
@@ -160,7 +160,7 @@ impl PlayerRound {
     }
 }
 
-pub(crate) fn fix_score(score: isize) -> String {
+pub fn fix_score(score: isize) -> String {
     use std::cmp::Ordering;
 
     match score.cmp(&0) {
@@ -669,7 +669,7 @@ impl Player {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct RustHandler {
     pub chosen_division: cynic::Id,
     event: queries::Event,
