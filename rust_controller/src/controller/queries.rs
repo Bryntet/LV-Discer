@@ -1,7 +1,6 @@
 use crate::flipup_vmix_controls::Score;
 use crate::vmix::functions::{VMixFunction, VMixProperty};
 
-
 #[derive(cynic::QueryVariables, Debug)]
 pub struct EventQueryVariables {
     pub event_id: cynic::Id,

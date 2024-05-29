@@ -1,8 +1,7 @@
+mod internal_content;
 mod leaderboard;
 mod score;
-mod internal_content;
 
 pub use internal_content::Image;
-pub use score::{Score,OverarchingScore};
-pub use leaderboard::{LeaderBoardProperty,Leaderboard,LeaderboardState};
-
+pub use leaderboard::{LeaderBoardProperty, Leaderboard, LeaderboardState};
+pub use score::{OverarchingScore, Score};

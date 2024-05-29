@@ -11,14 +11,11 @@ impl<T: VMixSelectionTrait> VMixSelection<T> {
     }
 }
 
-
-
 impl From<VMixProperty> for VMixSelection<VMixProperty> {
     fn from(prop: VMixProperty) -> Self {
         VMixSelection(prop)
     }
 }
-
 
 pub enum VMixFunction<InputEnum: VMixSelectionTrait> {
     SetText {
@@ -121,7 +118,6 @@ impl<InputEnum: VMixSelectionTrait> VMixFunction<InputEnum> {
         }
     }
 }
-
 
 #[derive(Clone)]
 pub enum VMixProperty {

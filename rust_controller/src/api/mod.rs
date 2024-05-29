@@ -1,5 +1,5 @@
-mod query;
 mod mutation;
+mod query;
 
 use rocket::{Build, Rocket, State};
 
@@ -12,5 +12,7 @@ pub fn test(test: &State<FlipUpVMixCoordinator>) {
 }
 
 pub fn launch() -> Rocket<Build> {
-    rocket::build().manage(FlipUpVMixCoordinator::default()).mount("/",routes![test])
+    rocket::build()
+        .manage(FlipUpVMixCoordinator::default())
+        .mount("/", routes![test])
 }

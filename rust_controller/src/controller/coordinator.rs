@@ -1,26 +1,22 @@
 use super::*;
-use crate::vmix;
+use crate::controller::get_data::RustHandler;
 use crate::flipup_vmix_controls;
-use get_data::{HoleScoreOrDefault, Player};
-use vmix::functions::{VMixProperty, VMixSelectionTrait};
-use vmix::Queue;
-use std::sync::Arc;
-use itertools::Itertools;
-use log::warn;
-use vmix::functions::{VMixFunction};
+use crate::vmix;
 use flipup_vmix_controls::LeaderBoardProperty;
 use flipup_vmix_controls::{Leaderboard, LeaderboardState};
-use crate::controller::get_data::RustHandler;
-
+use get_data::{HoleScoreOrDefault, Player};
+use itertools::Itertools;
+use log::warn;
+use std::sync::Arc;
+use vmix::functions::VMixFunction;
+use vmix::functions::{VMixProperty, VMixSelectionTrait};
+use vmix::Queue;
 
 mod old_public {
     pub fn greet() {
         println!("Hello, wasm-test!");
     }
 }
-
-
-
 
 #[derive(Clone, Debug)]
 pub struct FlipUpVMixCoordinator {
@@ -91,7 +87,10 @@ impl FlipUpVMixCoordinator {
     }
 
     fn queue_add<T: VMixSelectionTrait>(&self, funcs: &[VMixFunction<T>]) {
-        println!("hello i am adding: {:#?}",funcs.iter().map(|f|f.to_cmd()).collect_vec());
+        println!(
+            "hello i am adding: {:#?}",
+            funcs.iter().map(|f| f.to_cmd()).collect_vec()
+        );
         if let Some(q) = &self.queue {
             q.add(funcs)
         } else {
@@ -108,10 +107,6 @@ impl FlipUpVMixCoordinator {
         ];
         self.lb_thru = focused_players.iter().map(|p| p.hole).min().unwrap_or(0);
     }
-
-
-
-
 
     fn make_checkin_text(&self) -> VMixFunction<LeaderBoardProperty> {
         let value = String::from(self.get_div_names()[self.selected_div_ind].to_string())
@@ -139,8 +134,6 @@ impl FlipUpVMixCoordinator {
         }
     }
 
-
-
     fn make_lb(&mut self) -> Vec<VMixFunction<LeaderBoardProperty>> {
         let mut r_vec: Vec<VMixFunction<LeaderBoardProperty>> = self
             .score_card
@@ -166,10 +159,7 @@ impl FlipUpVMixCoordinator {
             _ => &mut self.score_card.p1,
         }
     }
-
-
 }
-
 
 // API Funcs
 // basically leftover from WASM
@@ -217,7 +207,10 @@ impl FlipUpVMixCoordinator {
                 }
             }
 
-            self.leaderboard.update_players(LeaderboardState::new(self.round_ind, self.score_card.all_play_players.clone()));
+            self.leaderboard.update_players(LeaderboardState::new(
+                self.round_ind,
+                self.score_card.all_play_players.clone(),
+            ));
             self.queue_add(&self.leaderboard.to_vmix_instructions());
 
             let players = [
@@ -259,22 +252,22 @@ impl FlipUpVMixCoordinator {
             &mut self.score_card.p3,
             &mut self.score_card.p4,
         ]
-            .iter_mut()
-            .flat_map(|player| {
-                if hole >= 9 {
-                    player.hole = hole - 1;
-                    player.shift_scores(true)
-                } else {
-                    let mut r_vec: Vec<VMixFunction<VMixProperty>> = vec![];
-                    for x in 1..=hole {
-                        println!("hello im here: {}", x);
-                        player.hole = x;
-                        r_vec.extend(player.set_hole_score());
-                    }
-                    r_vec
+        .iter_mut()
+        .flat_map(|player| {
+            if hole >= 9 {
+                player.hole = hole - 1;
+                player.shift_scores(true)
+            } else {
+                let mut r_vec: Vec<VMixFunction<VMixProperty>> = vec![];
+                for x in 1..=hole {
+                    println!("hello im here: {}", x);
+                    player.hole = x;
+                    r_vec.extend(player.set_hole_score());
                 }
-            })
-            .collect::<Vec<_>>();
+                r_vec
+            }
+        })
+        .collect::<Vec<_>>();
         self.queue_add(&instructions)
     }
 
@@ -300,7 +293,6 @@ impl FlipUpVMixCoordinator {
     pub fn focused_player_hole(&mut self) -> usize {
         self.get_focused().hole + 1
     }
-
 
     pub fn get_hole_js(&self) -> usize {
         self.lb_thru + 1
@@ -330,7 +322,6 @@ impl FlipUpVMixCoordinator {
             Some(..) => println!("handler fine"),
             None => println!("handler on fire"),
         }
-
     }
 
     pub fn increase_score(&mut self) {
@@ -370,7 +361,8 @@ impl FlipUpVMixCoordinator {
     }
 
     pub fn hide_all_pos(&mut self) {
-        let out = self.score_card
+        let out = self
+            .score_card
             .get_all_player_mut()
             .map(Player::hide_pos)
             .into_iter()
@@ -382,16 +374,15 @@ impl FlipUpVMixCoordinator {
     pub fn play_animation(&mut self) {
         println!("play_animation");
         if let Some(score) = self.get_focused().get_score() {
-            self.queue_add(&score.play_mov_vmix(self.foc_play_ind,false));
+            self.queue_add(&score.play_mov_vmix(self.foc_play_ind, false));
         }
     }
-
 
     pub fn ob_anim(&mut self) {
         println!("ob_anim");
         self.get_focused().ob = true;
         if let Some(score) = self.get_focused().get_score() {
-            self.queue_add(&score.play_mov_vmix(self.foc_play_ind,true))
+            self.queue_add(&score.play_mov_vmix(self.foc_play_ind, true))
         }
     }
     pub fn set_player(&mut self, idx: usize, player: &str) {
@@ -466,15 +457,16 @@ impl FlipUpVMixCoordinator {
         self.queue_add(f);
     }
 
-
     pub fn get_focused_player_names(&self) -> Vec<&str> {
-        [&self.score_card.p1,
+        [
+            &self.score_card.p1,
             &self.score_card.p2,
             &self.score_card.p3,
-            &self.score_card.p4]
-            .iter()
-            .map(|player| player.name.as_ref())
-            .collect()
+            &self.score_card.p4,
+        ]
+        .iter()
+        .map(|player| player.name.as_ref())
+        .collect()
     }
 
     /// TODO: Refactor out into api function
@@ -511,8 +503,6 @@ impl FlipUpVMixCoordinator {
     }
 }
 
-
-
 #[derive(Default, Clone, Debug)]
 pub struct ScoreCard {
     pub players: [get_data::Player; 4],
@@ -522,9 +512,8 @@ pub struct ScoreCard {
     pub p4: get_data::Player,
     pub all_play_players: Vec<get_data::Player>,
     ip: String,
-    queue: Option<Arc<Queue>>
+    queue: Option<Arc<Queue>>,
 }
-
 
 // Public scorecard funcs
 
@@ -552,14 +541,13 @@ impl ScoreCard {
         self.queue_add(&out_vec).expect("Queue should exist");
     }
 
-    fn queue_add<T: VMixSelectionTrait>(&self, functions: &[VMixFunction<T>]) -> Result<(),()> {
+    fn queue_add<T: VMixSelectionTrait>(&self, functions: &[VMixFunction<T>]) -> Result<(), ()> {
         if let Some(q) = &self.queue {
             q.add(functions);
             Ok(())
         } else {
             Err(())
         }
-
     }
 
     pub fn set_total_score(&mut self, player_num: usize, new_score: isize) {
@@ -585,11 +573,11 @@ impl ScoreCard {
     }
 
     fn get_all_players_ref(&self) -> [&Player; 4] {
-        [&self.p1,&self.p2,&self.p3,&self.p4]
+        [&self.p1, &self.p2, &self.p3, &self.p4]
     }
 
     fn get_all_player_mut(&mut self) -> [&mut Player; 4] {
-        [&mut self.p1,&mut self.p2,&mut self.p3,&mut self.p4]
+        [&mut self.p1, &mut self.p2, &mut self.p3, &mut self.p4]
     }
 }
 

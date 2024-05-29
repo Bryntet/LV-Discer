@@ -1,11 +1,14 @@
 use std::collections::VecDeque;
 
 #[cfg(not(target_arch = "wasm32"))]
-use {std::io::{Read, Write}, std::sync::Mutex, std::net::{IpAddr,TcpStream, SocketAddr, },std::str::FromStr};
+use {
+    std::io::{Read, Write},
+    std::net::{IpAddr, SocketAddr, TcpStream},
+    std::str::FromStr,
+    std::sync::Mutex,
+};
 
 use std::sync::Arc;
-
-
 
 #[cfg(target_arch = "wasm32")]
 #[derive(Clone)]
@@ -17,16 +20,12 @@ pub struct Queue {
 
 #[cfg(not(target_arch = "wasm32"))]
 #[derive(Clone, Debug)]
-pub struct Queue { 
+pub struct Queue {
     stream: Arc<Mutex<TcpStream>>,
-    functions: Arc<Mutex<VecDeque<String>>>
+    functions: Arc<Mutex<VecDeque<String>>>,
 }
 
-
-
-
 use crate::vmix::functions::{VMixFunction, VMixSelectionTrait};
-
 
 impl Queue {
     pub fn new(ip: String) -> Option<Self> {
@@ -36,10 +35,9 @@ impl Queue {
         };
         let funcs = me.functions.clone();
         let stream = me.stream.clone();
-        std::thread::spawn(move || Self::start_queue_thread(funcs,stream));
+        std::thread::spawn(move || Self::start_queue_thread(funcs, stream));
         Some(me)
     }
-    
 
     fn start_queue_thread(functions: Arc<Mutex<VecDeque<String>>>, stream: Arc<Mutex<TcpStream>>) {
         loop {
@@ -52,12 +50,12 @@ impl Queue {
     }
 
     fn make_tcp_stream(ip: &str) -> Option<TcpStream> {
-        TcpStream::connect(SocketAddr::new(IpAddr::from_str(ip).unwrap(), 8099)).map_err(|err|{
-            println!("TCP STREAM BUGGED OUT: {err}");
-        }).ok()
+        TcpStream::connect(SocketAddr::new(IpAddr::from_str(ip).unwrap(), 8099))
+            .map_err(|err| {
+                println!("TCP STREAM BUGGED OUT: {err}");
+            })
+            .ok()
     }
-
-    
 
     fn send(bytes: &[u8], stream: Arc<Mutex<TcpStream>>) -> Result<(), String> {
         let mut stream = loop {
@@ -94,27 +92,32 @@ impl Queue {
         }
     }
 
-    
     pub fn add<T: VMixSelectionTrait>(&self, functions: &[VMixFunction<T>]) {
         loop {
             if let Ok(mut funcs) = self.functions.lock() {
-                funcs.extend(functions.iter().map(VMixFunction::to_cmd).collect::<Vec<_>>());
+                funcs.extend(
+                    functions
+                        .iter()
+                        .map(VMixFunction::to_cmd)
+                        .collect::<Vec<_>>(),
+                );
                 break;
             }
         }
     }
-    
 }
 
 #[cfg(test)]
 mod test {
 
     use super::*;
-    use crate::flipup_vmix_controls::{Score};
+    use crate::flipup_vmix_controls::Score;
     use crate::vmix::functions::{VMixFunction, VMixProperty, VMixSelection};
 
+    use crate::get_data::{
+        DEFAULT_BACKGROUND_COL, DEFAULT_FOREGROUND_COL, DEFAULT_FOREGROUND_COL_ALPHA,
+    };
     use rand::Rng;
-    use crate::get_data::{DEFAULT_BACKGROUND_COL, DEFAULT_FOREGROUND_COL, DEFAULT_FOREGROUND_COL_ALPHA};
 
     fn random_score_type(hole: usize) -> Score {
         let mut rng = rand::thread_rng();
@@ -156,24 +159,19 @@ mod test {
         let q = connect();
         for player in 0..=3 {
             for hole in 1..=9 {
-                q.add(&[VMixFunction::SetText {
-                    input: VMixProperty::Score {
-                        player,
-                        hole
-                    }.into(),
-                    value: "".to_string()
-                },VMixFunction::SetColor {
-                    input: VMixProperty::ScoreColor {
-                        player,
-                        hole,
-                    }.into(),
-                    color: DEFAULT_FOREGROUND_COL
-                },VMixFunction::SetTextVisibleOff {
-                    input: VMixProperty::Score {
-                        player,
-                        hole
-                    }.into(),
-                }]);
+                q.add(&[
+                    VMixFunction::SetText {
+                        input: VMixProperty::Score { player, hole }.into(),
+                        value: "".to_string(),
+                    },
+                    VMixFunction::SetColor {
+                        input: VMixProperty::ScoreColor { player, hole }.into(),
+                        color: DEFAULT_FOREGROUND_COL,
+                    },
+                    VMixFunction::SetTextVisibleOff {
+                        input: VMixProperty::Score { player, hole }.into(),
+                    },
+                ]);
             }
         }
         q.clear_queue().await;

@@ -4,11 +4,9 @@ use log::warn;
 use serde::Serialize;
 
 use super::queries;
-use queries::Division;
+use crate::flipup_vmix_controls::{OverarchingScore, Score};
 use crate::vmix::functions::*;
-use crate::flipup_vmix_controls::{Score, OverarchingScore};
-
-
+use queries::Division;
 
 pub async fn post_status(event_id: cynic::Id) -> cynic::GraphQlResponse<queries::EventQuery> {
     use cynic::QueryBuilder;
@@ -22,7 +20,7 @@ pub async fn post_status(event_id: cynic::Id) -> cynic::GraphQlResponse<queries:
         .send()
         .await
         .expect("failed to send request");
-    
+
     response
         .json::<GraphQlResponse<queries::EventQuery>>()
         .await
@@ -257,19 +255,19 @@ impl Player {
         let mut rounds: Vec<PlayerRound> = vec![];
         for rnd in event.rounds {
             for pool in rnd.expect("no round").pools {
-                    match pool.leaderboard {
-                        Some(queries::PoolLeaderboardDivisionCombined::Pld(division)) => {
-                            if division.id == div_id {
-                                for player in division.players {
-                                    if player.player_id == id {
-                                        rounds.push(PlayerRound::new(player.results));
-                                    }
+                match pool.leaderboard {
+                    Some(queries::PoolLeaderboardDivisionCombined::Pld(division)) => {
+                        if division.id == div_id {
+                            for player in division.players {
+                                if player.player_id == id {
+                                    rounds.push(PlayerRound::new(player.results));
                                 }
                             }
                         }
-                        Some(queries::PoolLeaderboardDivisionCombined::Unknown) => {}
-                        None => {}
                     }
+                    Some(queries::PoolLeaderboardDivisionCombined::Unknown) => {}
+                    None => {}
+                }
             }
         }
         Self {
@@ -324,8 +322,6 @@ impl Player {
         //log(&format!("total_score {}", self.total_score));
     }
 
-
-
     // Below goes JS TCP Strings
 
     pub fn set_name(&self) -> Vec<VMixFunction<VMixProperty>> {
@@ -355,12 +351,12 @@ impl Player {
         self.make_tot_score();
 
         // Update score text, visibility, and colour
-        if let Some(score) = self.get_score().map(|a|a.update_score(self.ind)) {
+        if let Some(score) = self.get_score().map(|a| a.update_score(self.ind)) {
             return_vec.extend(score);
         }
-        
+
         let overarching = self.overarching_score_representation();
-        
+
         return_vec.push(self.set_tot_score());
         return_vec.extend(overarching.set_round_score());
         self.hole += 1;
@@ -713,23 +709,24 @@ impl RustHandler {
             .pools
             .len();
         for ind in 0..len_of_pools {
-            
-                match self.event.rounds[self.round_ind]
-                    .clone()
-                    .expect("no round")
-                    .pools[ind]
-                    .clone()
-                    .leaderboard {
-                    Some(queries::PoolLeaderboardDivisionCombined::Pld(division)) => {
-                        if division.id == self.chosen_division {
-                            for player in &division.players {
-                                players.push(player.clone());
-                            }
+            match self.event.rounds[self.round_ind]
+                .clone()
+                .expect("no round")
+                .pools[ind]
+                .clone()
+                .leaderboard
+            {
+                Some(queries::PoolLeaderboardDivisionCombined::Pld(division)) => {
+                    if division.id == self.chosen_division {
+                        for player in &division.players {
+                            players.push(player.clone());
                         }
                     }
-                    Some(queries::PoolLeaderboardDivisionCombined::Unknown) => {}
-                    None => {warn!("No leaderboard")}
-                
+                }
+                Some(queries::PoolLeaderboardDivisionCombined::Unknown) => {}
+                None => {
+                    warn!("No leaderboard")
+                }
             }
         }
         for player in players {

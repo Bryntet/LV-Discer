@@ -1,7 +1,7 @@
 pub mod coordinator;
-mod setup_helpers;
-mod queries;
-mod hole;
 mod get_data;
+mod hole;
+mod queries;
+mod setup_helpers;
 
-pub use get_data::{Player, fix_score};
+pub use get_data::{fix_score, Player};

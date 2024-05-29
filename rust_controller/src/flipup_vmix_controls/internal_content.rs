@@ -2,16 +2,17 @@ pub enum Image {
     Nothing,
     GreenTriUp,
     RedTriDown,
-    Flames
+    Flames,
 }
 
 impl Image {
     pub fn to_location(&self) -> String {
-        String::from(r"C:\livegrafik-flipup\") + match self {
-            Image::Nothing => "alpha.png",
-            Image::GreenTriUp => "greentri.png",
-            Image::RedTriDown => "redtri.png",
-            Image::Flames => "fire.png",
-        }
+        String::from(r"C:\livegrafik-flipup\")
+            + match self {
+                Image::Nothing => "alpha.png",
+                Image::GreenTriUp => "greentri.png",
+                Image::RedTriDown => "redtri.png",
+                Image::Flames => "fire.png",
+            }
     }
 }
