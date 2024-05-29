@@ -4,12 +4,7 @@ use std::collections::VecDeque;
 use {std::io::{Read, Write}, std::sync::Mutex, std::net::{IpAddr,TcpStream, SocketAddr, },std::str::FromStr};
 
 use std::sync::Arc;
-use futures::FutureExt;
-#[cfg(target_arch = "wasm32")]
-use tokio::sync::Mutex;
-use tokio::task::spawn_blocking;
 
-use wasm_bindgen::prelude::*;
 
 
 #[cfg(target_arch = "wasm32")]
@@ -21,58 +16,31 @@ pub struct Queue {
 }
 
 #[cfg(not(target_arch = "wasm32"))]
+#[derive(Clone)]
 pub struct Queue { 
     stream: Arc<Mutex<TcpStream>>,
     functions: Arc<Mutex<VecDeque<String>>>
 }
 
-#[wasm_bindgen]
-extern "C" {
-    #[wasm_bindgen(js_namespace = globalThis)]
-    fn setTimeout(closure: &Closure<dyn FnMut()>, millis: i32) -> i32;
-}
+
 
 
 use crate::vmix::functions::{VMixFunction, VMixSelectionTrait};
-use wasm_bindgen::prelude::wasm_bindgen;
-use wasm_bindgen_futures::spawn_local;
-use crate::log;
+
 
 impl Queue {
-    #[cfg(not(target_arch = "wasm32"))]
-    pub fn new(ip: String) -> Self {
+    pub fn new(ip: String) -> Option<Self> {
         let me = Self {
             functions: Default::default(),
-            stream: Arc::new(Mutex::new(Self::make_tcp_stream(&ip))),
+            stream: Arc::new(Mutex::new(Self::make_tcp_stream(&ip)?)),
         };
         let funcs = me.functions.clone();
         let stream = me.stream.clone();
         std::thread::spawn(move || Self::start_queue_thread(funcs,stream));
-        me
-    }
-    #[cfg(target_arch = "wasm32")]
-    pub fn new(ip: String) -> Option<Self> {
-        let me = Self {
-            functions: Default::default(),
-            ip: ip.clone(),
-            client: reqwest::Client::new(),
-        };
         Some(me)
     }
+    
 
-    #[cfg(target_arch = "wasm32")] 
-    pub async fn clear_queue(&self) {
-        log("clearing");
-        let funcs = self.functions.clone();
-        let mut functions = funcs.lock().await;
-        while let Some(f) = functions.pop_front() {
-            log("HERE LOOK AT ME IM MR MEESEEKS");
-            self.send(f);
-        }
-        log("very interesting")
-    }
-
-    #[cfg(not(target_arch = "wasm32"))]
     fn start_queue_thread(funcs: Arc<Mutex<VecDeque<String>>>, stream: Arc<Mutex<TcpStream>>) {
         loop {
             if let Ok(mut functions) = funcs.lock() {
@@ -83,27 +51,14 @@ impl Queue {
         }
     }
 
-    #[cfg(not(target_arch = "wasm32"))]
-    fn make_tcp_stream(ip: &str) -> TcpStream {
-        TcpStream::connect(SocketAddr::new(IpAddr::from_str(ip).unwrap(), 8099)).unwrap()
+    fn make_tcp_stream(ip: &str) -> Option<TcpStream> {
+        TcpStream::connect(SocketAddr::new(IpAddr::from_str(ip).unwrap(), 8099)).map_err(|err|{
+            println!("TCP STREAM BUGGED OUT: {err}");
+        }).ok()
     }
 
-    #[cfg(target_arch = "wasm32")]
-    fn send(&self, body: String) {
-        log(&format!("Sending: {:#?}",body));
-        let client = self.client.clone();
-        let ip = self.ip.clone();
-        
-        spawn_local(async move {
-            let response = client
-                .post(format!("http://{}:8088/API/?{body}", ip.clone()))
-                .send().await
-            .expect("failed to send request");
-            response.text().await.expect("failed to parse response");
-        });
-    }
+    
 
-    #[cfg(not(target_arch = "wasm32"))]
     fn send(bytes: &[u8], stream: Arc<Mutex<TcpStream>>) -> Result<(), String> {
         let mut stream = loop {
             if let Ok(stream) = stream.lock() {
@@ -139,21 +94,8 @@ impl Queue {
         }
     }
 
-    #[cfg(target_arch = "wasm32")]
+    
     pub fn add<T: VMixSelectionTrait>(&self, functions: &[VMixFunction<T>]) {
-        for command in functions.iter().map(VMixFunction::to_cmd) {
-            self.send(command)
-        }
-        /*
-        self.functions.blocking_lock().extend(
-            functions
-                .iter()
-                .map(VMixFunction::to_cmd)
-                .collect::<Vec<_>>(),
-        )*/
-    }
-    #[cfg(not(target_arch = "wasm32"))]
-    pub fn add<T: VMixSelectionTrait>(&mut self, functions: &[VMixFunction<T>]) {
         loop {
             if let Ok(mut funcs) = self.functions.lock() {
                 funcs.extend(functions.iter().map(VMixFunction::to_cmd).collect::<Vec<_>>());
@@ -166,10 +108,8 @@ impl Queue {
 
 #[cfg(test)]
 mod test {
-    use wasm_bindgen_test::wasm_bindgen_test;
 
     use super::*;
-    use crate::utils;
     use crate::flipup_vmix_controls::{Score};
     use crate::vmix::functions::{VMixFunction, VMixProperty, VMixSelection};
 
