@@ -146,11 +146,11 @@ impl FlipUpVMixCoordinator {
     }
 
     pub fn toggle_pos(&mut self) {
-        let f = self.get_focused().toggle_pos();
+        let f = self.get_focused_mut().toggle_pos();
         self.queue_add(&f)
     }
 
-    fn get_focused(&mut self) -> &mut get_data::Player {
+    fn get_focused_mut(&mut self) -> &mut get_data::Player {
         match self.foc_play_ind {
             0 => &mut self.score_card.p1,
             1 => &mut self.score_card.p2,
@@ -159,6 +159,17 @@ impl FlipUpVMixCoordinator {
             _ => &mut self.score_card.p1,
         }
     }
+    
+    fn get_focused(&self) -> &Player {
+        match self.foc_play_ind {
+            0 => &self.score_card.p1,
+            1 => &self.score_card.p2,
+            2 => &self.score_card.p3,
+            3 => &self.score_card.p4,
+            _ => &self.score_card.p1
+        }
+    }
+    
 }
 
 // API Funcs
@@ -186,7 +197,7 @@ impl FlipUpVMixCoordinator {
         //let mut lb_copy = self.clone();
         self.set_lb_thru();
         println!("past set_lb_thru");
-        if self.get_hole(false) <= 19 {
+        if self.current_hole() <= 19 {
             println!("hole <= 19");
             self.lb_div_ind = self.selected_div_ind;
             self.fetch_players(true);
@@ -272,7 +283,8 @@ impl FlipUpVMixCoordinator {
     }
 
     pub fn make_hole_info(&mut self) {
-        if self.get_hole(true) <= 18 {
+        self.set_lb_thru();
+        if self.current_hole() <= 18 {
             self.queue_add(
                 &self
                     .score_card
@@ -281,22 +293,19 @@ impl FlipUpVMixCoordinator {
                     .get_hole_info(self.lb_thru),
             );
         }
+        
     }
 
-    pub fn get_hole(&mut self, check_thru: bool) -> usize {
-        if check_thru {
-            self.set_lb_thru();
-        }
+    // INFO: 
+    pub fn current_hole(&self) -> usize {
         self.lb_thru + 1
     }
 
     pub fn focused_player_hole(&mut self) -> usize {
-        self.get_focused().hole + 1
+        self.get_focused_mut().hole + 1
     }
 
-    pub fn get_hole_js(&self) -> usize {
-        self.lb_thru + 1
-    }
+    
     pub fn get_round(&self) -> usize {
         self.round_ind
     }
@@ -308,13 +317,13 @@ impl FlipUpVMixCoordinator {
         self.queue_add(&funcs);
     }
 
-    pub fn get_rounds(&mut self) -> usize {
+    pub fn get_rounds(&self) -> usize {
         self.get_focused().rounds.len()
     }
 
-    pub async fn get_event(&mut self) {
+    pub async fn fetch_event(&mut self) {
         self.pools = vec![];
-        self.handler = Some(get_data::RustHandler::new(
+        self.handler = Some(RustHandler::new(
             get_data::post_status(cynic::Id::from(&self.event_id)).await,
         ));
 
@@ -325,12 +334,12 @@ impl FlipUpVMixCoordinator {
     }
 
     pub fn increase_score(&mut self) {
-        let hole = self.get_focused().hole;
+        let hole = self.get_focused_mut().hole;
         self.hide_pos();
         //println!(format!("hole: {}", hole).as_str());
         if hole <= 17 {
             let f = {
-                let focused = self.get_focused();
+                let focused = self.get_focused_mut();
                 if hole <= 7 {
                     focused.set_hole_score()
                 } else {
@@ -342,7 +351,7 @@ impl FlipUpVMixCoordinator {
     }
 
     pub fn show_pos(&mut self) {
-        let f = self.get_focused().show_pos();
+        let f = self.get_focused_mut().show_pos();
         self.queue_add(&f)
     }
 
@@ -356,7 +365,7 @@ impl FlipUpVMixCoordinator {
     }
 
     pub fn hide_pos(&mut self) {
-        let f = self.get_focused().hide_pos();
+        let f = self.get_focused_mut().hide_pos();
         self.queue_add(&f)
     }
 
@@ -373,15 +382,15 @@ impl FlipUpVMixCoordinator {
 
     pub fn play_animation(&mut self) {
         println!("play_animation");
-        if let Some(score) = self.get_focused().get_score() {
+        if let Some(score) = self.get_focused_mut().get_score() {
             self.queue_add(&score.play_mov_vmix(self.foc_play_ind, false));
         }
     }
 
     pub fn ob_anim(&mut self) {
         println!("ob_anim");
-        self.get_focused().ob = true;
-        if let Some(score) = self.get_focused().get_score() {
+        self.get_focused_mut().ob = true;
+        if let Some(score) = self.get_focused_mut().get_score() {
             self.queue_add(&score.play_mov_vmix(self.foc_play_ind, true))
         }
     }
@@ -393,12 +402,12 @@ impl FlipUpVMixCoordinator {
         self.foc_play_ind = idx;
     }
     pub fn revert_score(&mut self) {
-        let f = self.get_focused().revert_hole_score();
+        let f = self.get_focused_mut().revert_hole_score();
         self.queue_add(&f);
     }
     pub fn reset_score(&mut self) {
         self.lb_thru = 0;
-        let f = self.get_focused().reset_scores();
+        let f = self.get_focused_mut().reset_scores();
         self.queue_add(&f)
     }
 
@@ -413,7 +422,7 @@ impl FlipUpVMixCoordinator {
     }
 
     pub fn get_foc_p_name(&mut self) -> String {
-        self.get_focused().name.clone()
+        self.get_focused_mut().name.clone()
     }
 
     pub fn get_div_names(&self) -> Vec<String> {
@@ -446,14 +455,14 @@ impl FlipUpVMixCoordinator {
     }
 
     pub fn increase_throw(&mut self) {
-        self.get_focused().throws += 1;
-        let f = [self.get_focused().set_throw()];
+        self.get_focused_mut().throws += 1;
+        let f = [self.get_focused_mut().set_throw()];
         self.queue_add(&f)
     }
 
     pub fn decrease_throw(&mut self) {
-        self.get_focused().throws -= 1;
-        let f = &[self.get_focused().set_throw()];
+        self.get_focused_mut().throws -= 1;
+        let f = &[self.get_focused_mut().set_throw()];
         self.queue_add(f);
     }
 
@@ -592,7 +601,7 @@ mod tests {
             event_id: "5c243af9-ea9d-4f44-ab07-9c55be23bd8c".to_string(),
             ..Default::default()
         };
-        app.get_event().await.unwrap();
+        app.fetch_event().await.unwrap();
         println!("{:#?}", app.pools);
         app.set_div(0);
         app.fetch_players(false);

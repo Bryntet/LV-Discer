@@ -1,7 +1,8 @@
 mod mutation;
 mod query;
-
+use query::*;
 use rocket::{Build, Rocket, State};
+use rocket::serde::json::Json;
 
 use crate::controller::coordinator::{FlipUpVMixCoordinator, ScoreCard};
 
@@ -11,8 +12,11 @@ pub fn test(test: &State<FlipUpVMixCoordinator>) {
     println!("hello world");
 }
 
+
+
+
 pub fn launch() -> Rocket<Build> {
     rocket::build()
         .manage(FlipUpVMixCoordinator::default())
-        .mount("/", routes![test])
+        .mount("/", routes![test,current_hole,amount_of_rounds,current_round])
 }
