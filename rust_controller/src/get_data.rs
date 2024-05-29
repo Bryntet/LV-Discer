@@ -2,18 +2,13 @@ use crate::LeaderBoardProperty;
 use cynic::GraphQlResponse;
 use log::warn;
 use serde::Serialize;
-use wasm_bindgen::prelude::*;
 
 use crate::queries;
 use crate::queries::Division;
 use crate::vmix::functions::*;
 use crate::flipup_vmix_controls::{Score, OverarchingScore};
 
-#[wasm_bindgen]
-extern "C" {
-    #[wasm_bindgen(js_namespace = console)]
-    fn log(s: &str);
-}
+
 
 pub async fn post_status(event_id: cynic::Id) -> cynic::GraphQlResponse<queries::EventQuery> {
     use cynic::QueryBuilder;
@@ -28,7 +23,6 @@ pub async fn post_status(event_id: cynic::Id) -> cynic::GraphQlResponse<queries:
         .await
         .expect("failed to send request");
     
-    log("hello this is a test to see if things actually update!");
     response
         .json::<GraphQlResponse<queries::EventQuery>>()
         .await
@@ -76,7 +70,7 @@ impl HoleScoreOrDefault for Option<&PlayerRound> {
 
 impl RankUpDown {
     fn get_instructions(&self, pos: usize) -> [VMixFunction<LeaderBoardProperty>; 2] {
-        [self.make_move(pos).into(), self.make_arrow(pos)]
+        [self.make_move(pos), self.make_arrow(pos)]
     }
 
     fn make_move(&self, pos: usize) -> VMixFunction<LeaderBoardProperty> {
@@ -410,18 +404,6 @@ impl Player {
         VMixFunction::SetText {
             value: fix_score(self.total_score),
             input: VMixProperty::TotalScore(self.ind).into(),
-        }
-    }
-
-    fn hide_round_score(&self) -> VMixFunction<VMixProperty> {
-        VMixFunction::SetTextVisibleOff {
-            input: VMixProperty::RoundScore(self.ind).into(),
-        }
-    }
-
-    fn show_round_score(&self) -> VMixFunction<VMixProperty> {
-        VMixFunction::SetTextVisibleOn {
-            input: VMixProperty::RoundScore(self.ind).into(),
         }
     }
 

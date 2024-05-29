@@ -1,5 +1,5 @@
 use crate::get_data::Player;
-use crate::vmix::functions::{VMixFunction, VMixSelection, VMixSelectionTrait};
+use crate::vmix::functions::{VMixFunction};
 use itertools::Itertools;
 #[derive(Debug, Clone, Default)]
 pub struct Leaderboard {

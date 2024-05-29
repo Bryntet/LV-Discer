@@ -1,12 +1,6 @@
 use crate::flipup_vmix_controls::Score;
 use crate::vmix::functions::{VMixFunction, VMixProperty};
-use wasm_bindgen::prelude::*;
 
-#[wasm_bindgen]
-extern "C" {
-    #[wasm_bindgen(js_namespace = console)]
-    fn log(s: &str);
-}
 
 #[derive(cynic::QueryVariables, Debug)]
 pub struct EventQueryVariables {
