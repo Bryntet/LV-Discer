@@ -9,12 +9,16 @@ mod flipup_vmix_controls;
 use crate::get_data::HoleScoreOrDefault;
 use crate::vmix::functions::{VMixProperty, VMixSelectionTrait};
 use crate::vmix::Queue;
-use js_sys::JsString;
+use js_sys::{JsString, Promise};
 use std::sync::Arc;
+use itertools::Itertools;
+use log::warn;
 use tokio::sync::Mutex;
+use tokio::task::{spawn_blocking, spawn_local};
 use vmix::functions::{VMixFunction};
 use flipup_vmix_controls::LeaderBoardProperty;
 use wasm_bindgen::prelude::*;
+use wasm_bindgen_futures::wasm_bindgen;
 use crate::flipup_vmix_controls::{Leaderboard, LeaderboardState};
 
 #[wasm_bindgen]
@@ -54,11 +58,11 @@ pub struct FlipUpVMixCoordinator {
     round_ind: usize,
     lb_div_ind: usize,
     lb_thru: usize,
-    queue: Arc<Mutex<vmix::Queue>>,
+    queue: Option<vmix::Queue>,
 }
 impl Default for FlipUpVMixCoordinator {
     fn default() -> FlipUpVMixCoordinator {
-        let queue = Arc::new(Mutex::new(Queue::new("127.0.0.1".to_string()))); // This is your main async runtime
+        let queue = Queue::new("10.170.120.134".to_string()); // This is your main async runtime
         FlipUpVMixCoordinator {
             all_divs: vec![],
             selected_div_ind: 0,
@@ -72,10 +76,7 @@ impl Default for FlipUpVMixCoordinator {
             round_ind: 0,
             lb_div_ind: 0,
             lb_thru: 0,
-            score_card: ScoreCard {
-                queue: Some(queue.clone()),
-                ..Default::default()
-            },
+            score_card: ScoreCard::default(),
             queue,
             leaderboard: Leaderboard::default(),
         }
@@ -110,7 +111,12 @@ impl FlipUpVMixCoordinator {
     }
 
     fn queue_add<T: VMixSelectionTrait>(&self, funcs: &[VMixFunction<T>]) {
-        self.queue.blocking_lock().add(funcs)
+        log(&format!("hello i am adding: {:#?}",funcs.iter().map(|f|f.to_cmd()).collect_vec()));
+        if let Some(q) = &self.queue {
+            q.add(funcs)
+        } else {
+            warn!("NO QUEUE FOUND!");
+        }
     }
 
     fn set_lb_thru(&mut self) {
@@ -206,6 +212,15 @@ impl FlipUpVMixCoordinator {
             handler.set_chosen_by_ind(idx);
         }
         self.fetch_players(false);
+    }
+
+    pub async fn empty_queue(&self) {
+        log("hello please send help");
+        if let Some(q) = &self.queue {
+            q.clear_queue().await;
+        } else {
+            log("NO QUEUE")
+        }
     }
     
     #[wasm_bindgen]
@@ -415,12 +430,8 @@ impl FlipUpVMixCoordinator {
     #[wasm_bindgen]
     pub fn play_animation(&mut self) {
         log("play_animation");
-        if self.get_focused().hole <= 17 {
-            let f = self
-                .get_focused()
-                .get_score()
-                .play_mov_vmix(self.foc_play_ind, false);
-            self.queue_add(&f);
+        if let Some(score) = self.get_focused().get_score() {
+            self.queue_add(&score.play_mov_vmix(self.foc_play_ind,false));
         }
     }
 
@@ -428,11 +439,9 @@ impl FlipUpVMixCoordinator {
     pub fn ob_anim(&mut self) {
         log("ob_anim");
         self.get_focused().ob = true;
-        let f = self
-            .get_focused()
-            .get_score()
-            .play_mov_vmix(self.foc_play_ind, true);
-        self.queue_add(&f)
+        if let Some(score) = self.get_focused().get_score() {
+            self.queue_add(&score.play_mov_vmix(self.foc_play_ind,true))
+        }
     }
     #[wasm_bindgen]
     pub fn set_player(&mut self, idx: usize, player: JsString) {
@@ -582,7 +591,6 @@ pub struct ScoreCard {
     #[wasm_bindgen(skip)]
     pub all_play_players: Vec<get_data::Player>,
     ip: String,
-    queue: Option<Arc<Mutex<Queue>>>,
 }
 
 #[wasm_bindgen]
@@ -607,9 +615,9 @@ impl ScoreCard {
             }
         }
         log(&format!("player_id: {}", player_id));
-        if let Some(queue) = self.queue.clone() {
+        /*if let Some(queue) = self.queue.clone() {
             queue.blocking_lock().add(&out_vec);
-        }
+        }*/
     }
 
     #[wasm_bindgen]

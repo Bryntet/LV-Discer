@@ -4,7 +4,6 @@ import { setActionDefinitions } from "./actions";
 import { setFeedbackDefinitions } from './feedbacks';
 import wasm from '../../rust_controller/pkg';
 
-
 class LevandeVideoInstance extends InstanceBase<Config> {
 	public rust_main = new wasm.FlipUpVMixCoordinator;
 	public config: Config = {
@@ -108,7 +107,22 @@ class LevandeVideoInstance extends InstanceBase<Config> {
 				label: 'None',
 			},
 		]
+
+		console.log("gonna start the queue!")
 	}
+
+	/*async startWorker()  {
+		const worker = new Worker('./worker.js');  // Ensure this path points to the compiled JS file
+
+		worker.on('message', (message: string) => {
+			if (message === 'callFunction') {
+				this.rust_main.empty_queue();
+			}
+		});
+
+		worker.postMessage('start');
+	}*/
+
 
 	varValues(): CompanionVariableValues {
 		while (this.focused_players.length < 5) { // First element is always none
@@ -179,6 +193,8 @@ class LevandeVideoInstance extends InstanceBase<Config> {
 		this.setFocusedPlayerVariables();
 		this.updateRoundBasedOnConfig();
 		this.updateHoleIfNecessary();
+		console.log("hello i got all the way here!");
+		this.rust_main.empty_queue()
 	}
 	updateVmixIp(config: Config) {
 		if (config.vmix_ip != this.config.vmix_ip) {

@@ -12,6 +12,9 @@ impl<'results> RoundStats<'results> {
             holes: holes.map(|(hole_number, results)| HoleStats::new(hole_number, results)),
         }
     }
+
+
+
 }
 
 struct HoleStats<'results> {

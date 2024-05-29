@@ -4,15 +4,18 @@ use std::collections::VecDeque;
 use {std::io::{Read, Write}, std::sync::Mutex, std::net::{IpAddr,TcpStream, SocketAddr, },std::str::FromStr};
 
 use std::sync::Arc;
+use futures::FutureExt;
 #[cfg(target_arch = "wasm32")]
 use tokio::sync::Mutex;
+use tokio::task::spawn_blocking;
 
 use wasm_bindgen::prelude::*;
 
 
 #[cfg(target_arch = "wasm32")]
+#[derive(Clone)]
 pub struct Queue {
-    functions: VecDeque<String>,
+    functions: Arc<Mutex<VecDeque<String>>>,
     ip: String,
     client: reqwest::Client,
 }
@@ -32,6 +35,8 @@ extern "C" {
 
 use crate::vmix::functions::{VMixFunction, VMixSelectionTrait};
 use wasm_bindgen::prelude::wasm_bindgen;
+use wasm_bindgen_futures::spawn_local;
+use crate::log;
 
 impl Queue {
     #[cfg(not(target_arch = "wasm32"))]
@@ -46,20 +51,25 @@ impl Queue {
         me
     }
     #[cfg(target_arch = "wasm32")]
-    pub fn new(ip: String) -> Self {
+    pub fn new(ip: String) -> Option<Self> {
         let me = Self {
             functions: Default::default(),
             ip: ip.clone(),
             client: reqwest::Client::new(),
         };
-        me
+        Some(me)
     }
 
-    #[cfg(target_arch = "wasm32")]
-    pub async fn clear_queue(&mut self) {
-        while let Some(f) = self.functions.pop_front() {
-            self.send(f).await.unwrap();
+    #[cfg(target_arch = "wasm32")] 
+    pub async fn clear_queue(&self) {
+        log("clearing");
+        let funcs = self.functions.clone();
+        let mut functions = funcs.lock().await;
+        while let Some(f) = functions.pop_front() {
+            log("HERE LOOK AT ME IM MR MEESEEKS");
+            self.send(f);
         }
+        log("very interesting")
     }
 
     #[cfg(not(target_arch = "wasm32"))]
@@ -79,15 +89,18 @@ impl Queue {
     }
 
     #[cfg(target_arch = "wasm32")]
-    async fn send(&self, body: String) -> Result<(), String> {
-        let response = self
-            .client
-            .post(format!("http://{}:8088/API/?{body}", self.ip))
-            .send()
-            .await
+    fn send(&self, body: String) {
+        log(&format!("Sending: {:#?}",body));
+        let client = self.client.clone();
+        let ip = self.ip.clone();
+        
+        spawn_local(async move {
+            let response = client
+                .post(format!("http://{}:8088/API/?{body}", ip.clone()))
+                .send().await
             .expect("failed to send request");
-        response.text().await.expect("failed to parse response");
-        Ok(())
+            response.text().await.expect("failed to parse response");
+        });
     }
 
     #[cfg(not(target_arch = "wasm32"))]
@@ -127,14 +140,17 @@ impl Queue {
     }
 
     #[cfg(target_arch = "wasm32")]
-    pub fn add<T: VMixSelectionTrait>(&mut self, functions: &[VMixFunction<T>])
-    {
-        self.functions.extend(
+    pub fn add<T: VMixSelectionTrait>(&self, functions: &[VMixFunction<T>]) {
+        for command in functions.iter().map(VMixFunction::to_cmd) {
+            self.send(command)
+        }
+        /*
+        self.functions.blocking_lock().extend(
             functions
                 .iter()
                 .map(VMixFunction::to_cmd)
                 .collect::<Vec<_>>(),
-        )
+        )*/
     }
     #[cfg(not(target_arch = "wasm32"))]
     pub fn add<T: VMixSelectionTrait>(&mut self, functions: &[VMixFunction<T>]) {
@@ -155,9 +171,10 @@ mod test {
     use super::*;
     use crate::utils;
     use crate::flipup_vmix_controls::{Score};
-    use crate::vmix::functions::{VMixFunction};
+    use crate::vmix::functions::{VMixFunction, VMixProperty, VMixSelection};
 
     use rand::Rng;
+    use crate::get_data::{DEFAULT_BACKGROUND_COL, DEFAULT_FOREGROUND_COL, DEFAULT_FOREGROUND_COL_ALPHA};
 
     fn random_score_type(hole: usize) -> Score {
         let mut rng = rand::thread_rng();
@@ -166,7 +183,7 @@ mod test {
     }
 
     fn connect() -> Queue {
-        Queue::new("10.170.120.134".to_string())
+        Queue::new("10.170.120.134".to_string()).unwrap()
     }
 
     #[cfg(target_arch = "wasm32")]
@@ -174,7 +191,7 @@ mod test {
     async fn set_all_colours() {
         utils::set_panic_hook();
 
-        let mut q = connect();
+        let q = connect();
         let funcs = (0..=3)
             .flat_map(|player| {
                 (1..=9).flat_map(move |hole| random_score_type(hole).update_score(player))
@@ -189,6 +206,36 @@ mod test {
                 break;
             }
         }*/
+        q.clear_queue().await;
+    }
+
+    #[cfg(target_arch = "wasm32")]
+    #[wasm_bindgen_test]
+    async fn clear_all_scores() {
+        utils::set_panic_hook();
+        let q = connect();
+        for player in 0..=3 {
+            for hole in 1..=9 {
+                q.add(&[VMixFunction::SetText {
+                    input: VMixProperty::Score {
+                        player,
+                        hole
+                    }.into(),
+                    value: "".to_string()
+                },VMixFunction::SetColor {
+                    input: VMixProperty::ScoreColor {
+                        player,
+                        hole,
+                    }.into(),
+                    color: DEFAULT_FOREGROUND_COL
+                },VMixFunction::SetTextVisibleOff {
+                    input: VMixProperty::Score {
+                        player,
+                        hole
+                    }.into(),
+                }]);
+            }
+        }
         q.clear_queue().await;
     }
 }

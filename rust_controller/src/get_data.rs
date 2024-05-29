@@ -35,9 +35,9 @@ pub async fn post_status(event_id: cynic::Id) -> cynic::GraphQlResponse<queries:
         .expect("failed to parse response")
 }
 
-const DEFAULT_FOREGROUND_COL: &str = "3F334D";
-const DEFAULT_FOREGROUND_COL_ALPHA: &str = "3F334D00";
-const DEFAULT_BACKGROUND_COL: &str = "574B60";
+pub const DEFAULT_FOREGROUND_COL: &str = "3F334D";
+pub const DEFAULT_FOREGROUND_COL_ALPHA: &str = "3F334D00";
+pub const DEFAULT_BACKGROUND_COL: &str = "574B60";
 
 #[derive(Debug, Clone, Default)]
 pub enum RankUpDown {
@@ -307,8 +307,8 @@ impl Player {
         total_score
     }
 
-    pub fn get_score(&self) -> Score {
-        (&self.current_round().expect("Current round should exist").results[self.hole]).into()
+    pub fn get_score(&self) -> Option<Score> {
+        Some((&self.current_round()?.results[self.hole]).into())
     }
 
     pub fn current_round(&self) -> Option<&PlayerRound> {
@@ -361,10 +361,12 @@ impl Player {
         self.make_tot_score();
 
         // Update score text, visibility, and colour
-        return_vec.extend(self.get_score().update_score(self.ind));
-
+        if let Some(score) = self.get_score().map(|a|a.update_score(self.ind)) {
+            return_vec.extend(score);
+        }
+        
         let overarching = self.overarching_score_representation();
-
+        
         return_vec.push(self.set_tot_score());
         return_vec.extend(overarching.set_round_score());
         self.hole += 1;
