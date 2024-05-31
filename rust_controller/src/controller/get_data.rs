@@ -343,8 +343,7 @@ impl Player {
 
     pub fn set_hole_score(&mut self) -> Vec<VMixFunction<VMixProperty>> {
         let mut return_vec: Vec<VMixFunction<VMixProperty>> = vec![];
-        // log(&format!("{}", self.round_ind));
-        // log(&format!("{:#?}", self.rounds));
+        
         if !self.first_scored {
             self.first_scored = true;
         }

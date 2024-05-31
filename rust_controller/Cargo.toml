@@ -8,28 +8,26 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-cynic = { version = "3.4.3" }
-syn = "2.0.52"
+cynic = { version = "3.7.2" }
+syn = "2.0.66"
 log = "0.4.21"
-serde = "1.0.197"
-serde_json = "1.0.114"
-clap = "4.5.3"
-anyhow = "1.0.81"
-paste = "1.0.14"
-quote = "1.0.35"
-getrandom = { version = "0.2.12" }
+serde = "1.0.203"
+serde_json = "1.0.117"
+clap = "4.5.4"
+anyhow = "1.0.86"
+paste = "1.0.15"
+quote = "1.0.36"
+getrandom = { version = "0.2.15" }
 reqwest = { version = "0.12.4", features = ["json"] }
-regex = "1.10.3"
-cynic-codegen = "3.5.0"
+regex = "1.10.4"
+cynic-codegen = "3.7.2"
 rand = "0.9.0-alpha.1"
 itertools = "0.13.0"
 rocket = "0.5.0"
-rocket_okapi = "0.8.0"
+rocket_okapi = { version = "0.8.0", features = ["swagger", "rapidoc"] }
 #wasm-futures-executor = "0.2.0"
 
-[dev-dependencies]
-tokio-test = "0.4.4"
 
 
 [build-dependencies]
-cynic-codegen = "3.5.0"
+cynic-codegen = "3.7.2"

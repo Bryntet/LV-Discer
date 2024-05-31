@@ -28,25 +28,24 @@ pub struct Queue {
 use crate::vmix::functions::{VMixFunction, VMixSelectionTrait};
 
 impl Queue {
-    pub fn new(ip: String) -> Option<Self> {
+    pub fn new(ip: String) -> Self {
         let me = Self {
             functions: Default::default(),
-            stream: Arc::new(Mutex::new(Self::make_tcp_stream(&ip)?)),
+            stream: Mutex::new(Self::make_tcp_stream(&ip).unwrap()).into(),
         };
         let funcs = me.functions.clone();
         let stream = me.stream.clone();
-        std::thread::spawn(move || Self::start_queue_thread(funcs, stream));
-        Some(me)
-    }
-
-    fn start_queue_thread(functions: Arc<Mutex<VecDeque<String>>>, stream: Arc<Mutex<TcpStream>>) {
-        loop {
-            if let Ok(mut functions) = functions.lock() {
-                while let Some(f) = functions.pop_front() {
-                    Queue::send(&f.into_bytes(), stream.clone());
+        // Here is the actual thread that clears the queue:
+        std::thread::spawn(move || {
+            loop {
+                if let Ok(mut functions) = funcs.lock() {
+                    while let Some(f) = functions.pop_front() {
+                        Queue::send(&f.into_bytes(), stream.clone());
+                    }
                 }
-            }
-        }
+            } 
+        });
+        me
     }
 
     fn make_tcp_stream(ip: &str) -> Option<TcpStream> {
