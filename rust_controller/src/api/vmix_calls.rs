@@ -1,5 +1,8 @@
+use std::ops::Deref;
+use std::sync::{Mutex, RwLock};
 use rocket::{State};
 use rocket_okapi::openapi;
+use crate::api::Coordinator;
 use crate::controller::coordinator::FlipUpVMixCoordinator;
 use crate::vmix::functions::{VMixFunction, VMixProperty, VMixSelection};
 
@@ -8,8 +11,8 @@ use crate::vmix::functions::{VMixFunction, VMixProperty, VMixSelection};
 /// Play the animation that corresponds with the upcoming score of the currently focused player
 #[openapi(tag = "VMix")]
 #[post("/vmix/play/animation")]
-pub fn play_animation(co: &State<FlipUpVMixCoordinator>) {
-    co.play_animation()
+pub async fn play_animation(co: &State<Coordinator>) {
+    //co.lock().await.play_animation()
 }
 
 
@@ -20,8 +23,8 @@ pub fn play_animation(co: &State<FlipUpVMixCoordinator>) {
 // TODO: add hole information clearing
 #[openapi(tag = "VMix")]
 #[post("/vmix/clear/all")]
-pub fn clear_all(co: &State<FlipUpVMixCoordinator>) {
-    let queue = co.queue.clone();
+pub async fn clear_all(co: &State<Coordinator>) {
+    /*let queue = co.lock().await.queue.clone();
     let mut actions = vec![];
     for player in 0..=3 {
         for hole in 1..=9 {
@@ -45,6 +48,6 @@ pub fn clear_all(co: &State<FlipUpVMixCoordinator>) {
             input: VMixProperty::RoundScore(player).into()
         }])
     }
-    queue.add(&actions)
+    queue.add(&actions)*/
 }
 

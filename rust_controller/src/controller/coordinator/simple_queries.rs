@@ -6,7 +6,7 @@ impl FlipUpVMixCoordinator {
     }
 
     pub fn focused_player_hole(&self) -> usize {
-        self.get_focused().hole + 1
+        self.focused_player().hole + 1
     }
     
     pub fn get_round(&self) -> usize {
@@ -14,6 +14,6 @@ impl FlipUpVMixCoordinator {
     }
     
     pub fn get_rounds(&self) -> usize {
-        self.get_focused().rounds.len()
+        self.focused_player().rounds.len()
     }
 }

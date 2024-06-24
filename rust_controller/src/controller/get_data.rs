@@ -1,7 +1,6 @@
 use crate::flipup_vmix_controls::LeaderBoardProperty;
 use cynic::GraphQlResponse;
 use log::warn;
-use serde::Serialize;
 
 use super::queries;
 use crate::flipup_vmix_controls::{OverarchingScore, Score};
@@ -506,7 +505,7 @@ impl Player {
         }
     }
 
-    fn del_score(&mut self) -> [VMixFunction<VMixProperty>; 4] {
+    fn del_score(&self) -> [VMixFunction<VMixProperty>; 4] {
         let score_prop = VMixProperty::Score {
             hole: self.hole + 1,
             player: self.ind,

@@ -7,6 +7,7 @@ mod api;
 pub mod controller;
 pub mod flipup_vmix_controls;
 pub mod vmix;
+mod dto;
 
 #[launch]
 fn rocket() -> Rocket<Build> {

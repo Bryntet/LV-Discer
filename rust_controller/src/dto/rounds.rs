@@ -1,4 +1,8 @@
-use super::get_data;
+use rocket_okapi::okapi::{schemars,schemars::JsonSchema};
+use serde::Serialize;
+use crate::controller::get_data;
+
+#[derive(Serialize, JsonSchema)]
 pub struct SimpleRound {
     round: usize,
     id: String,
@@ -9,10 +13,10 @@ impl SimpleRound {
     }
 }
 
-#[allow(unused)]
+#[derive(Serialize, JsonSchema)]
 pub struct Rounds(Vec<SimpleRound>);
 
-pub async fn get_rounds_from_api(event_id: String) -> Rounds {
+pub async fn get_rounds(event_id: String) -> Rounds {
     let request = get_data::post_status(event_id.into()).await;
     Rounds(
         request
