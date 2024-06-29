@@ -2,6 +2,7 @@ use std::ops::{Deref, DerefMut};
 use rocket::http::{Header, Status};
 use rocket::{Request, State};
 use rocket::request::{FromRequest, Outcome};
+use rocket::response::{Responder, status};
 use rocket::serde::json::Json;
 use rocket_okapi::gen::OpenApiGenerator;
 use rocket_okapi::{JsonSchema, openapi,};
@@ -13,7 +14,7 @@ use crate::api::{Coordinator};
 use crate::controller::coordinator::FlipUpVMixCoordinator;
 use crate::dto::CoordinatorBuilder;
 
-pub struct NewWrapper<'r>(MutexGuard<'r, FlipUpVMixCoordinator>);
+
 
 
 pub struct MyTestWrapper(pub Mutex<Option<Coordinator>>);
@@ -25,8 +26,8 @@ impl<'r> FromRequest<'r> for Coordinator {
     async fn from_request(request: &'r Request<'_>) -> Outcome<Self, Self::Error> {
         match &*request.rocket().state::<MyTestWrapper>().unwrap().0.lock().await {
             None => {
-
-                Outcome::Error((Status::FailedDependency,MyError::UnloadedDependency("Coordinator has not been loaded yet")))
+                Outcome::Error(
+                    (Status::FailedDependency, MyError::UnloadedDependency("Coordinator has not been loaded yet")))
             }
             Some(a) => {
                 Outcome::Success(a.clone())
@@ -35,12 +36,15 @@ impl<'r> FromRequest<'r> for Coordinator {
     }
 }
 
-#[derive(Responder, Debug)]
+#[derive(Debug,Responder,Clone)]
 pub enum MyError {
-    #[response(status = 424, content_type = "json")]
+    #[response(status=424)]
     UnloadedDependency(&'static str),
-    
 }
+
+
+
+
 
 impl<'a> OpenApiFromRequest<'a> for Coordinator {
     fn from_request_input(gen: &mut OpenApiGenerator, name: String, required: bool) -> rocket_okapi::Result<RequestHeaderInput> {
@@ -85,6 +89,11 @@ pub async fn test(test: Coordinator) {
     dbg!(test.lock().await);
 }
 
+#[openapi(tag = "test")]
+#[get("/test/a")]
+pub async fn testar(test: Coordinator) {
+    dbg!(test.replace(FlipUpVMixCoordinator::default()).await);
+}
 #[openapi(tag = "test")]
 #[post("/test/set", data = "<builder>")]
 pub async fn set(test: &State<MyTestWrapper>, builder: Json<CoordinatorBuilder>) {

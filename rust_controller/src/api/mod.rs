@@ -7,7 +7,9 @@ mod guard;
 
 use std::sync::Arc;
 use query::*;
-use rocket::{Build, Rocket};
+use rocket::{Build, Request, Rocket};
+use rocket::http::Status;
+use rocket::response::status;
 use rocket_okapi::{JsonSchema, openapi_get_routes};
 use rocket_okapi::okapi::schemars;
 use crate::controller::coordinator::{FlipUpVMixCoordinator};
@@ -34,10 +36,12 @@ impl Coordinator {
         *self.lock().await = new;
     }
 }
+
+
 pub fn launch() -> Rocket<Build> {
-    let coordinator: Coordinator = FlipUpVMixCoordinator::default().into();
+
+
     rocket::build()
-        .manage(coordinator)
         .manage(MyTestWrapper(Mutex::new(None)))
         .mount("/", openapi_get_routes![current_hole,amount_of_rounds,current_round,play_animation,clear_all, rounds_structure,set_focus,load,init,test,set,])
         .mount("/swagger", make_swagger_ui(&SwaggerUIConfig{

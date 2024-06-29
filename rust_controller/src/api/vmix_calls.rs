@@ -11,7 +11,7 @@ use crate::vmix::functions::{VMixFunction, VMixProperty, VMixSelection};
 /// Play the animation that corresponds with the upcoming score of the currently focused player
 #[openapi(tag = "VMix")]
 #[post("/vmix/play/animation")]
-pub async fn play_animation(co: &State<Coordinator>) {
+pub async fn play_animation(co: Coordinator) {
     //co.lock().await.play_animation()
 }
 
@@ -23,7 +23,7 @@ pub async fn play_animation(co: &State<Coordinator>) {
 // TODO: add hole information clearing
 #[openapi(tag = "VMix")]
 #[post("/vmix/clear/all")]
-pub async fn clear_all(co: &State<Coordinator>) {
+pub async fn clear_all(co: Coordinator) {
     /*let queue = co.lock().await.queue.clone();
     let mut actions = vec![];
     for player in 0..=3 {
