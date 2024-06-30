@@ -1,6 +1,6 @@
-use rocket_okapi::okapi::{schemars,schemars::JsonSchema};
-use serde::Serialize;
 use crate::controller::get_data;
+use rocket_okapi::okapi::{schemars, schemars::JsonSchema};
+use serde::Serialize;
 
 #[derive(Serialize, JsonSchema)]
 pub struct SimpleRound {

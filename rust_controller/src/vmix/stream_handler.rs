@@ -36,14 +36,12 @@ impl Queue {
         let funcs = me.functions.clone();
         let stream = me.stream.clone();
         // Here is the actual thread that clears the queue:
-        std::thread::spawn(move || {
-            loop {
-                if let Ok(mut functions) = funcs.lock() {
-                    while let Some(f) = functions.pop_front() {
-                        Queue::send(&f.into_bytes(), stream.clone());
-                    }
+        std::thread::spawn(move || loop {
+            if let Ok(mut functions) = funcs.lock() {
+                while let Some(f) = functions.pop_front() {
+                    Queue::send(&f.into_bytes(), stream.clone());
                 }
-            } 
+            }
         });
         me
     }

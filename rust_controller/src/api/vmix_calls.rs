@@ -1,11 +1,10 @@
-use std::ops::Deref;
-use std::sync::{Mutex, RwLock};
-use rocket::{State};
-use rocket_okapi::openapi;
 use crate::api::Coordinator;
 use crate::controller::coordinator::FlipUpVMixCoordinator;
 use crate::vmix::functions::{VMixFunction, VMixProperty, VMixSelection};
-
+use rocket::State;
+use rocket_okapi::openapi;
+use std::ops::Deref;
+use std::sync::{Mutex, RwLock};
 
 /// # Play animation
 /// Play the animation that corresponds with the upcoming score of the currently focused player
@@ -14,8 +13,6 @@ use crate::vmix::functions::{VMixFunction, VMixProperty, VMixSelection};
 pub async fn play_animation(co: Coordinator) {
     //co.lock().await.play_animation()
 }
-
-
 
 /// # Reset state
 /// Reset the state to the default configuration.
@@ -50,4 +47,3 @@ pub async fn clear_all(co: Coordinator) {
     }
     queue.add(&actions)*/
 }
-

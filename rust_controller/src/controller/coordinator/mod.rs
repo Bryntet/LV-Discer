@@ -1,5 +1,5 @@
-mod vmix_calls;
 mod simple_queries;
+mod vmix_calls;
 
 pub use super::*;
 use crate::controller::get_data::RustHandler;
@@ -32,7 +32,7 @@ pub struct FlipUpVMixCoordinator {
     event_id: String,
     pools: Vec<queries::Pool>,
     handler: Option<RustHandler>,
-    available_players: Vec<Player>,
+    pub available_players: Vec<Player>,
     round_ind: usize,
     lb_div_ind: usize,
     lb_thru: usize,
@@ -40,7 +40,6 @@ pub struct FlipUpVMixCoordinator {
 }
 impl Default for FlipUpVMixCoordinator {
     fn default() -> FlipUpVMixCoordinator {
-        
         let queue = Queue::new("10.170.120.134".to_string()).into(); // This is your main async runtime
         FlipUpVMixCoordinator {
             all_divs: vec![],
@@ -62,7 +61,12 @@ impl Default for FlipUpVMixCoordinator {
 }
 
 impl FlipUpVMixCoordinator {
-    pub fn new(ip: String, event_id: String, selected_division: String, focused_player: usize) -> Self {
+    pub fn new(
+        ip: String,
+        event_id: String,
+        selected_division: String,
+        focused_player: usize,
+    ) -> Self {
         let queue = Queue::new(ip.clone());
         FlipUpVMixCoordinator {
             all_divs: vec![],
@@ -82,12 +86,16 @@ impl FlipUpVMixCoordinator {
         }
     }
 
-    pub fn focused_player(&self,) -> &Player {
-        self.available_players.get(self.focused_player_index).unwrap()
+    pub fn focused_player(&self) -> &Player {
+        self.available_players
+            .get(self.focused_player_index)
+            .unwrap()
     }
 
     pub fn focused_player_mut(&mut self) -> &mut Player {
-        self.available_players.get_mut(self.focused_player_index).unwrap()
+        self.available_players
+            .get_mut(self.focused_player_index)
+            .unwrap()
     }
 }
 
@@ -105,8 +113,6 @@ impl FlipUpVMixCoordinator {
         r_v
     }
 
-
-
     fn queue_add<T: VMixSelectionTrait>(&self, funcs: &[VMixFunction<T>]) {
         println!(
             "hello i am adding: {:#?}",
@@ -120,7 +126,8 @@ impl FlipUpVMixCoordinator {
     }
 
     fn make_checkin_text(&self) -> VMixFunction<LeaderBoardProperty> {
-        let value = self.get_div_names()[self.selected_div_ind].to_string()
+        let value = self.get_div_names()[self.selected_div_ind]
+            .to_string()
             .to_uppercase()
             + " "
             + "LEADERBOARD CHECK-IN";
@@ -130,13 +137,10 @@ impl FlipUpVMixCoordinator {
         }
     }
 
-
     pub fn toggle_pos(&mut self) {
         let f = self.focused_player_mut().toggle_pos();
         self.queue_add(&f)
     }
-
-
 }
 
 // API Funcs
@@ -178,7 +182,6 @@ impl FlipUpVMixCoordinator {
                 self.available_players.clone(),
             ));
             self.queue_add(&self.leaderboard.to_vmix_instructions());
-
         } else {
             println!("PANIC, hole > 18");
         }
@@ -190,7 +193,7 @@ impl FlipUpVMixCoordinator {
         if hole >= 9 {
             player.hole = hole - 1;
             actions.extend(player.shift_scores(true));
-        }  else {
+        } else {
             for x in 1..=hole {
                 player.hole = x;
                 actions.extend(player.set_hole_score());
@@ -199,17 +202,12 @@ impl FlipUpVMixCoordinator {
         self.queue_add(&actions)
     }
 
-
-
-
     pub fn set_round(&mut self, idx: usize) {
         self.round_ind = idx;
         self.lb_thru = 0;
         let actions = self.focused_player_mut().set_round(idx);
         self.queue_add(&actions);
     }
-
-    
 
     pub async fn fetch_event(&mut self) {
         self.pools = vec![];
@@ -221,7 +219,8 @@ impl FlipUpVMixCoordinator {
             Some(..) => println!("handler fine"),
             None => println!("handler on fire"),
         }
-        self.available_players.extend(self.handler.clone().unwrap().get_players())
+        self.available_players
+            .extend(self.handler.clone().unwrap().get_players())
     }
 
     pub fn increase_score(&mut self) {
@@ -241,7 +240,6 @@ impl FlipUpVMixCoordinator {
         }
     }
 
-
     pub fn hide_pos(&mut self) {
         let f = self.focused_player_mut().hide_pos();
         self.queue_add(&f)
@@ -252,8 +250,6 @@ impl FlipUpVMixCoordinator {
         self.queue_add(&out);
     }
 
-    
-
     pub fn ob_anim(&mut self) {
         println!("ob_anim");
         self.focused_player_mut().ob = true;
@@ -262,12 +258,18 @@ impl FlipUpVMixCoordinator {
         }
     }
     pub fn set_player(&mut self, player: &str) {
-        let index = self.available_players.iter().enumerate().find(|(_,p)|p.player_id.inner() == player).map(|(i,_)|i).unwrap();
-        
+        let index = self
+            .available_players
+            .iter()
+            .enumerate()
+            .find(|(_, p)| p.player_id == player)
+            .map(|(i, _)| i)
+            .unwrap();
+
         self.focused_player_index = index;
         let round = self.round_ind;
         let player = self.focused_player_mut();
-        
+
         player.ind = 0;
         let mut actions = vec![];
         actions.extend(player.set_name());
@@ -296,7 +298,6 @@ impl FlipUpVMixCoordinator {
         self.queue_add(&return_vec);
     }
 
-
     pub fn get_div_names(&self) -> Vec<String> {
         let mut return_vec = vec![];
 
@@ -315,11 +316,11 @@ impl FlipUpVMixCoordinator {
             .map(|player| player.name.clone())
             .collect()
     }
-    
+
     pub fn get_player_ids(&self) -> Vec<String> {
         self.available_players
             .iter()
-            .map(|player| player.player_id.inner().to_owned())
+            .map(|player| player.player_id.to_owned())
             .collect()
     }
 
@@ -353,7 +354,7 @@ impl FlipUpVMixCoordinator {
                 .iter_mut()
                 .for_each(|player| player.visible_player = false);
             let players = new.get_player_ids();
-            
+
             players
                 .into_iter()
                 .enumerate()
@@ -373,8 +374,6 @@ impl FlipUpVMixCoordinator {
         }
     }
 }
-
-
 
 #[cfg(test)]
 mod tests {

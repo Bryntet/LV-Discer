@@ -1,9 +1,11 @@
-use std::sync::Mutex;
-use rocket::{Rocket, Build, State};
-use rocket::serde::json::Json;
-use rocket_okapi::openapi;
 use crate::api::Coordinator;
 use crate::controller::coordinator::FlipUpVMixCoordinator;
+use crate::dto;
+use itertools::Itertools;
+use rocket::serde::json::Json;
+use rocket::{Build, Rocket, State};
+use rocket_okapi::openapi;
+use std::sync::Mutex;
 
 /// # GET current hole
 #[openapi(tag = "Hole")]
@@ -29,11 +31,23 @@ pub async fn current_round(coordinator: Coordinator) -> Json<usize> {
     Json(1)
 }
 
-
 /// # Rounds structure
 /// Used for preprocessing, i.e. when selecting parameters before coordinator is initialized
 #[openapi(tag = "Preprocessing")]
 #[get("/event/<event_id>/rounds")]
 pub async fn rounds_structure(event_id: String) -> Json<crate::dto::Rounds> {
     crate::dto::get_rounds(event_id).await.into()
+}
+
+#[openapi(tag = "Preprocessing")]
+#[get("/players")]
+pub async fn get_players(coordinator: Coordinator) -> Json<Vec<dto::Player>> {
+    coordinator
+        .lock()
+        .await
+        .available_players
+        .iter()
+        .map(dto::Player::from)
+        .collect_vec()
+        .into()
 }

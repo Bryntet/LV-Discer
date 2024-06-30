@@ -14,7 +14,7 @@ impl FlipUpVMixCoordinator {
             );
         }
     }
-    
+
     pub fn show_pos(&mut self) {
         let f = self.focused_player_mut().show_pos();
         self.queue_add(&f)

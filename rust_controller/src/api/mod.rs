@@ -1,25 +1,24 @@
+mod coordinator_wrapper;
+mod guard;
 mod mutation;
 mod query;
 mod vmix_calls;
-mod coordinator_wrapper;
-mod guard;
 
-
-use std::sync::Arc;
-use query::*;
-use rocket::{Build, Request, Rocket};
-use rocket::http::Status;
-use rocket::response::status;
-use rocket_okapi::{JsonSchema, openapi_get_routes};
-use rocket_okapi::okapi::schemars;
-use crate::controller::coordinator::{FlipUpVMixCoordinator};
-use rocket_okapi::swagger_ui::{make_swagger_ui, SwaggerUIConfig};
-use rocket_okapi::rapidoc::{GeneralConfig, make_rapidoc, RapiDocConfig};
-use rocket_okapi::settings::UrlObject;
-use tokio::sync::{Mutex, MutexGuard};
 use crate::api::mutation::*;
 use crate::api::vmix_calls::*;
+use crate::controller::coordinator::FlipUpVMixCoordinator;
 use guard::*;
+use query::*;
+use rocket::http::Status;
+use rocket::response::status;
+use rocket::{Build, Request, Rocket};
+use rocket_okapi::okapi::schemars;
+use rocket_okapi::rapidoc::{make_rapidoc, GeneralConfig, RapiDocConfig};
+use rocket_okapi::settings::UrlObject;
+use rocket_okapi::swagger_ui::{make_swagger_ui, SwaggerUIConfig};
+use rocket_okapi::{openapi_get_routes, JsonSchema};
+use std::sync::Arc;
+use tokio::sync::{Mutex, MutexGuard};
 #[derive(Debug, Clone)]
 struct Coordinator(Arc<Mutex<FlipUpVMixCoordinator>>);
 
@@ -37,22 +36,40 @@ impl Coordinator {
     }
 }
 
-
 pub fn launch() -> Rocket<Build> {
-
-
     rocket::build()
         .manage(MyTestWrapper(Mutex::new(None)))
-        .mount("/", openapi_get_routes![current_hole,amount_of_rounds,current_round,play_animation,clear_all, rounds_structure,set_focus,load,init,test,set,])
-        .mount("/swagger", make_swagger_ui(&SwaggerUIConfig{
-            url: "../openapi.json".to_owned(),
-            ..Default::default()
-        }))
-        .mount("/", make_rapidoc(&RapiDocConfig{
-            general: GeneralConfig {
-                spec_urls: vec![UrlObject::new("General", "./openapi.json")],
+        .mount(
+            "/",
+            openapi_get_routes![
+                current_hole,
+                amount_of_rounds,
+                current_round,
+                play_animation,
+                clear_all,
+                rounds_structure,
+                set_focus,
+                load,
+                init,
+                test,
+                set,
+            ],
+        )
+        .mount(
+            "/swagger",
+            make_swagger_ui(&SwaggerUIConfig {
+                url: "../openapi.json".to_owned(),
                 ..Default::default()
-            },
-            ..Default::default()
-        }))
+            }),
+        )
+        .mount(
+            "/",
+            make_rapidoc(&RapiDocConfig {
+                general: GeneralConfig {
+                    spec_urls: vec![UrlObject::new("General", "./openapi.json")],
+                    ..Default::default()
+                },
+                ..Default::default()
+            }),
+        )
 }

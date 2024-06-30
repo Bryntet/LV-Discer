@@ -1,8 +1,12 @@
 use crate::flipup_vmix_controls::LeaderBoardProperty;
 use cynic::GraphQlResponse;
+use itertools::Itertools;
 use log::warn;
+use rayon::prelude::*;
+use std::collections::HashMap;
 
 use super::queries;
+use crate::controller::queries::{PoolLeaderboardPlayer, SimpleResult};
 use crate::flipup_vmix_controls::{OverarchingScore, Score};
 use crate::vmix::functions::*;
 use queries::Division;
@@ -97,15 +101,28 @@ impl RankUpDown {
         }
     }
 }
-
+// TODO: Refactor out
 #[derive(Debug, Clone)]
 pub struct PlayerRound {
     results: Vec<queries::SimpleResult>,
+    finished: bool,
+}
+
+impl From<Vec<queries::SimpleResult>> for PlayerRound {
+    fn from(value: Vec<SimpleResult>) -> Self {
+        Self {
+            results: value,
+            finished: false,
+        }
+    }
 }
 
 impl PlayerRound {
     fn new(results: Vec<queries::SimpleResult>) -> Self {
-        Self { results }
+        Self {
+            results,
+            finished: false,
+        }
     }
 
     // Gets score up until hole
@@ -169,7 +186,7 @@ pub fn fix_score(score: isize) -> String {
 
 #[derive(Debug, Clone)]
 pub struct Player {
-    pub player_id: cynic::Id,
+    pub player_id: String,
     pub name: String,
     first_name: String,
     surname: String,
@@ -202,7 +219,7 @@ pub struct Player {
 impl Default for Player {
     fn default() -> Self {
         Self {
-            player_id: cynic::Id::from(""),
+            player_id: "".to_string(),
             name: "".to_string(),
             first_name: "".to_string(),
             surname: "".to_string(),
@@ -244,41 +261,6 @@ impl From<&Player> for crate::flipup_vmix_controls::OverarchingScore {
 }
 
 impl Player {
-    pub fn new(
-        id: cynic::Id,
-        f_name: String,
-        l_name: String,
-        event: queries::Event,
-        div_id: cynic::Id,
-    ) -> Self {
-        let mut rounds: Vec<PlayerRound> = vec![];
-        for rnd in event.rounds {
-            for pool in rnd.expect("no round").pools {
-                match pool.leaderboard {
-                    Some(queries::PoolLeaderboardDivisionCombined::Pld(division)) => {
-                        if division.id == div_id {
-                            for player in division.players {
-                                if player.player_id == id {
-                                    rounds.push(PlayerRound::new(player.results));
-                                }
-                            }
-                        }
-                    }
-                    Some(queries::PoolLeaderboardDivisionCombined::Unknown) => {}
-                    None => {}
-                }
-            }
-        }
-        Self {
-            player_id: id,
-            name: format!("{} {}", f_name, l_name),
-            first_name: f_name,
-            surname: l_name,
-            rounds,
-            ..Default::default()
-        }
-    }
-
     pub fn get_round_total_score(&self) -> isize {
         self.current_round().score_to_hole(17)
     }
@@ -342,7 +324,7 @@ impl Player {
 
     pub fn set_hole_score(&mut self) -> Vec<VMixFunction<VMixProperty>> {
         let mut return_vec: Vec<VMixFunction<VMixProperty>> = vec![];
-        
+
         if !self.first_scored {
             self.first_scored = true;
         }
@@ -697,7 +679,7 @@ impl RustHandler {
         divs
     }
 
-    pub fn get_players(&self) -> Vec<Player> {
+    pub fn get_players(self) -> Vec<Player> {
         let mut players: Vec<queries::PoolLeaderboardPlayer> = vec![];
         let mut out_vec: Vec<Player> = vec![];
 
@@ -706,37 +688,60 @@ impl RustHandler {
             .expect("no round")
             .pools
             .len();
-        for ind in 0..len_of_pools {
-            match self.event.rounds[self.round_ind]
-                .clone()
-                .expect("no round")
-                .pools[ind]
-                .clone()
-                .leaderboard
-            {
-                Some(queries::PoolLeaderboardDivisionCombined::Pld(division)) => {
-                    if division.id == self.chosen_division {
-                        for player in &division.players {
-                            players.push(player.clone());
-                        }
-                    }
+
+        let mut player_map: HashMap<String, Vec<PoolLeaderboardPlayer>> = HashMap::new();
+
+        let event = self.event.rounds;
+        let players = event
+            .into_iter()
+            .flatten()
+            .map(|round| round.pools.into_iter())
+            .flatten()
+            .flat_map(|pool| pool.leaderboard)
+            .flat_map(|leaderboard| match leaderboard {
+                queries::PoolLeaderboardDivisionCombined::Pld(division) => Some(division),
+                queries::PoolLeaderboardDivisionCombined::Unknown => {
+                    warn!("Unknown division found");
+                    None
                 }
-                Some(queries::PoolLeaderboardDivisionCombined::Unknown) => {}
-                None => {
-                    warn!("No leaderboard")
+            })
+            .flat_map(|division| division.players)
+            .map(|player| (player.player_id.inner().to_string(), player))
+            .collect_vec();
+        for (id, player) in players {
+            player_map.entry(id).or_default().push(player)
+        }
+
+        let players: Vec<Player> = player_map
+            .into_values()
+            .par_bridge()
+            .map(|player_instances| {
+                let (id, first_name, last_name) = player_instances
+                    .first()
+                    .map(|player| {
+                        (
+                            player.player_id.inner().to_string(),
+                            player.first_name.clone(),
+                            player.last_name.clone(),
+                        )
+                    })
+                    .unwrap();
+
+                let results = player_instances
+                    .into_iter()
+                    .map(|player| PlayerRound::new(player.results))
+                    .collect_vec();
+                Player {
+                    player_id: id.to_string(),
+                    name: format!("{} {}", first_name, last_name),
+                    first_name,
+                    surname: last_name,
+                    rounds: results,
+                    ..Default::default()
                 }
-            }
-        }
-        for player in players {
-            out_vec.push(Player::new(
-                player.player_id,
-                player.first_name,
-                player.last_name,
-                self.event.clone(),
-                self.chosen_division.clone(),
-            ));
-        }
-        out_vec
+            })
+            .collect();
+        players
     }
     pub fn set_chosen_by_ind(&mut self, ind: usize) {
         self.chosen_division = self.divisions[ind].id.clone();
