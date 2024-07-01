@@ -43,7 +43,7 @@ pub enum MyError {
     #[response(status = 424)]
     UnloadedDependency(&'static str),
     #[response(status = 404)]
-    IpNotFound(&'static str)
+    IpNotFound(&'static str),
 }
 
 impl<'a> OpenApiFromRequest<'a> for Coordinator {
@@ -86,4 +86,3 @@ pub fn bad_request_response(gen: &mut OpenApiGenerator) -> rocket_okapi::okapi::
         ..Default::default()
     }
 }
-

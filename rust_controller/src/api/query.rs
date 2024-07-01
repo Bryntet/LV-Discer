@@ -1,12 +1,12 @@
 use crate::api::Coordinator;
 use crate::controller::coordinator::FlipUpVMixCoordinator;
 use crate::dto;
+use crate::dto::Division;
 use itertools::Itertools;
 use rocket::serde::json::Json;
 use rocket::{Build, Rocket, State};
 use rocket_okapi::openapi;
 use std::sync::Mutex;
-use crate::dto::Division;
 
 /// # GET current hole
 #[openapi(tag = "Hole")]

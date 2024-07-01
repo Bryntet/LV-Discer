@@ -40,7 +40,10 @@ impl Coordinator {
 
 pub fn launch() -> Rocket<Build> {
     rocket::build()
-        .configure(rocket::Config {log_level: rocket::log::LogLevel::Debug,..Default::default()})
+        .configure(rocket::Config {
+            log_level: rocket::log::LogLevel::Debug,
+            ..Default::default()
+        })
         .manage(CoordinatorLoader(Mutex::new(None)))
         .mount(
             "/",

@@ -682,7 +682,7 @@ impl RustHandler {
     pub fn get_players(self) -> Vec<Player> {
         let event = self.event.rounds;
         let mut player_map: HashMap<String, Vec<PoolLeaderboardPlayer>> = HashMap::new();
-        
+
         event
             .into_iter()
             .flatten()
@@ -697,9 +697,7 @@ impl RustHandler {
             })
             .flat_map(|division| division.players)
             .map(|player| (player.player_id.inner().to_string(), player))
-            .for_each(|(player_id, player)|{
-                player_map.entry(player_id).or_default().push(player)
-            });
+            .for_each(|(player_id, player)| player_map.entry(player_id).or_default().push(player));
 
         let players: Vec<Player> = player_map
             .into_values()

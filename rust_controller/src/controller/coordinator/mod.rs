@@ -2,6 +2,7 @@ mod simple_queries;
 mod vmix_calls;
 
 pub use super::*;
+use crate::api::MyError;
 use crate::controller::get_data::{get_event, RustHandler};
 use crate::flipup_vmix_controls;
 use crate::vmix;
@@ -14,7 +15,6 @@ use std::sync::Arc;
 use vmix::functions::VMixFunction;
 use vmix::functions::{VMixProperty, VMixSelectionTrait};
 use vmix::Queue;
-use crate::api::MyError;
 
 mod old_public {
     pub fn greet() {
@@ -39,19 +39,11 @@ pub struct FlipUpVMixCoordinator {
     pub queue: Arc<Queue>,
 }
 
-
 impl FlipUpVMixCoordinator {
-    pub async fn new(
-        ip: String,
-        event_id: String,
-        focused_player: usize,
-    ) -> Result<Self, MyError> {
+    pub async fn new(ip: String, event_id: String, focused_player: usize) -> Result<Self, MyError> {
         let queue = Queue::new(ip.clone())?;
-        let handler = RustHandler::new(
-            get_data::get_event(&event_id).await,
-        );
+        let handler = RustHandler::new(get_data::get_event(&event_id).await);
 
-        
         let available_players = handler.clone().get_players();
         Ok(FlipUpVMixCoordinator {
             all_divs: vec![],
@@ -191,9 +183,7 @@ impl FlipUpVMixCoordinator {
         self.queue_add(&actions);
     }
 
-    pub async fn fetch_event(&mut self) {
-        
-    }
+    pub async fn fetch_event(&mut self) {}
 
     pub fn increase_score(&mut self) {
         let hole = self.focused_player_mut().hole;

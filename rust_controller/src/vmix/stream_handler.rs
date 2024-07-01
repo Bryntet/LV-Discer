@@ -8,8 +8,8 @@ use {
     std::sync::Mutex,
 };
 
-use std::sync::Arc;
 use crate::api::MyError;
+use std::sync::Arc;
 
 #[cfg(target_arch = "wasm32")]
 #[derive(Clone)]
@@ -32,7 +32,10 @@ impl Queue {
     pub fn new(ip: String) -> Result<Self, MyError> {
         let me = Self {
             functions: Default::default(),
-            stream: Mutex::new(Self::make_tcp_stream(&ip).ok_or(MyError::IpNotFound("Ip not found"))?).into(),
+            stream: Mutex::new(
+                Self::make_tcp_stream(&ip).ok_or(MyError::IpNotFound("Ip not found"))?,
+            )
+            .into(),
         };
         let funcs = me.functions.clone();
         let stream = me.stream.clone();
