@@ -2,22 +2,21 @@ use crate::controller::coordinator::FlipUpVMixCoordinator;
 use serde::Deserialize;
 
 use rocket_okapi::okapi::{schemars, schemars::JsonSchema};
+use crate::api::MyError;
 
 #[derive(Default, Deserialize, JsonSchema)]
 pub struct CoordinatorBuilder {
     ip: String,
     event_id: String,
-    selected_division: String,
     focused_player: usize,
 }
-
-impl From<CoordinatorBuilder> for FlipUpVMixCoordinator {
-    fn from(builder: CoordinatorBuilder) -> Self {
+impl CoordinatorBuilder {
+    pub async fn into_coordinator(self) -> Result<FlipUpVMixCoordinator, MyError> {
         FlipUpVMixCoordinator::new(
-            builder.ip,
-            builder.event_id,
-            builder.selected_division,
-            builder.focused_player,
-        )
+            self.ip,
+            self.event_id,
+            self.focused_player
+        ).await
     }
 }
+

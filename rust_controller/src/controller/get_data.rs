@@ -11,11 +11,11 @@ use crate::flipup_vmix_controls::{OverarchingScore, Score};
 use crate::vmix::functions::*;
 use queries::Division;
 
-pub async fn post_status(event_id: cynic::Id) -> cynic::GraphQlResponse<queries::EventQuery> {
+pub async fn get_event(event_id: &str) -> cynic::GraphQlResponse<queries::EventQuery> {
     use cynic::QueryBuilder;
     use queries::*;
     let operation = EventQuery::build(EventQueryVariables {
-        event_id: event_id.clone(),
+        event_id: event_id.into(),
     });
     let response = reqwest::Client::new()
         .post("https://api.tjing.se/graphql")
@@ -680,23 +680,13 @@ impl RustHandler {
     }
 
     pub fn get_players(self) -> Vec<Player> {
-        let mut players: Vec<queries::PoolLeaderboardPlayer> = vec![];
-        let mut out_vec: Vec<Player> = vec![];
-
-        let len_of_pools = self.event.rounds[self.round_ind]
-            .clone()
-            .expect("no round")
-            .pools
-            .len();
-
-        let mut player_map: HashMap<String, Vec<PoolLeaderboardPlayer>> = HashMap::new();
-
         let event = self.event.rounds;
-        let players = event
+        let mut player_map: HashMap<String, Vec<PoolLeaderboardPlayer>> = HashMap::new();
+        
+        event
             .into_iter()
             .flatten()
-            .map(|round| round.pools.into_iter())
-            .flatten()
+            .flat_map(|round| round.pools.into_iter())
             .flat_map(|pool| pool.leaderboard)
             .flat_map(|leaderboard| match leaderboard {
                 queries::PoolLeaderboardDivisionCombined::Pld(division) => Some(division),
@@ -707,10 +697,9 @@ impl RustHandler {
             })
             .flat_map(|division| division.players)
             .map(|player| (player.player_id.inner().to_string(), player))
-            .collect_vec();
-        for (id, player) in players {
-            player_map.entry(id).or_default().push(player)
-        }
+            .for_each(|(player_id, player)|{
+                player_map.entry(player_id).or_default().push(player)
+            });
 
         let players: Vec<Player> = player_map
             .into_values()

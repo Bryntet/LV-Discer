@@ -6,6 +6,7 @@ use rocket::serde::json::Json;
 use rocket::{Build, Rocket, State};
 use rocket_okapi::openapi;
 use std::sync::Mutex;
+use crate::dto::Division;
 
 /// # GET current hole
 #[openapi(tag = "Hole")]
@@ -50,4 +51,10 @@ pub async fn get_players(coordinator: Coordinator) -> Json<Vec<dto::Player>> {
         .map(dto::Player::from)
         .collect_vec()
         .into()
+}
+
+#[openapi(tag = "Preprocessing")]
+#[get("/divisions")]
+pub async fn get_divisions(coordinator: Coordinator) -> Json<Vec<String>> {
+    coordinator.lock().await.get_div_names().into()
 }

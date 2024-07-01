@@ -2,7 +2,7 @@ mod simple_queries;
 mod vmix_calls;
 
 pub use super::*;
-use crate::controller::get_data::RustHandler;
+use crate::controller::get_data::{get_event, RustHandler};
 use crate::flipup_vmix_controls;
 use crate::vmix;
 use flipup_vmix_controls::LeaderBoardProperty;
@@ -14,6 +14,7 @@ use std::sync::Arc;
 use vmix::functions::VMixFunction;
 use vmix::functions::{VMixProperty, VMixSelectionTrait};
 use vmix::Queue;
+use crate::api::MyError;
 
 mod old_public {
     pub fn greet() {
@@ -24,66 +25,49 @@ mod old_public {
 #[derive(Clone, Debug)]
 pub struct FlipUpVMixCoordinator {
     pub all_divs: Vec<queries::PoolLeaderboardDivision>,
-    selected_div_ind: usize,
-    pub selected_div: cynic::Id,
+    selected_div_index: usize,
     leaderboard: Leaderboard,
     focused_player_index: usize,
     ip: String,
     event_id: String,
     pools: Vec<queries::Pool>,
-    handler: Option<RustHandler>,
+    handler: RustHandler,
     pub available_players: Vec<Player>,
     round_ind: usize,
     lb_div_ind: usize,
     lb_thru: usize,
     pub queue: Arc<Queue>,
 }
-impl Default for FlipUpVMixCoordinator {
-    fn default() -> FlipUpVMixCoordinator {
-        let queue = Queue::new("10.170.120.134".to_string()).into(); // This is your main async runtime
-        FlipUpVMixCoordinator {
-            all_divs: vec![],
-            selected_div_ind: 0,
-            selected_div: cynic::Id::from("cd094fcf-76c7-471e-bfe3-be3d5892bd81"),
-            focused_player_index: 0,
-            ip: "".to_string(),
-            pools: vec![],
-            event_id: "75cceb0e-5a1d-4fba-a5c8-f2ff95f84495".into(),
-            handler: None,
-            available_players: vec![],
-            round_ind: 0,
-            lb_div_ind: 0,
-            lb_thru: 0,
-            queue,
-            leaderboard: Leaderboard::default(),
-        }
-    }
-}
+
 
 impl FlipUpVMixCoordinator {
-    pub fn new(
+    pub async fn new(
         ip: String,
         event_id: String,
-        selected_division: String,
         focused_player: usize,
-    ) -> Self {
-        let queue = Queue::new(ip.clone());
-        FlipUpVMixCoordinator {
+    ) -> Result<Self, MyError> {
+        let queue = Queue::new(ip.clone())?;
+        let handler = RustHandler::new(
+            get_data::get_event(&event_id).await,
+        );
+
+        
+        let available_players = handler.clone().get_players();
+        Ok(FlipUpVMixCoordinator {
             all_divs: vec![],
-            selected_div_ind: 0,
-            selected_div: cynic::Id::from(selected_division),
+            selected_div_index: 0,
             focused_player_index: focused_player,
             ip,
             event_id,
             pools: vec![],
-            handler: None,
-            available_players: vec![],
+            handler,
+            available_players,
             round_ind: 0,
             lb_div_ind: 0,
             lb_thru: 0,
             queue: Arc::new(queue),
             leaderboard: Leaderboard::default(),
-        }
+        })
     }
 
     pub fn focused_player(&self) -> &Player {
@@ -126,7 +110,7 @@ impl FlipUpVMixCoordinator {
     }
 
     fn make_checkin_text(&self) -> VMixFunction<LeaderBoardProperty> {
-        let value = self.get_div_names()[self.selected_div_ind]
+        let value = self.get_div_names()[self.selected_div_index]
             .to_string()
             .to_uppercase()
             + " "
@@ -153,10 +137,8 @@ impl FlipUpVMixCoordinator {
     }
     pub fn set_div(&mut self, idx: usize) {
         println!("div set to {}", idx);
-        self.selected_div_ind = idx;
-        if let Some(handler) = &mut self.handler {
-            handler.set_chosen_by_ind(idx);
-        }
+        self.selected_div_index = idx;
+        self.handler.set_chosen_by_ind(idx);
         self.fetch_players(false);
     }
 
@@ -168,7 +150,7 @@ impl FlipUpVMixCoordinator {
         println!("past set_lb_thru");
         if self.current_hole() <= 19 {
             println!("hole <= 19");
-            self.lb_div_ind = self.selected_div_ind;
+            self.lb_div_ind = self.selected_div_index;
             self.fetch_players(true);
             if let Some(pop) = lb_start_ind {
                 self.available_players.drain(0..pop);
@@ -210,17 +192,7 @@ impl FlipUpVMixCoordinator {
     }
 
     pub async fn fetch_event(&mut self) {
-        self.pools = vec![];
-        self.handler = Some(RustHandler::new(
-            get_data::post_status(cynic::Id::from(&self.event_id)).await,
-        ));
-
-        match self.handler.clone() {
-            Some(..) => println!("handler fine"),
-            None => println!("handler on fire"),
-        }
-        self.available_players
-            .extend(self.handler.clone().unwrap().get_players())
+        
     }
 
     pub fn increase_score(&mut self) {
@@ -301,14 +273,14 @@ impl FlipUpVMixCoordinator {
     pub fn get_div_names(&self) -> Vec<String> {
         let mut return_vec = vec![];
 
-        for div in self.handler.clone().expect("handler!").get_divisions() {
+        for div in self.handler.clone().get_divisions() {
             return_vec.push(div.name.clone());
         }
         return_vec
     }
 
     pub fn fetch_players(&mut self, lb: bool) {
-        self.available_players = self.handler.clone().expect("handler!").get_players();
+        self.available_players = self.handler.clone().get_players();
     }
     pub fn get_player_names(&self) -> Vec<String> {
         self.available_players

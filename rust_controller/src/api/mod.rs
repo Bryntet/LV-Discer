@@ -19,6 +19,8 @@ use rocket_okapi::swagger_ui::{make_swagger_ui, SwaggerUIConfig};
 use rocket_okapi::{openapi_get_routes, JsonSchema};
 use std::sync::Arc;
 use tokio::sync::{Mutex, MutexGuard};
+
+pub use guard::MyError;
 #[derive(Debug, Clone)]
 struct Coordinator(Arc<Mutex<FlipUpVMixCoordinator>>);
 
@@ -38,7 +40,8 @@ impl Coordinator {
 
 pub fn launch() -> Rocket<Build> {
     rocket::build()
-        .manage(MyTestWrapper(Mutex::new(None)))
+        .configure(rocket::Config {log_level: rocket::log::LogLevel::Debug,..Default::default()})
+        .manage(CoordinatorLoader(Mutex::new(None)))
         .mount(
             "/",
             openapi_get_routes![
@@ -50,9 +53,7 @@ pub fn launch() -> Rocket<Build> {
                 rounds_structure,
                 set_focus,
                 load,
-                init,
-                test,
-                set,
+                get_divisions
             ],
         )
         .mount(

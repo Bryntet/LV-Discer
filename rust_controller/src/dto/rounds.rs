@@ -17,7 +17,9 @@ impl SimpleRound {
 pub struct Rounds(Vec<SimpleRound>);
 
 pub async fn get_rounds(event_id: String) -> Rounds {
-    let request = get_data::post_status(event_id.into()).await;
+    let time = std::time::Instant::now();
+    let request = get_data::get_event(&event_id).await;
+    info!("Time to get rounds: {:?}", time.elapsed());
     Rounds(
         request
             .data

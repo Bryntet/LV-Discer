@@ -14,7 +14,7 @@ use rocket_okapi::{openapi, JsonSchema};
 use std::ops::{Deref, DerefMut};
 use tokio::sync::{Mutex, MutexGuard};
 
-pub struct MyTestWrapper(pub Mutex<Option<Coordinator>>);
+pub struct CoordinatorLoader(pub Mutex<Option<Coordinator>>);
 
 #[rocket::async_trait]
 impl<'r> FromRequest<'r> for Coordinator {
@@ -23,7 +23,7 @@ impl<'r> FromRequest<'r> for Coordinator {
     async fn from_request(request: &'r Request<'_>) -> Outcome<Self, Self::Error> {
         match &*request
             .rocket()
-            .state::<MyTestWrapper>()
+            .state::<CoordinatorLoader>()
             .unwrap()
             .0
             .lock()
@@ -42,6 +42,8 @@ impl<'r> FromRequest<'r> for Coordinator {
 pub enum MyError {
     #[response(status = 424)]
     UnloadedDependency(&'static str),
+    #[response(status = 404)]
+    IpNotFound(&'static str)
 }
 
 impl<'a> OpenApiFromRequest<'a> for Coordinator {
@@ -85,14 +87,3 @@ pub fn bad_request_response(gen: &mut OpenApiGenerator) -> rocket_okapi::okapi::
     }
 }
 
-#[openapi(tag = "test")]
-#[get("/test/load")]
-pub async fn test(test: Coordinator) {
-    dbg!(test.lock().await);
-}
-#[openapi(tag = "test")]
-#[post("/test/set", data = "<builder>")]
-pub async fn set(test: &State<MyTestWrapper>, builder: Json<CoordinatorBuilder>) {
-    let coordinator = FlipUpVMixCoordinator::from(builder.0);
-    *test.0.lock().await = Some(coordinator.into())
-}

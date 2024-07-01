@@ -9,6 +9,7 @@ use {
 };
 
 use std::sync::Arc;
+use crate::api::MyError;
 
 #[cfg(target_arch = "wasm32")]
 #[derive(Clone)]
@@ -28,10 +29,10 @@ pub struct Queue {
 use crate::vmix::functions::{VMixFunction, VMixSelectionTrait};
 
 impl Queue {
-    pub fn new(ip: String) -> Self {
+    pub fn new(ip: String) -> Result<Self, MyError> {
         let me = Self {
             functions: Default::default(),
-            stream: Mutex::new(Self::make_tcp_stream(&ip).unwrap()).into(),
+            stream: Mutex::new(Self::make_tcp_stream(&ip).ok_or(MyError::IpNotFound("Ip not found"))?).into(),
         };
         let funcs = me.functions.clone();
         let stream = me.stream.clone();
@@ -43,7 +44,7 @@ impl Queue {
                 }
             }
         });
-        me
+        Ok(me)
     }
 
     fn make_tcp_stream(ip: &str) -> Option<TcpStream> {
