@@ -1,9 +1,27 @@
-query EventQuery($eventId: ID = "a57b4ed6-f64a-4710-8f20-f93e82d4fe79") {
+query EventQuery($eventId: ID = "d8f93dfb-f560-4f6c-b7a8-356164b9e4be") {
 	event(eventId: $eventId) {
 		rounds {
 			pools {
 				...PoolLayout
 				...NotLiveScore
+				groups {
+					id
+					status
+					position
+					startsAt
+					playerConnectionsV2 {
+						... on GroupPlayerConnection {
+							groupId
+							player {
+								id
+								user {
+									firstName
+									lastName
+								}
+							}
+						}
+					}
+				}
 			}
 		}
 	}
