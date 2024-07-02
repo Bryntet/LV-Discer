@@ -158,13 +158,13 @@ impl VMixSelectionTrait for VMixProperty {
                 VMixProperty::PosSquareColor(v1) => {
                     format!("SelectedName=rekt{}.Fill.Color", v1 + 1)
                 }
-                VMixProperty::Name(ind) => format!("SelectedName=namep{}.Text", ind + 1),
-                VMixProperty::Surname(ind) => format!("SelectedName=surnamep{}.Text", ind + 1),
-                VMixProperty::TotalScore(ind) => format!("SelectedName=scoretotp{}.Text", ind + 1),
-                VMixProperty::RoundScore(ind) => format!("SelectedName=scorerndp{}.Text", ind + 1),
-                VMixProperty::Throw(ind) => format!("SelectedName=t#p{}.Text", ind + 1),
+                VMixProperty::Name(ind) => format!("SelectedName=p{}name.Text", ind + 1),
+                VMixProperty::Surname(ind) => format!("SelectedName=p{}surname.Text", ind + 1),
+                VMixProperty::TotalScore(ind) => format!("SelectedName=p{}scoretot.Text", ind + 1),
+                VMixProperty::RoundScore(ind) => format!("SelectedName=p{}scorernd.Text", ind + 1),
+                VMixProperty::Throw(ind) => format!("SelectedName=p{}throw.Text", ind + 1),
                 VMixProperty::Mov(id) => format!("SelectedName={}", id),
-                VMixProperty::PlayerPosition(pos) => format!("SelectedName=posp{}.Text", pos + 1),
+                VMixProperty::PlayerPosition(pos) => format!("SelectedName=p{}pos.Text", pos + 1),
 
                 VMixProperty::HoleMeters => "SelectedName=meternr.Text".to_string(),
                 VMixProperty::HoleFeet => "SelectedName=feetnr.Text".to_string(),
@@ -174,6 +174,6 @@ impl VMixSelectionTrait for VMixProperty {
     }
 
     fn get_id(&self) -> String {
-        "Input=506fbd14-52fc-495b-8d17-5b924fba64f3&".to_string()
+        "Input=8db7c455-e05c-4e65-821b-048cd7057cb1&".to_string()
     }
 }

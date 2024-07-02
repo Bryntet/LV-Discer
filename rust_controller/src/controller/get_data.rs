@@ -4,12 +4,14 @@ use itertools::Itertools;
 use log::warn;
 use rayon::prelude::*;
 use std::collections::HashMap;
+use rocket::futures::StreamExt;
 
-use super::queries;
+use super::{queries};
 use crate::controller::queries::{PoolLeaderboardPlayer, SimpleResult};
 use crate::flipup_vmix_controls::{OverarchingScore, Score};
 use crate::vmix::functions::*;
 use queries::Division;
+use crate::dto;
 
 pub async fn get_event(event_id: &str) -> cynic::GraphQlResponse<queries::EventQuery> {
     use cynic::QueryBuilder;
@@ -678,16 +680,31 @@ impl RustHandler {
         }
         divs
     }
+    
+    pub fn get_groups(&self) -> Vec<Vec<dto::Group>> {
+        self.event.rounds
+            .iter()
+            .flatten()
+            .cloned()
+            .flat_map(|round| round.pools)
+            .map(|pool|pool.groups.iter().map(dto::Group::from).collect_vec())
+            .collect()
+    }
 
     pub fn get_players(self) -> Vec<Player> {
         let event = self.event.rounds;
         let mut player_map: HashMap<String, Vec<PoolLeaderboardPlayer>> = HashMap::new();
 
+        let mut groups: Vec<dto::Group> = vec![];
+        
         event
             .into_iter()
             .flatten()
             .flat_map(|round| round.pools.into_iter())
-            .flat_map(|pool| pool.leaderboard)
+            .flat_map(|pool| { 
+                pool.groups.into_iter().for_each(|group|groups.push(group.into()));
+                pool.leaderboard
+            })
             .flat_map(|leaderboard| match leaderboard {
                 queries::PoolLeaderboardDivisionCombined::Pld(division) => Some(division),
                 queries::PoolLeaderboardDivisionCombined::Unknown => {
@@ -698,7 +715,7 @@ impl RustHandler {
             .flat_map(|division| division.players)
             .map(|player| (player.player_id.inner().to_string(), player))
             .for_each(|(player_id, player)| player_map.entry(player_id).or_default().push(player));
-
+        
         let players: Vec<Player> = player_map
             .into_values()
             .par_bridge()

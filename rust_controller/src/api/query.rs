@@ -1,7 +1,7 @@
 use crate::api::Coordinator;
 use crate::controller::coordinator::FlipUpVMixCoordinator;
 use crate::dto;
-use crate::dto::Division;
+
 use itertools::Itertools;
 use rocket::serde::json::Json;
 use rocket::{Build, Rocket, State};
@@ -57,4 +57,10 @@ pub async fn get_players(coordinator: Coordinator) -> Json<Vec<dto::Player>> {
 #[get("/divisions")]
 pub async fn get_divisions(coordinator: Coordinator) -> Json<Vec<String>> {
     coordinator.lock().await.get_div_names().into()
+}
+
+#[openapi(tag = "Queue System")]
+#[get("/groups")]
+pub async fn get_groups(coordinator: Coordinator) -> Json<Vec<Vec<dto::Group>>> {
+    coordinator.lock().await.groups().into()
 }

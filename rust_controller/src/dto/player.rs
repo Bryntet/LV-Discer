@@ -2,25 +2,25 @@ use crate::controller;
 use rocket_okapi::okapi::schemars;
 use schemars::JsonSchema;
 use serde::Serialize;
-#[derive(Serialize, JsonSchema)]
+#[derive(Serialize, Debug, JsonSchema)]
 pub struct Player {
-    division: Division,
-    pdga_num: u32,
+    id: String,
     name: String,
 }
 
+impl Player {
+    pub fn new(id: String, name: String) -> Self {
+        Self {
+            id,
+            name
+        }
+    } 
+}
 impl From<&controller::Player> for self::Player {
     fn from(value: &controller::Player) -> self::Player {
-        // TODO: Make not fixed division
         self::Player {
-            division: Division::MPO,
-            pdga_num: value.player_id.parse().unwrap(),
+            id: value.player_id.clone(),
             name: value.name.clone(),
         }
     }
-}
-#[derive(Serialize, JsonSchema)]
-pub enum Division {
-    MPO,
-    FPO,
 }

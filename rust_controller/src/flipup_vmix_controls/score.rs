@@ -122,7 +122,7 @@ impl ReadableScore {
             Albatross => "01 albatross.mov",
             Ace => "00 ace.mov",
         }
-    }
+    } 
 }
 pub struct Score {
     throws: usize,
@@ -211,7 +211,7 @@ impl Score {
 
     const fn to_vmix_mov(&self, ob: bool) -> VMixFunction<VMixProperty> {
         if ob {
-            VMixFunction::OverlayInput4("00 OB.mov")
+            VMixFunction::OverlayInput4("\"00 OB.mov\"")
         } else {
             VMixFunction::OverlayInput4(self.readable_score.to_mov())
         }

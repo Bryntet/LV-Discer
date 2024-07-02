@@ -4,7 +4,7 @@ mod vmix_calls;
 pub use super::*;
 use crate::api::MyError;
 use crate::controller::get_data::{get_event, RustHandler};
-use crate::flipup_vmix_controls;
+use crate::{dto, flipup_vmix_controls};
 use crate::vmix;
 use flipup_vmix_controls::LeaderBoardProperty;
 use flipup_vmix_controls::{Leaderboard, LeaderboardState};
@@ -30,7 +30,6 @@ pub struct FlipUpVMixCoordinator {
     focused_player_index: usize,
     ip: String,
     event_id: String,
-    pools: Vec<queries::Pool>,
     handler: RustHandler,
     pub available_players: Vec<Player>,
     round_ind: usize,
@@ -45,13 +44,12 @@ impl FlipUpVMixCoordinator {
         let handler = RustHandler::new(get_data::get_event(&event_id).await);
 
         let available_players = handler.clone().get_players();
-        Ok(FlipUpVMixCoordinator {
+        let coordinator = FlipUpVMixCoordinator {
             all_divs: vec![],
             selected_div_index: 0,
             focused_player_index: focused_player,
             ip,
             event_id,
-            pools: vec![],
             handler,
             available_players,
             round_ind: 0,
@@ -59,7 +57,9 @@ impl FlipUpVMixCoordinator {
             lb_thru: 0,
             queue: Arc::new(queue),
             leaderboard: Leaderboard::default(),
-        })
+        };
+        coordinator.queue_add(&coordinator.focused_player().set_name());
+        Ok(coordinator)
     }
 
     pub fn focused_player(&self) -> &Player {
@@ -73,10 +73,13 @@ impl FlipUpVMixCoordinator {
             .get_mut(self.focused_player_index)
             .unwrap()
     }
+    
+    pub fn groups(&self) -> Vec<Vec<dto::Group>> {
+        self.handler.get_groups()
+    }
 }
 
 impl FlipUpVMixCoordinator {
-    // Initialise main app
     fn clear_lb(idx: usize) -> Vec<VMixFunction<LeaderBoardProperty>> {
         let mut new_player = get_data::Player::default();
         new_player.lb_vmix_id = "2ef7178b-61ab-445c-9bbd-2f1c2c781e86".into();

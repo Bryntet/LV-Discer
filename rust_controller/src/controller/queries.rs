@@ -1,6 +1,6 @@
 use crate::flipup_vmix_controls::Score;
 use crate::vmix::functions::{VMixFunction, VMixProperty};
-
+pub use group::{Group};
 #[derive(cynic::QueryVariables, Debug)]
 pub struct EventQueryVariables {
     pub event_id: cynic::Id,
@@ -98,7 +98,9 @@ pub struct Pool {
     pub layout_version: LayoutVersion,
     pub leaderboard: Option<PoolLeaderboardDivisionCombined>,
     pub position: f64,
+    pub groups: Vec<Group>,
 }
+
 
 #[derive(cynic::QueryFragment, Debug, Clone)]
 pub struct LayoutVersion {
@@ -140,5 +142,53 @@ pub enum PoolStatus {
     Pause,
 }
 
+
+// Groups
+
+
+
+pub mod group {
+    use rocket_okapi::okapi::schemars;
+    use schemars::JsonSchema;
+    use serde::Serialize;
+    use super::schema;
+
+    #[derive(cynic::QueryFragment, Debug,Clone)]
+    pub struct Group {
+        pub id: cynic::Id,
+        pub status: GroupStatus,
+        pub position: f64,
+        pub player_connections_v2: Vec<GroupPlayerConnectionTypeCombined>,
+    }
+
+    #[derive(cynic::InlineFragments, Debug,Clone)]
+    pub enum GroupPlayerConnectionTypeCombined {
+        GroupPlayerConnection(GroupPlayerConnection),
+        #[cynic(fallback)]
+        Unknown
+    }
+    #[derive(cynic::QueryFragment, Debug,Clone)]
+    pub struct Player {
+        pub id: cynic::Id,
+        pub user: User,
+    }
+
+    #[derive(cynic::QueryFragment, Debug, Clone)]
+    pub struct User {
+        pub first_name: Option<String>,
+        pub last_name: Option<String>,
+    }
+    #[derive(cynic::QueryFragment, Debug,Clone)]
+    pub struct GroupPlayerConnection {
+        pub group_id: cynic::Id,
+        pub player: Player,
+    }
+    #[derive(cynic::Enum, Clone, Copy, Debug, JsonSchema)]
+    pub enum GroupStatus {
+        Closed,
+        Open,
+        Done,
+    }
+}
 #[cynic::schema("tjing")]
 mod schema {}

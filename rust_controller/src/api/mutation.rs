@@ -1,13 +1,9 @@
 use crate::api::guard::CoordinatorLoader;
 use crate::api::{Coordinator, MyError};
-use crate::controller::coordinator::FlipUpVMixCoordinator;
-use crate::dto;
 use crate::dto::CoordinatorBuilder;
 use rocket::serde::json::Json;
 use rocket::{tokio, State};
 use rocket_okapi::openapi;
-use std::sync::Mutex;
-use tokio::task::spawn_blocking;
 
 #[openapi(tag = "Config")]
 #[post("/focused-player/<focused_player>")]

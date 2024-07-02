@@ -11,7 +11,7 @@ use std::sync::{Mutex, RwLock};
 #[openapi(tag = "VMix")]
 #[post("/vmix/play/animation")]
 pub async fn play_animation(co: Coordinator) {
-    //co.lock().await.play_animation()
+    co.lock().await.play_animation()
 }
 
 /// # Reset state

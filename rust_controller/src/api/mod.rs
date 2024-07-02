@@ -4,15 +4,13 @@ mod mutation;
 mod query;
 mod vmix_calls;
 
+use std::net::IpAddr;
 use crate::api::mutation::*;
 use crate::api::vmix_calls::*;
 use crate::controller::coordinator::FlipUpVMixCoordinator;
 use guard::*;
 use query::*;
-use rocket::http::Status;
-use rocket::response::status;
-use rocket::{Build, Request, Rocket};
-use rocket_okapi::okapi::schemars;
+use rocket::{Build, Rocket};
 use rocket_okapi::rapidoc::{make_rapidoc, GeneralConfig, RapiDocConfig};
 use rocket_okapi::settings::UrlObject;
 use rocket_okapi::swagger_ui::{make_swagger_ui, SwaggerUIConfig};
@@ -33,15 +31,12 @@ impl Coordinator {
     async fn lock(&self) -> MutexGuard<FlipUpVMixCoordinator> {
         self.0.lock().await
     }
-    async fn replace(&self, new: FlipUpVMixCoordinator) {
-        *self.lock().await = new;
-    }
 }
 
 pub fn launch() -> Rocket<Build> {
     rocket::build()
         .configure(rocket::Config {
-            log_level: rocket::log::LogLevel::Debug,
+            address: IpAddr::V4("10.169.122.114".parse().unwrap()),
             ..Default::default()
         })
         .manage(CoordinatorLoader(Mutex::new(None)))
@@ -56,7 +51,8 @@ pub fn launch() -> Rocket<Build> {
                 rounds_structure,
                 set_focus,
                 load,
-                get_divisions
+                get_divisions,
+                get_groups
             ],
         )
         .mount(
