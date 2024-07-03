@@ -44,7 +44,9 @@ pub enum MyError {
     UnloadedDependency(&'static str),
     #[response(status = 404)]
     IpNotFound(&'static str),
-    PlayerNotFound(&'static str)
+    PlayerNotFound(&'static str),
+    #[response(status = 500)]
+    UnableToParse(&'static str)
 }
 
 impl<'a> OpenApiFromRequest<'a> for Coordinator {

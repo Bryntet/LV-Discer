@@ -1,70 +1,39 @@
-query EventQuery($eventId: ID = "d8f93dfb-f560-4f6c-b7a8-356164b9e4be") {
+query ResultsQuery($eventId: ID = "d8f93dfb-f560-4f6c-b7a8-356164b9e4be", $roundId: ID = "f2fb09a4-7dc0-417a-92b9-304f0638b80f") {
+	event(eventId: $eventId) {
+		players {
+			user {
+				firstName
+				lastName
+				id
+			}
+			dnf {
+				isDnf
+			}
+			dns {
+				isDns
+			}
+			results(roundId: $roundId) {
+				hole {
+					id
+				}
+				isCircleHit
+				isInsidePutt
+				isOutOfBounds
+				isOutsidePutt
+				score
+				playerConnection {
+					groupId
+				}
+			}
+		}
+	}
+}
+
+
+query RoundsQuery($eventId: ID = "d8f93dfb-f560-4f6c-b7a8-356164b9e4be") {
 	event(eventId: $eventId) {
 		rounds {
-			pools {
-				...PoolLayout
-				...NotLiveScore
-				groups {
-					id
-					status
-					position
-					startsAt
-					playerConnectionsV2 {
-						... on GroupPlayerConnection {
-							groupId
-							player {
-								id
-								user {
-									firstName
-									lastName
-								}
-							}
-						}
-					}
-				}
-			}
-		}
-	}
-}
-
-fragment PoolLayout on Pool {
-	status
-	layoutVersion {
-		holes {
-			number
-			par
-			length
-		}
-	}
-}
-
-fragment NotLiveScore on Pool {
-	leaderboard {
-		... on PoolLeaderboardDivision {
 			id
-			name
-			players {
-				firstName
-				isDnf
-				isDns
-				lastName
-				par
-				pdgaNumber
-				pdgaRating
-				place
-				playerId
-				results {
-					score
-					isCircleHit
-					isInsidePutt
-					isOutOfBounds
-					isOutsidePutt
-				}
-				points
-				score
-			}
-			type
 		}
 	}
-	position
 }

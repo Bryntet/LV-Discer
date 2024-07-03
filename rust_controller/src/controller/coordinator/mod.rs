@@ -5,7 +5,7 @@ use std::cell::RefCell;
 use std::ops::DerefMut;
 pub use super::*;
 use crate::api::MyError;
-use crate::controller::get_data::{get_event, RustHandler};
+use crate::controller::get_data::{RustHandler};
 use crate::{dto, flipup_vmix_controls};
 use crate::vmix;
 use flipup_vmix_controls::LeaderBoardProperty;
@@ -27,7 +27,7 @@ mod old_public {
 
 #[derive(Clone, Debug)]
 pub struct FlipUpVMixCoordinator {
-    pub all_divs: Vec<queries::PoolLeaderboardDivision>,
+    pub all_divs: Vec<queries::Division>,
     selected_div_index: usize,
     leaderboard: Leaderboard,
     focused_player_index: usize,
@@ -66,7 +66,7 @@ impl Card {
 impl FlipUpVMixCoordinator {
     pub async fn new(ip: String, event_id: String, focused_player: usize) -> Result<Self, MyError> {
         let queue = Queue::new(ip.clone())?;
-        let handler = RustHandler::new(get_data::get_event(&event_id).await);
+        let handler = RustHandler::new(&event_id).await?;
 
         let available_players = handler.clone().get_players();
         let coordinator = FlipUpVMixCoordinator {
@@ -96,9 +96,6 @@ impl FlipUpVMixCoordinator {
     }
 
     pub fn focused_player(&self) -> &Player {
-        dbg!(&self.card);
-        dbg!(&self.available_players.iter().find(|p|p.player_id==self.card.player_ids[1]));
-        info!("Available players: {}\nPlayers in groups: {}",self.available_players.len(),self.groups().into_iter().flatten().flat_map(|a|a.players.into_iter().map(|p|p.name)).dedup().collect_vec().len());
         self.card.player(&self.available_players, self.focused_player_index).unwrap()
     }
 
@@ -114,8 +111,7 @@ impl FlipUpVMixCoordinator {
 
 impl FlipUpVMixCoordinator {
     fn clear_lb(idx: usize) -> Vec<VMixFunction<LeaderBoardProperty>> {
-        let mut new_player = get_data::Player::default();
-        new_player.lb_vmix_id = "2ef7178b-61ab-445c-9bbd-2f1c2c781e86".into();
+        let mut new_player = get_data::Player::null_player();
 
         let mut r_v: Vec<VMixFunction<LeaderBoardProperty>> = vec![];
         for i in 0..=idx {
@@ -251,9 +247,9 @@ impl FlipUpVMixCoordinator {
     pub fn ob_anim(&mut self) {
         println!("ob_anim");
         self.focused_player_mut().ob = true;
-        if let Some(score) = self.focused_player_mut().get_score() {
-            self.queue_add(&score.play_mov_vmix(self.focused_player_index, true))
-        }
+        let score = self.focused_player_mut().get_score();
+        self.queue_add(&score.play_mov_vmix(self.focused_player_index, true))
+        
     }
     pub fn set_player(&mut self, player: &str) {
         let index = self

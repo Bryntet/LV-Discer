@@ -1,4 +1,4 @@
-use crate::api::Coordinator;
+use crate::api::{Coordinator, MyError};
 use crate::controller::coordinator::FlipUpVMixCoordinator;
 use crate::dto;
 
@@ -40,7 +40,7 @@ pub async fn current_round(coordinator: Coordinator) -> Json<usize> {
 #[openapi(tag = "Preprocessing")]
 #[get("/event/<event_id>/rounds")]
 pub async fn rounds_structure(event_id: String) -> Json<crate::dto::Rounds> {
-    crate::dto::get_rounds(event_id).await.into()
+    crate::dto::get_rounds(event_id).await.unwrap().into()
 }
 
 #[openapi(tag = "Preprocessing")]

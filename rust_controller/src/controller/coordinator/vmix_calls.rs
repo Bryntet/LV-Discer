@@ -9,8 +9,7 @@ impl FlipUpVMixCoordinator {
             self.queue_add(
                 &self
                     .focused_player()
-                    .current_round()
-                    .get_hole_info(self.lb_thru),
+                    .results.get_hole_info(self.lb_thru)
             );
         }
     }
@@ -21,8 +20,8 @@ impl FlipUpVMixCoordinator {
     }
 
     pub fn play_animation(&self) {
-        if let Some(score) = self.focused_player().get_score() {
-            self.queue_add(&score.play_mov_vmix(self.focused_player_index, false));
-        }
+        let score= self.focused_player().get_score();
+        self.queue_add(&score.play_mov_vmix(self.focused_player_index, false));
+        
     }
 }

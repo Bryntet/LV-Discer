@@ -2,7 +2,7 @@ use crate::controller;
 use rocket_okapi::okapi::schemars;
 use schemars::JsonSchema;
 use serde::Serialize;
-#[derive(Serialize, Debug, JsonSchema)]
+#[derive(Serialize, Debug, JsonSchema, Clone)]
 pub struct Player {
     pub id: String,
     pub name: String,

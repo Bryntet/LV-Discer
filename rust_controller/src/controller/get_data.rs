@@ -5,32 +5,16 @@ use log::warn;
 use rayon::prelude::*;
 use std::collections::HashMap;
 use rocket::futures::StreamExt;
+use crate::api::MyError;
+use crate::controller::queries::group::GroupPlayerConnection;
 
 use super::{queries};
-use crate::controller::queries::{PoolLeaderboardPlayer, SimpleResult};
+use crate::controller::queries::HoleResult;
 use crate::flipup_vmix_controls::{OverarchingScore, Score};
 use crate::vmix::functions::*;
-use queries::Division;
 use crate::dto;
+use crate::dto::Group;
 
-pub async fn get_event(event_id: &str) -> cynic::GraphQlResponse<queries::EventQuery> {
-    use cynic::QueryBuilder;
-    use queries::*;
-    let operation = EventQuery::build(EventQueryVariables {
-        event_id: event_id.into(),
-    });
-    let response = reqwest::Client::new()
-        .post("https://api.tjing.se/graphql")
-        .json(&operation)
-        .send()
-        .await
-        .expect("failed to send request");
-
-    response
-        .json::<GraphQlResponse<queries::EventQuery>>()
-        .await
-        .expect("failed to parse response")
-}
 
 pub const DEFAULT_FOREGROUND_COL: &str = "3F334D";
 pub const DEFAULT_FOREGROUND_COL_ALPHA: &str = "3F334D00";
@@ -104,26 +88,19 @@ impl RankUpDown {
     }
 }
 // TODO: Refactor out
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct PlayerRound {
-    results: Vec<queries::SimpleResult>,
+    results: Vec<HoleResult>,
     finished: bool,
+    round: usize
 }
-
-impl From<Vec<queries::SimpleResult>> for PlayerRound {
-    fn from(value: Vec<SimpleResult>) -> Self {
-        Self {
-            results: value,
-            finished: false,
-        }
-    }
-}
-
 impl PlayerRound {
-    fn new(results: Vec<queries::SimpleResult>) -> Self {
+    fn new(results: Vec<queries::HoleResult>, round: usize) -> Self {
         Self {
             results,
             finished: false,
+            round
+
         }
     }
 
@@ -198,7 +175,7 @@ pub struct Player {
     pub round_score: isize,
     // Score for only current round
     round_ind: usize,
-    pub rounds: Vec<PlayerRound>,
+    pub results: PlayerRound,
     pub hole: usize,
     pub ind: usize,
     pub throws: u8,
@@ -207,7 +184,6 @@ pub struct Player {
     pub position: usize,
     pub lb_even: bool,
     pub hot_round: bool,
-    pub lb_vmix_id: String,
     pub lb_pos: usize,
     pub old_pos: usize,
     pos_visible: bool,
@@ -216,20 +192,22 @@ pub struct Player {
     pub first_scored: bool,
     pub thru: usize,
     pub visible_player: bool,
+    group_id: Option<String>
 }
 
-impl Default for Player {
-    fn default() -> Self {
-        Self {
+impl Player {
+    pub fn null_player() -> Self {
+        Player {
             player_id: "".to_string(),
             name: "".to_string(),
             first_name: "".to_string(),
             surname: "".to_string(),
-            rank: RankUpDown::Same,
+            rank: Default::default(),
+            group_id: None,
             total_score: 0,
             round_score: 0,
             round_ind: 0,
-            rounds: vec![],
+            results: Default::default(),
             hole: 0,
             ind: 0,
             throws: 0,
@@ -238,19 +216,50 @@ impl Default for Player {
             position: 0,
             lb_even: false,
             hot_round: false,
-            lb_vmix_id: "".to_string(),
             lb_pos: 0,
             old_pos: 0,
-            pos_visible: true,
-            lb_shown: true,
+            pos_visible: false,
+            lb_shown: false,
             dnf: false,
             first_scored: false,
             thru: 0,
-            visible_player: true,
+            visible_player: false,
+        }
+    }
+
+    fn from_query(player: queries::Player, round: usize) -> Self {
+        let first_name = player.user.first_name.unwrap();
+        let surname = player.user.last_name.unwrap();
+        Self {
+            player_id: player.user.id.unwrap().into_inner(),
+            group_id: Some(player.results.clone().unwrap().first().unwrap().player_connection.group_id.clone().into_inner()),
+            results: PlayerRound::new(player.results.unwrap_or_default(),round),
+            first_name: first_name.clone(),
+            surname: surname.clone(),
+            rank: Default::default(),
+            total_score: 0,
+            name: format!("{} {}", first_name, surname),
+            dnf: player.dnf.is_dnf || player.dns.is_dns,
+            first_scored: false,
+            round_ind: round,
+            thru: 0,
+            hot_round: false,
+            hole: 0,
+            ind: 0,
+            throws: 0,
+            shift: 0,
+            ob: false,
+            position: 0,
+            lb_pos: 0,
+            old_pos: 0,
+            pos_visible: false,
+            round_score: 0,
+            lb_even: false,
+            lb_shown: false,
+            visible_player: false,
         }
     }
 }
-
 impl From<&Player> for crate::flipup_vmix_controls::OverarchingScore {
     fn from(player: &Player) -> Self {
         Self::new(
@@ -264,46 +273,29 @@ impl From<&Player> for crate::flipup_vmix_controls::OverarchingScore {
 
 impl Player {
     pub fn get_round_total_score(&self) -> isize {
-        self.current_round().score_to_hole(17)
+        self.round_score
     }
 
     pub fn score_before_round(&mut self) -> isize {
         let mut total_score = 0;
-        if self.rounds.len() < self.round_ind || self.dnf {
-            println!("I'm a loser, I DNF:ed");
-            self.dnf = true;
-        } else {
-            for round_ind in 0..self.round_ind {
-                total_score += self.rounds[round_ind].score_to_hole(17)
-            }
-        }
+        self.total_score - self.round_score;
 
         // log(&format!("round_ind {} tot_score {}", self.round_ind, total_score));
         total_score
     }
 
-    pub fn get_score(&self) -> Option<Score> {
-        Some((&self.current_round()?.results[self.hole]).into())
+    pub fn get_score(&self) -> Score {
+        self.results.results.last().unwrap().into()
     }
 
-    pub fn current_round(&self) -> Option<&PlayerRound> {
-        self.rounds.get(self.round_ind)
-    }
+
     pub fn check_if_allowed_to_visible(&mut self) {
-        if self.round_ind >= self.rounds.len() {
-            self.lb_shown = false;
+        if self.dnf {
+            self.lb_shown = false
         }
     }
 
-    pub fn make_tot_score(&mut self) {
-        self.round_score = self.current_round().score_to_hole(self.hole);
-        // log(&format!(
-        //     "round_score {} hole {}",
-        //     self.round_score, self.hole
-        // ));
-        self.total_score = self.score_before_round() + self.round_score;
-        //log(&format!("total_score {}", self.total_score));
-    }
+
 
     // Below goes JS TCP Strings
 
@@ -330,12 +322,10 @@ impl Player {
         if !self.first_scored {
             self.first_scored = true;
         }
-        self.make_tot_score();
 
         // Update score text, visibility, and colour
-        if let Some(score) = self.get_score().map(|a| a.update_score(self.ind)) {
-            return_vec.extend(score);
-        }
+        let score = self.get_score().update_score(self.ind);
+        return_vec.extend(score);
 
         let overarching = self.overarching_score_representation();
 
@@ -362,7 +352,7 @@ impl Player {
         if self.hole > 0 {
             self.hole -= 1;
             return_vec.extend(self.del_score());
-            let result = self.current_round().hole_score(self.hole);
+            let result = self.results.hole_score(self.hole);
             self.round_score -= result;
             self.total_score -= result;
             if self.hole > 8 {
@@ -650,31 +640,125 @@ impl Player {
 #[derive(Clone, Debug)]
 pub struct RustHandler {
     pub chosen_division: cynic::Id,
-    event: queries::Event,
+    round_ids: Vec<String>,
+    player_container: PlayerContainer,
     divisions: Vec<queries::Division>,
     round_ind: usize,
 }
 
-impl RustHandler {
-    pub fn new(pre_event: GraphQlResponse<queries::EventQuery>) -> Self {
-        let event = pre_event.data.expect("no data").event.expect("no event");
-        let mut divisions: Vec<queries::Division> = vec![];
-        event
-            .divisions
-            .iter()
-            .flatten()
-            .for_each(|div| divisions.push(div.clone()));
-
+#[derive(Clone, Debug)]
+struct PlayerContainer{
+    rounds_with_players: Vec<Vec<Player>>,
+    round: usize
+}
+impl PlayerContainer {
+    fn new(rounds_with_players: Vec<Vec<Player>>) -> Self {
         Self {
-            chosen_division: divisions.first().expect("NO DIV CHOSEN").id.clone(),
-            event,
-            divisions,
-            round_ind: 0,
+            rounds_with_players,
+            round: 0
         }
     }
 
-    pub fn get_divisions(&self) -> Vec<Division> {
-        let mut divs: Vec<Division> = vec![];
+    pub fn set_round(&mut self, round: usize) -> Result<(), &'static str> {
+        if self.rounds_with_players.len() > round {
+            Err("That round does not exist")
+        } else {
+            self.round = round;
+            Ok(())
+        }
+    }
+    
+    pub fn players(&self) -> &Vec<Player> {
+        self.rounds_with_players.get(self.round).unwrap()
+    } 
+}
+
+impl RustHandler {
+    pub async fn new(event_id: &str) -> Result<Self,MyError> {
+        let time = std::time::Instant::now();
+        let round_ids = Self::get_rounds(event_id).await?;
+        let event= Self::get_event(event_id,round_ids.clone()).await;
+        warn!("Time taken to get event: {:?}", time.elapsed());
+        let mut divisions: Vec<queries::Division> = vec![];
+        event
+            .iter()
+            .flat_map(|round|&round.event)
+            .flat_map(|event|event.divisions.clone())
+            .flatten()
+            .unique_by(|division|division.id.clone())
+            .for_each(|division|divisions.push(division));
+
+
+        let container = PlayerContainer::new(event
+            .into_iter()
+            .enumerate()
+            .flat_map(|(round_num,round)| Some((round_num, round.event?)))
+            .map(|(round_num,event)|event.players.into_iter().map(|player|{
+                
+                Player::from_query(player,round_num)
+            }).collect_vec())
+            .collect_vec()
+        );
+
+        Ok(Self {
+            chosen_division: divisions.first().expect("NO DIV CHOSEN").id.clone(),
+            round_ids,
+            player_container: container,
+            divisions,
+            round_ind: 0,
+        })
+    }
+
+
+
+    pub async fn get_event(event_id: &str, round_ids: Vec<String>) -> Vec<queries::RoundResultsQuery> {
+        use cynic::QueryBuilder;
+        use queries::*;
+        let mut rounds = vec![];
+        for id in round_ids {
+            let operation = RoundResultsQuery::build(RoundResultsQueryVariables {
+                event_id: event_id.into(),
+                round_id: id.to_owned().into(),
+            });
+            let response = reqwest::Client::new()
+                .post("https://api.tjing.se/graphql")
+                .json(&operation)
+                .send()
+                .await
+                .expect("failed to send request");
+
+            let out = response
+                .json::<GraphQlResponse<queries::RoundResultsQuery>>()
+                .await
+                .expect("failed to parse response").data.unwrap();
+            rounds.push(out);
+        }
+        rounds
+
+    }
+
+
+    pub async fn get_rounds(event_id: &str) -> Result<Vec<String>, MyError> {
+        use queries::round::{RoundsQuery,RoundsQueryVariables};
+        use cynic::QueryBuilder;
+        let body = RoundsQuery::build(RoundsQueryVariables {
+            event_id: event_id.into()
+        });
+        let parse_error = MyError::UnableToParse("Unable to parse response");
+        let response = reqwest::Client::new()
+            .post("https://api.tjing.se/graphql")
+            .json(&body)
+            .send()
+            .await
+            .map_err(|_|parse_error)?
+            .json::<GraphQlResponse<RoundsQuery>>()
+            .await;
+        Ok(response.unwrap().data.unwrap().event.unwrap().rounds.into_iter().flatten().map(|round|round.id.into_inner()).collect_vec())
+
+    }
+
+    pub fn get_divisions(&self) -> Vec<queries::Division> {
+        let mut divs: Vec<queries::Division> = vec![];
         for div in &self.divisions {
             divs.push(div.clone());
         }
@@ -682,70 +766,24 @@ impl RustHandler {
     }
     
     pub fn get_groups(&self) -> Vec<Vec<dto::Group>> {
-        self.event.rounds
-            .iter()
-            .flatten()
-            .cloned()
-            .flat_map(|round| round.pools)
-            .map(|pool|pool.groups.iter().map(dto::Group::from).collect_vec())
-            .collect()
+        let mut groups: Vec<Vec<dto::Group>> = vec![];
+        
+        for round in &self.player_container.rounds_with_players {
+            groups.push(vec![]);
+            let mut map: HashMap<String,Vec<dto::Player>> = HashMap::new();
+            round.iter()
+                .flat_map(|player| Some((dto::Player::from(player), player.group_id.clone()?)))
+                .for_each(|(dto_player,group_id)|map.entry(group_id).or_default().push(dto_player));
+            for (id,players) in map.into_iter() {
+                groups.last_mut().unwrap().push(Group::new(id,players))
+            }
+        }
+
+        groups
     }
 
     pub fn get_players(self) -> Vec<Player> {
-        let event = self.event.rounds;
-        let mut player_map: HashMap<String, Vec<PoolLeaderboardPlayer>> = HashMap::new();
-
-        let mut groups: Vec<dto::Group> = vec![];
-        
-        event
-            .into_iter()
-            .flatten()
-            .flat_map(|round| round.pools.into_iter())
-            .flat_map(|pool| { 
-                pool.groups.into_iter().for_each(|group|groups.push(group.into()));
-                pool.leaderboard
-            })
-            .flat_map(|leaderboard| match leaderboard {
-                queries::PoolLeaderboardDivisionCombined::Pld(division) => Some(division),
-                queries::PoolLeaderboardDivisionCombined::Unknown => {
-                    warn!("Unknown division found");
-                    None
-                }
-            })
-            .flat_map(|division| division.players)
-            .map(|player| (player.player_id.inner().to_string(), player))
-            .for_each(|(player_id, player)| player_map.entry(player_id).or_default().push(player));
-        
-        let players: Vec<Player> = player_map
-            .into_values()
-            .par_bridge()
-            .map(|player_instances| {
-                let (id, first_name, last_name) = player_instances
-                    .first()
-                    .map(|player| {
-                        (
-                            player.player_id.inner().to_string(),
-                            player.first_name.clone(),
-                            player.last_name.clone(),
-                        )
-                    })
-                    .unwrap();
-
-                let results = player_instances
-                    .into_iter()
-                    .map(|player| PlayerRound::new(player.results))
-                    .collect_vec();
-                Player {
-                    player_id: id.to_string(),
-                    name: format!("{} {}", first_name, last_name),
-                    first_name,
-                    surname: last_name,
-                    rounds: results,
-                    ..Default::default()
-                }
-            })
-            .collect();
-        players
+        self.player_container.players().clone()
     }
     pub fn set_chosen_by_ind(&mut self, ind: usize) {
         self.chosen_division = self.divisions[ind].id.clone();

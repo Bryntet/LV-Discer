@@ -1,4 +1,4 @@
-use super::queries::SimpleResult;
+use super::queries::HoleResult;
 
 struct RoundStats<'results> {
     round: u8,
@@ -6,7 +6,7 @@ struct RoundStats<'results> {
 }
 
 impl<'results> RoundStats<'results> {
-    fn new(round_number: u8, holes: [(u8, &'results [SimpleResult]); 18]) -> Self {
+    fn new(round_number: u8, holes: [(u8, &'results [HoleResult]); 18]) -> Self {
         Self {
             round: round_number,
             holes: holes.map(|(hole_number, results)| HoleStats::new(hole_number, results)),
@@ -16,11 +16,11 @@ impl<'results> RoundStats<'results> {
 
 struct HoleStats<'results> {
     hole_number: u8,
-    player_results: &'results [SimpleResult],
+    player_results: &'results [HoleResult],
 }
 
 impl<'results> HoleStats<'results> {
-    fn new(hole_number: u8, player_results: &'results [SimpleResult]) -> Self {
+    fn new(hole_number: u8, player_results: &'results [HoleResult]) -> Self {
         Self {
             hole_number,
             player_results,

@@ -1,14 +1,23 @@
+use std::collections::HashMap;
 use rocket_okapi::okapi::schemars;
 use schemars::JsonSchema;
 use serde::Serialize;
 use crate::dto;
-#[derive(Serialize,JsonSchema)]
+use crate::dto::Player;
+
+#[derive(Serialize,JsonSchema, Clone)]
 pub struct Group {
     pub players: Vec<dto::Player>,
-    status: crate::controller::queries::group::GroupStatus,
     pub id: String
 }
 impl Group {
+    pub fn new(id: String, players: Vec<Player>) -> Self {
+        Group {
+            players,
+            id
+        }
+    }
+    
     pub fn player_ids(&self) -> Vec<String> {
         self.players.iter().map(|player|player.id.clone()).collect()
     }
@@ -28,12 +37,16 @@ impl From<&crate::controller::queries::Group> for Group {
             }).collect()
         };
         Self {
-            status: value.status,
             players,
             id: value.id.clone().into_inner()
         }
     }
 }
+
+
+
+
+
 impl From<crate::controller::queries::Group> for Group {
     fn from(value: crate::controller::queries::Group) -> Self {
         let players: Vec<dto::Player> = {
@@ -49,7 +62,6 @@ impl From<crate::controller::queries::Group> for Group {
             }).collect()
         };
         Self {
-            status: value.status,
             players,
             id: value.id.into_inner()
         }

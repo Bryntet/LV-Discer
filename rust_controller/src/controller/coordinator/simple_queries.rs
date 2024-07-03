@@ -12,8 +12,4 @@ impl FlipUpVMixCoordinator {
     pub fn get_round(&self) -> usize {
         self.round_ind
     }
-
-    pub fn get_rounds(&self) -> usize {
-        self.focused_player().rounds.len()
-    }
 }
