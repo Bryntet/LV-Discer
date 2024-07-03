@@ -1,20 +1,20 @@
 mod simple_queries;
 mod vmix_calls;
 
-use std::cell::RefCell;
-use std::ops::DerefMut;
 pub use super::*;
 use crate::api::MyError;
-use crate::controller::get_data::{RustHandler};
-use crate::{dto, flipup_vmix_controls};
+use crate::controller::get_data::RustHandler;
 use crate::vmix;
+use crate::{dto, flipup_vmix_controls};
 use flipup_vmix_controls::LeaderBoardProperty;
 use flipup_vmix_controls::{Leaderboard, LeaderboardState};
 use get_data::{HoleScoreOrDefault, Player};
 use itertools::Itertools;
 use log::warn;
-use std::sync::Arc;
 use rocket::http::hyper::body::HttpBody;
+use std::cell::RefCell;
+use std::ops::DerefMut;
+use std::sync::Arc;
 use vmix::functions::VMixFunction;
 use vmix::functions::{VMixProperty, VMixSelectionTrait};
 use vmix::Queue;
@@ -39,28 +39,38 @@ pub struct FlipUpVMixCoordinator {
     lb_div_ind: usize,
     lb_thru: usize,
     pub queue: Arc<Queue>,
-    card: Card
+    card: Card,
 }
-#[derive(Clone,Debug,Default)]
+#[derive(Clone, Debug, Default)]
 struct Card {
-    player_ids: Vec<String>
+    player_ids: Vec<String>,
 }
 impl Card {
     fn new(player_ids: Vec<String>) -> Self {
-        
-        Self {player_ids}
+        Self { player_ids }
+    }
+
+    fn player<'a>(&self, all_players: &'a [Player], index: usize) -> Option<&'a Player> {
+        let player_id = self.player_ids.get(index)?;
+        info!("{}", index);
+        all_players
+            .iter()
+            .find(|player| &player.player_id == player_id)
     }
     
-    fn player<'a>(&self,all_players: &'a [Player],index:usize) -> Option<&'a Player> {
-        let player_id = self.player_ids.get(index)?;
-        info!("{}",index);
-        all_players.iter().find(|player|&player.player_id==player_id)
+    fn players<'a> (&self, all_players: &'a [Player]) -> Vec<&'a Player> {
+        self.player_ids.iter().filter_map(|id| all_players.iter().find(|player| &player.player_id == id)).collect()
     }
-    
-    
-    fn player_mut<'a>(&self, all_players: &'a mut [Player], index: usize) -> Option<&'a mut Player>  {
+
+    fn player_mut<'a>(
+        &self,
+        all_players: &'a mut [Player],
+        index: usize,
+    ) -> Option<&'a mut Player> {
         let player_id = self.player_ids.get(index)?;
-        all_players.iter_mut().find(|player|&player.player_id==player_id)
+        all_players
+            .iter_mut()
+            .find(|player| &player.player_id == player_id)
     }
 }
 impl FlipUpVMixCoordinator {
@@ -68,14 +78,23 @@ impl FlipUpVMixCoordinator {
         let queue = Queue::new(ip.clone())?;
         let handler = RustHandler::new(&event_id).await?;
 
+        let id = handler.groups.first().unwrap().first().unwrap().id.clone();
         let available_players = handler.clone().get_players();
-        let coordinator = FlipUpVMixCoordinator {
+        let mut coordinator = FlipUpVMixCoordinator {
             all_divs: vec![],
             selected_div_index: 0,
             focused_player_index: focused_player,
             ip,
             event_id,
-            card: Card::new(handler.get_groups().first().unwrap().first().unwrap().player_ids()),
+            card: Card::new(
+                handler
+                    .groups
+                    .first()
+                    .unwrap()
+                    .first()
+                    .unwrap()
+                    .player_ids(),
+            ),
             handler,
             available_players,
             round_ind: 0,
@@ -85,27 +104,39 @@ impl FlipUpVMixCoordinator {
             leaderboard: Leaderboard::default(),
         };
         coordinator.queue_add(&coordinator.focused_player().set_name());
+        coordinator.set_group(&id);
         Ok(coordinator)
     }
 
     pub fn set_group(&mut self, group_id: &str) -> Option<()> {
         let groups = self.groups();
-        let ids = groups.get(self.round_ind)?.iter().find(|group|group.id==group_id)?.player_ids();
+        let ids = groups
+            .iter()
+            .find(|group| group.id == group_id)?
+            .player_ids();
         self.card = Card::new(ids);
         Some(())
     }
 
     pub fn focused_player(&self) -> &Player {
-        self.card.player(&self.available_players, self.focused_player_index).unwrap()
+        dbg!(self.available_players.len(),self.groups().iter().map(|group|group.players.clone()).len());
+        self.card
+            .player(&self.available_players, self.focused_player_index)
+            .unwrap()
     }
 
     pub fn focused_player_mut(&mut self) -> &mut Player {
-        self.card.player_mut(&mut self.available_players, self.focused_player_index).unwrap()
-        
+        self.card
+            .player_mut(&mut self.available_players, self.focused_player_index)
+            .unwrap()
+    }
+
+    pub fn groups(&self) -> &Vec<dto::Group> {
+        self.handler.groups()
     }
     
-    pub fn groups(&self) -> Vec<Vec<dto::Group>> {
-        self.handler.get_groups()
+    pub fn current_players(&self) -> Vec<String> {
+        self.card.players(&self.available_players).iter().map(|player| player.name.clone()).collect()
     }
 }
 
@@ -249,7 +280,6 @@ impl FlipUpVMixCoordinator {
         self.focused_player_mut().ob = true;
         let score = self.focused_player_mut().get_score();
         self.queue_add(&score.play_mov_vmix(self.focused_player_index, true))
-        
     }
     pub fn set_player(&mut self, player: &str) {
         let index = self

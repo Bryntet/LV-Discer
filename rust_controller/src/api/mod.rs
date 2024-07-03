@@ -4,19 +4,19 @@ mod mutation;
 mod query;
 mod vmix_calls;
 
-use std::net::IpAddr;
 use crate::api::mutation::*;
 use crate::api::vmix_calls::*;
 use crate::controller::coordinator::FlipUpVMixCoordinator;
 use guard::*;
 use query::*;
 use rocket::{Build, Rocket};
+use rocket_dyn_templates::Template;
 use rocket_okapi::rapidoc::{make_rapidoc, GeneralConfig, RapiDocConfig};
 use rocket_okapi::settings::UrlObject;
 use rocket_okapi::swagger_ui::{make_swagger_ui, SwaggerUIConfig};
 use rocket_okapi::{openapi_get_routes, JsonSchema};
+use std::net::IpAddr;
 use std::sync::Arc;
-use rocket_dyn_templates::Template;
 use tokio::sync::{Mutex, MutexGuard};
 
 pub use guard::MyError;
@@ -53,10 +53,11 @@ pub fn launch() -> Rocket<Build> {
                 set_focus,
                 load,
                 get_divisions,
-                get_groups
+                get_groups,
+                set_group
             ],
         )
-        .mount("/",routes![groups_and_players])
+        .mount("/", routes![groups_and_players])
         .attach(Template::fairing())
         .mount(
             "/api/swagger",

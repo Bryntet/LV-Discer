@@ -122,7 +122,7 @@ impl ReadableScore {
             Albatross => "01 albatross.mov",
             Ace => "00 ace.mov",
         }
-    } 
+    }
 }
 pub struct Score {
     throws: usize,

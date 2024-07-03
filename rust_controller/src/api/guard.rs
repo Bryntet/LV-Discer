@@ -46,7 +46,7 @@ pub enum MyError {
     IpNotFound(&'static str),
     PlayerNotFound(&'static str),
     #[response(status = 500)]
-    UnableToParse(&'static str)
+    UnableToParse(&'static str),
 }
 
 impl<'a> OpenApiFromRequest<'a> for Coordinator {

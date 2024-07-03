@@ -2086,6 +2086,7 @@ dependencies = [
  "log",
  "okapi",
  "rocket",
+ "rocket_dyn_templates",
  "rocket_okapi_codegen",
  "schemars",
  "serde",

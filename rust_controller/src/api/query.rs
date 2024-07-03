@@ -3,13 +3,13 @@ use crate::controller::coordinator::FlipUpVMixCoordinator;
 use crate::dto;
 
 use itertools::Itertools;
+use rocket::response::content::RawHtml;
 use rocket::serde::json::Json;
 use rocket::{Build, Rocket, State};
-use rocket_okapi::openapi;
-use std::sync::Mutex;
-use rocket::response::content::RawHtml;
 use rocket_dyn_templates::Template;
+use rocket_okapi::openapi;
 use serde_json::json;
+use std::sync::Mutex;
 
 /// # GET current hole
 #[openapi(tag = "Hole")]
@@ -64,12 +64,13 @@ pub async fn get_divisions(coordinator: Coordinator) -> Json<Vec<String>> {
 
 #[openapi(tag = "Queue System")]
 #[get("/groups")]
-pub async fn get_groups(coordinator: Coordinator) -> Json<Vec<Vec<dto::Group>>> {
-    coordinator.lock().await.groups().into()
+pub async fn get_groups(coordinator: Coordinator) -> Json<Vec<dto::Group>> {
+    coordinator.lock().await.groups().clone().into()
 }
 #[get("/")]
 pub async fn groups_and_players(coordinator: Coordinator) -> RawHtml<Template> {
-    let rounds = coordinator.lock().await.groups();
-    let context = json!({"rounds": rounds});
-    RawHtml(Template::render("index",context))
+    let coordinator = coordinator.lock().await;
+    let groups = coordinator.groups();
+    let context = json!({"groups": groups});
+    RawHtml(Template::render("index", context))
 }

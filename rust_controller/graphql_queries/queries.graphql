@@ -37,3 +37,26 @@ query RoundsQuery($eventId: ID = "d8f93dfb-f560-4f6c-b7a8-356164b9e4be") {
 		}
 	}
 }
+query GroupsQuery($eventId: ID = "d8f93dfb-f560-4f6c-b7a8-356164b9e4be") {
+	event(eventId: $eventId) {
+		rounds {
+			pools {
+				groups {
+					id
+					playerConnectionsV2 {
+						... on GroupPlayerConnection {
+							id
+							player {
+								id
+								user {
+									firstName
+									lastName
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+}

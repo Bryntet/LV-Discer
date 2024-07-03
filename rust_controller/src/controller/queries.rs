@@ -1,6 +1,6 @@
 use crate::flipup_vmix_controls::Score;
 use crate::vmix::functions::{VMixFunction, VMixProperty};
-pub use group::{Group};
+pub use group::Group;
 
 #[derive(cynic::QueryVariables, Debug)]
 pub struct RoundResultsQueryVariables {
@@ -15,7 +15,7 @@ pub struct RoundResultsQuery {
     pub event: Option<Event>,
 }
 
-#[derive(cynic::QueryFragment, Debug,Clone)]
+#[derive(cynic::QueryFragment, Debug, Clone)]
 #[cynic(variables = "RoundResultsQueryVariables")]
 pub struct Event {
     pub players: Vec<Player>,
@@ -28,7 +28,7 @@ pub struct Division {
     pub id: cynic::Id,
 }
 
-#[derive(cynic::QueryFragment, Debug,Clone)]
+#[derive(cynic::QueryFragment, Debug, Clone)]
 #[cynic(variables = "RoundResultsQueryVariables")]
 pub struct Player {
     pub user: User,
@@ -36,6 +36,7 @@ pub struct Player {
     pub dns: Dns,
     #[arguments(roundId: $round_id)]
     pub results: Option<Vec<HoleResult>>,
+    pub id: cynic::Id,
 }
 
 #[derive(cynic::QueryFragment, Debug, Clone)]
@@ -47,18 +48,12 @@ pub struct HoleResult {
     pub is_out_of_bounds: bool,
     pub is_outside_putt: bool,
     pub score: f64,
-    pub player_connection: group::GroupPlayerConnection,
 }
 
-
-
-
-
-#[derive(cynic::QueryFragment, Debug,Clone)]
+#[derive(cynic::QueryFragment, Debug, Clone)]
 pub struct User {
     pub first_name: Option<String>,
     pub last_name: Option<String>,
-    pub id: Option<cynic::Id>
 }
 
 #[derive(cynic::QueryFragment, Debug, Clone)]
@@ -72,12 +67,6 @@ pub struct Dns {
 pub struct Dnf {
     pub is_dnf: bool,
 }
-
-
-
-
-
-
 
 impl From<&HoleResult> for Score {
     fn from(res: &HoleResult) -> Self {
@@ -128,11 +117,9 @@ impl Default for Hole {
     }
 }
 
-
-
 pub mod round {
-    use cynic::{QueryFragment,QueryVariables};
     use super::schema;
+    use cynic::{QueryFragment, QueryVariables};
     #[derive(cynic::QueryVariables, Debug)]
     pub struct RoundsQueryVariables {
         pub event_id: cynic::Id,
@@ -154,17 +141,40 @@ pub mod round {
     pub struct Round {
         pub id: cynic::Id,
     }
-
-
 }
 
 // Groups
 pub mod group {
+    use super::schema;
     use rocket_okapi::okapi::schemars;
     use schemars::JsonSchema;
-    use super::schema;
 
-    #[derive(cynic::QueryFragment, Debug,Clone)]
+    #[derive(cynic::QueryVariables, Debug)]
+    pub struct GroupsQueryVariables {
+        pub event_id: cynic::Id,
+    }
+
+    #[derive(cynic::QueryFragment, Debug)]
+    #[cynic(graphql_type = "RootQuery", variables = "GroupsQueryVariables")]
+    pub struct GroupsQuery {
+        #[arguments(eventId: $event_id)]
+        pub event: Option<self::Event>,
+    }
+
+    #[derive(cynic::QueryFragment, Debug)]
+    pub struct Event {
+        pub rounds: Vec<Option<Round>>,
+    }
+    #[derive(cynic::QueryFragment, Debug)]
+    pub struct Round {
+        pub pools: Vec<Pool>,
+    }
+    #[derive(cynic::QueryFragment, Debug)]
+    pub struct Pool {
+        pub groups: Vec<Group>,
+    }
+
+    #[derive(cynic::QueryFragment, Debug, Clone)]
     pub struct Group {
         pub id: cynic::Id,
         pub status: GroupStatus,
@@ -172,13 +182,13 @@ pub mod group {
         pub player_connections_v2: Vec<GroupPlayerConnectionTypeCombined>,
     }
 
-    #[derive(cynic::InlineFragments, Debug,Clone)]
+    #[derive(cynic::InlineFragments, Debug, Clone)]
     pub enum GroupPlayerConnectionTypeCombined {
         GroupPlayerConnection(GroupPlayerConnection),
         #[cynic(fallback)]
-        Unknown
+        Unknown,
     }
-    #[derive(cynic::QueryFragment, Debug,Clone)]
+    #[derive(cynic::QueryFragment, Debug, Clone)]
     pub struct Player {
         pub id: cynic::Id,
         pub user: User,
@@ -189,7 +199,7 @@ pub mod group {
         pub first_name: Option<String>,
         pub last_name: Option<String>,
     }
-    #[derive(cynic::QueryFragment, Debug,Clone)]
+    #[derive(cynic::QueryFragment, Debug, Clone)]
     pub struct GroupPlayerConnection {
         pub group_id: cynic::Id,
         pub player: Player,

@@ -1,30 +1,29 @@
-use std::collections::HashMap;
+use crate::dto;
+use crate::dto::Player;
 use rocket_okapi::okapi::schemars;
 use schemars::JsonSchema;
 use serde::Serialize;
-use crate::dto;
-use crate::dto::Player;
+use std::collections::HashMap;
 
-#[derive(Serialize,JsonSchema, Clone)]
+#[derive(Serialize, JsonSchema, Clone, Debug)]
 pub struct Group {
     pub players: Vec<dto::Player>,
-    pub id: String
+    pub id: String,
 }
 impl Group {
     pub fn new(id: String, players: Vec<Player>) -> Self {
-        Group {
-            players,
-            id
-        }
+        Group { players, id }
     }
-    
+
     pub fn player_ids(&self) -> Vec<String> {
-        self.players.iter().map(|player|player.id.clone()).collect()
+        self.players
+            .iter()
+            .map(|player| player.id.clone())
+            .collect()
     }
 }
 impl From<&crate::controller::queries::Group> for Group {
     fn from(value: &crate::controller::queries::Group) -> Self {
-
         let players: Vec<dto::Player> = {
             value.player_connections_v2.iter().flat_map(|connection|{
                 if let crate::controller::queries::group::GroupPlayerConnectionTypeCombined::GroupPlayerConnection(connection) = connection {
@@ -38,14 +37,10 @@ impl From<&crate::controller::queries::Group> for Group {
         };
         Self {
             players,
-            id: value.id.clone().into_inner()
+            id: value.id.clone().into_inner(),
         }
     }
 }
-
-
-
-
 
 impl From<crate::controller::queries::Group> for Group {
     fn from(value: crate::controller::queries::Group) -> Self {
@@ -63,7 +58,7 @@ impl From<crate::controller::queries::Group> for Group {
         };
         Self {
             players,
-            id: value.id.into_inner()
+            id: value.id.into_inner(),
         }
     }
 }

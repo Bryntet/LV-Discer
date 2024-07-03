@@ -1,20 +1,20 @@
+use crate::api::MyError;
+use crate::controller::queries::group::GroupPlayerConnection;
 use crate::flipup_vmix_controls::LeaderBoardProperty;
 use cynic::GraphQlResponse;
 use itertools::Itertools;
 use log::warn;
 use rayon::prelude::*;
-use std::collections::HashMap;
 use rocket::futures::StreamExt;
-use crate::api::MyError;
-use crate::controller::queries::group::GroupPlayerConnection;
+use std::collections::HashMap;
 
-use super::{queries};
+use super::queries;
+use crate::controller::queries::round::RoundsQuery;
 use crate::controller::queries::HoleResult;
-use crate::flipup_vmix_controls::{OverarchingScore, Score};
-use crate::vmix::functions::*;
 use crate::dto;
 use crate::dto::Group;
-
+use crate::flipup_vmix_controls::{OverarchingScore, Score};
+use crate::vmix::functions::*;
 
 pub const DEFAULT_FOREGROUND_COL: &str = "3F334D";
 pub const DEFAULT_FOREGROUND_COL_ALPHA: &str = "3F334D00";
@@ -92,15 +92,14 @@ impl RankUpDown {
 pub struct PlayerRound {
     results: Vec<HoleResult>,
     finished: bool,
-    round: usize
+    round: usize,
 }
 impl PlayerRound {
     fn new(results: Vec<queries::HoleResult>, round: usize) -> Self {
         Self {
             results,
             finished: false,
-            round
-
+            round,
         }
     }
 
@@ -192,7 +191,6 @@ pub struct Player {
     pub first_scored: bool,
     pub thru: usize,
     pub visible_player: bool,
-    group_id: Option<String>
 }
 
 impl Player {
@@ -203,7 +201,6 @@ impl Player {
             first_name: "".to_string(),
             surname: "".to_string(),
             rank: Default::default(),
-            group_id: None,
             total_score: 0,
             round_score: 0,
             round_ind: 0,
@@ -231,9 +228,8 @@ impl Player {
         let first_name = player.user.first_name.unwrap();
         let surname = player.user.last_name.unwrap();
         Self {
-            player_id: player.user.id.unwrap().into_inner(),
-            group_id: Some(player.results.clone().unwrap().first().unwrap().player_connection.group_id.clone().into_inner()),
-            results: PlayerRound::new(player.results.unwrap_or_default(),round),
+            player_id: player.id.into_inner(),
+            results: PlayerRound::new(player.results.unwrap_or_default(), round),
             first_name: first_name.clone(),
             surname: surname.clone(),
             rank: Default::default(),
@@ -288,14 +284,11 @@ impl Player {
         self.results.results.last().unwrap().into()
     }
 
-
     pub fn check_if_allowed_to_visible(&mut self) {
         if self.dnf {
             self.lb_shown = false
         }
     }
-
-
 
     // Below goes JS TCP Strings
 
@@ -644,18 +637,19 @@ pub struct RustHandler {
     player_container: PlayerContainer,
     divisions: Vec<queries::Division>,
     round_ind: usize,
+    pub groups: Vec<Vec<dto::Group>>,
 }
 
 #[derive(Clone, Debug)]
-struct PlayerContainer{
+struct PlayerContainer {
     rounds_with_players: Vec<Vec<Player>>,
-    round: usize
+    round: usize,
 }
 impl PlayerContainer {
     fn new(rounds_with_players: Vec<Vec<Player>>) -> Self {
         Self {
             rounds_with_players,
-            round: 0
+            round: 0,
         }
     }
 
@@ -667,37 +661,41 @@ impl PlayerContainer {
             Ok(())
         }
     }
-    
+
     pub fn players(&self) -> &Vec<Player> {
         self.rounds_with_players.get(self.round).unwrap()
-    } 
+    }
 }
 
 impl RustHandler {
-    pub async fn new(event_id: &str) -> Result<Self,MyError> {
+    pub async fn new(event_id: &str) -> Result<Self, MyError> {
         let time = std::time::Instant::now();
         let round_ids = Self::get_rounds(event_id).await?;
-        let event= Self::get_event(event_id,round_ids.clone()).await;
+        let event = Self::get_event(event_id, round_ids.clone()).await;
+        let groups = Self::get_groups(event_id).await;
         warn!("Time taken to get event: {:?}", time.elapsed());
         let mut divisions: Vec<queries::Division> = vec![];
         event
             .iter()
-            .flat_map(|round|&round.event)
-            .flat_map(|event|event.divisions.clone())
+            .flat_map(|round| &round.event)
+            .flat_map(|event| event.divisions.clone())
             .flatten()
-            .unique_by(|division|division.id.clone())
-            .for_each(|division|divisions.push(division));
+            .unique_by(|division| division.id.clone())
+            .for_each(|division| divisions.push(division));
 
-
-        let container = PlayerContainer::new(event
-            .into_iter()
-            .enumerate()
-            .flat_map(|(round_num,round)| Some((round_num, round.event?)))
-            .map(|(round_num,event)|event.players.into_iter().map(|player|{
-                
-                Player::from_query(player,round_num)
-            }).collect_vec())
-            .collect_vec()
+        let container = PlayerContainer::new(
+            event
+                .into_iter()
+                .enumerate()
+                .flat_map(|(round_num, round)| Some((round_num, round.event?)))
+                .map(|(round_num, event)| {
+                    event
+                        .players
+                        .into_iter()
+                        .map(|player| Player::from_query(player, round_num))
+                        .collect_vec()
+                })
+                .collect_vec(),
         );
 
         Ok(Self {
@@ -705,13 +703,15 @@ impl RustHandler {
             round_ids,
             player_container: container,
             divisions,
+            groups,
             round_ind: 0,
         })
     }
 
-
-
-    pub async fn get_event(event_id: &str, round_ids: Vec<String>) -> Vec<queries::RoundResultsQuery> {
+    pub async fn get_event(
+        event_id: &str,
+        round_ids: Vec<String>,
+    ) -> Vec<queries::RoundResultsQuery> {
         use cynic::QueryBuilder;
         use queries::*;
         let mut rounds = vec![];
@@ -730,19 +730,19 @@ impl RustHandler {
             let out = response
                 .json::<GraphQlResponse<queries::RoundResultsQuery>>()
                 .await
-                .expect("failed to parse response").data.unwrap();
+                .expect("failed to parse response")
+                .data
+                .unwrap();
             rounds.push(out);
         }
         rounds
-
     }
 
-
     pub async fn get_rounds(event_id: &str) -> Result<Vec<String>, MyError> {
-        use queries::round::{RoundsQuery,RoundsQueryVariables};
         use cynic::QueryBuilder;
+        use queries::round::{RoundsQuery, RoundsQueryVariables};
         let body = RoundsQuery::build(RoundsQueryVariables {
-            event_id: event_id.into()
+            event_id: event_id.into(),
         });
         let parse_error = MyError::UnableToParse("Unable to parse response");
         let response = reqwest::Client::new()
@@ -750,11 +750,24 @@ impl RustHandler {
             .json(&body)
             .send()
             .await
-            .map_err(|_|parse_error)?
+            .map_err(|_| parse_error)?
             .json::<GraphQlResponse<RoundsQuery>>()
             .await;
-        Ok(response.unwrap().data.unwrap().event.unwrap().rounds.into_iter().flatten().map(|round|round.id.into_inner()).collect_vec())
+        Ok(response
+            .unwrap()
+            .data
+            .unwrap()
+            .event
+            .unwrap()
+            .rounds
+            .into_iter()
+            .flatten()
+            .map(|round| round.id.into_inner())
+            .collect_vec())
+    }
 
+    pub fn groups(&self) -> &Vec<dto::Group>{
+        self.groups.get(self.round_ind).unwrap()
     }
 
     pub fn get_divisions(&self) -> Vec<queries::Division> {
@@ -764,20 +777,42 @@ impl RustHandler {
         }
         divs
     }
-    
-    pub fn get_groups(&self) -> Vec<Vec<dto::Group>> {
-        let mut groups: Vec<Vec<dto::Group>> = vec![];
-        
-        for round in &self.player_container.rounds_with_players {
-            groups.push(vec![]);
-            let mut map: HashMap<String,Vec<dto::Player>> = HashMap::new();
-            round.iter()
-                .flat_map(|player| Some((dto::Player::from(player), player.group_id.clone()?)))
-                .for_each(|(dto_player,group_id)|map.entry(group_id).or_default().push(dto_player));
-            for (id,players) in map.into_iter() {
-                groups.last_mut().unwrap().push(Group::new(id,players))
-            }
-        }
+
+    async fn get_groups(event_id: &str) -> Vec<Vec<dto::Group>> {
+        use cynic::QueryBuilder;
+        use queries::group::{GroupsQuery, GroupsQueryVariables};
+        let body = GroupsQuery::build(GroupsQueryVariables {
+            event_id: event_id.into(),
+        });
+
+        let groups = reqwest::Client::new()
+            .post("https://api.tjing.se/graphql")
+            .json(&body)
+            .send()
+            .await
+            .unwrap()
+            .json::<GraphQlResponse<GroupsQuery>>()
+            .await
+            .unwrap();
+
+        let groups = groups
+            .data
+            .unwrap()
+            .event
+            .unwrap()
+            .rounds
+            .into_iter()
+            .flatten()
+            .map(|round: queries::group::Round| {
+                round
+                    .pools
+                    .into_iter()
+                    .flat_map(|pool| pool.groups)
+                    .dedup_by(|group1, group2| group1.id == group2.id)
+                    .map(dto::Group::from)
+                    .collect_vec()
+            })
+            .collect_vec();
 
         groups
     }

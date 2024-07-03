@@ -43,7 +43,7 @@ impl Queue {
         std::thread::spawn(move || loop {
             if let Ok(mut functions) = funcs.lock() {
                 while let Some(f) = functions.pop_front() {
-                    info!("Sending command: {}",&f);
+                    info!("Sending command: {}", &f);
                     Queue::send(&f.into_bytes(), stream.clone());
                 }
             }

@@ -1,9 +1,9 @@
 mod coordinator_builder;
+mod group;
 mod player;
 mod rounds;
-mod group;
 
 pub use coordinator_builder::CoordinatorBuilder;
+pub use group::Group;
 pub use player::*;
 pub use rounds::{get_rounds, Rounds};
-pub use group::Group;

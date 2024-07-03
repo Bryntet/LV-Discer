@@ -10,11 +10,8 @@ pub struct Player {
 
 impl Player {
     pub fn new(id: String, name: String) -> Self {
-        Self {
-            id,
-            name
-        }
-    } 
+        Self { id, name }
+    }
 }
 impl From<&controller::Player> for self::Player {
     fn from(value: &controller::Player) -> self::Player {

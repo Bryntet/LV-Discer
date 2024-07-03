@@ -3,7 +3,9 @@ use crate::api::{Coordinator, MyError};
 use crate::dto::CoordinatorBuilder;
 use rocket::serde::json::Json;
 use rocket::{tokio, State};
+use rocket_dyn_templates::Template;
 use rocket_okapi::openapi;
+use serde_json::{json, Value};
 
 #[openapi(tag = "Config")]
 #[post("/focused-player/<focused_player>")]
@@ -22,6 +24,13 @@ pub async fn load(loader: &State<CoordinatorLoader>, builder: Json<CoordinatorBu
 
 #[openapi(tag = "Config")]
 #[post("/group/<group_id>")]
-pub async fn set_group(coordinator: Coordinator, group_id: String) -> Result<(), &'static str> {
-    coordinator.lock().await.set_group(&group_id).ok_or("Unable to set group")
+pub async fn set_group(coordinator: Coordinator, group_id: &str) -> Result<Template, &'static str> {
+    let mut coordinator = coordinator
+        .lock()
+        .await;
+    coordinator
+        .set_group(group_id)
+        .ok_or("Unable to set group")?;
+    let players= coordinator.current_players().clone();
+    Ok(Template::render("current_selected", json!({"players":players})))
 }

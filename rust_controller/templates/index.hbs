@@ -90,33 +90,28 @@
 <body>
 <h1>Groups and Players by Round</h1>
 
-<div class="round-selector">
-    <label for="round-select">Select Round:</label>
-    <select id="round-select" onchange="changeRound()">
-        {{#each rounds as |round roundIndex|}}
-            <option value="{{roundIndex}}">Round {{roundIndex}}</option>
-        {{/each}}
-    </select>
+
+<div id="selected-players-container">
+    <h2>Selected Players</h2>
+    <ul id="selected-players-list"></ul>
 </div>
-<button id="actionButton" hx-post="/perform-action" hx-trigger="click" hx-target="#result">
-    Perform Action
-</button>
+
 <div id="groups-container">
-    {{#if rounds.[0]}}
-        {{#each rounds.[0] as |group groupIndex|}}
+    {{#if groups}}
+        {{#each groups as |group groupIndex|}}
             <div class="group" id="{{group.id}}">
-                <div class="group-header" onclick="toggleGroup(this)">
+                <div class="group-header">
                     <h2>
-                        <input type="checkbox" name="group" value="{{groupIndex}}" class="group-checkbox">
                         Group {{groupIndex}}
                         <span class="status-indicator status-{{group.status}}">{{group.status}}</span>
                     </h2>
-                    <span class="toggle-icon">▼</span>
+                    <button class="select-group" hx-post="/group/{{group.id}}" hx-trigger="click" hx-target="#selected-players-list">
+                        Select Group
+                    </button>
                 </div>
                 <div class="group-content">
                     {{#each group.players as |player|}}
                         <div class="player">
-                            <input type="checkbox" name="player" value="{{player.id}}" class="player-checkbox">
                             {{player.name}}
                         </div>
                     {{/each}}
@@ -128,13 +123,9 @@
     {{/if}}
 </div>
 
-
-
 <div id="result"></div>
 
 <script>
-
-
     function toggleGroup(header) {
         const content = header.nextElementSibling;
         const icon = header.querySelector('.toggle-icon');
@@ -157,8 +148,6 @@
             return;
         }
 
-
-
         groupsContainer.innerHTML = groupsHtml;
         updateButtonState();
     }
@@ -172,7 +161,10 @@
             });
         }
 
-        updateButtonState();
+        if (e.target.classList.contains('player-checkbox') || e.target.classList.contains('group-checkbox')) {
+            updateButtonState();
+            updateSelectedPlayers();
+        }
     });
 
     function updateButtonState() {
@@ -182,6 +174,19 @@
 
         var ids = Array.from(selected).map(cb => cb.value).join(',');
         button.setAttribute('hx-vals', JSON.stringify({ids: ids}));
+    }
+
+    function updateSelectedPlayers() {
+        var selectedPlayersList = document.getElementById('selected-players-list');
+        var selectedPlayers = document.querySelectorAll('.player-checkbox:checked');
+        selectedPlayersList.innerHTML = '';
+
+        selectedPlayers.forEach(function(playerCheckbox) {
+            var playerName = playerCheckbox.nextElementSibling.textContent;
+            var li = document.createElement('li');
+            li.textContent = playerName;
+            selectedPlayersList.appendChild(li);
+        });
     }
 
     // Initialize with the first round
