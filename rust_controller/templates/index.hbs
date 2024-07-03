@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Groups and Players by Round</title>
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 80%;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        .round-selector {
+            margin-bottom: 20px;
+        }
+        #groups-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+        .group {
+            background-color: #fff;
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            flex: 1;
+            min-width: 200px;
+            max-width: 90%;
+        }
+        .group-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+        }
+        .group-header h2 {
+            margin: 0;
+            font-size: 1.2em;
+        }
+        .group-content {
+            display: block;
+            margin-top: 15px;
+        }
+        .player {
+            margin: 10px 0;
+            padding: 5px 0;
+            border-bottom: 1px solid #eee;
+        }
+        .player:last-child {
+            border-bottom: none;
+        }
+        input[type="checkbox"] {
+            margin-right: 10px;
+        }
+        button, select {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover, select:hover {
+            background-color: #45a049;
+        }
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        .toggle-icon {
+            font-size: 1.2em;
+        }
+        .status-indicator {
+            font-size: 0.8em;
+            padding: 2px 6px;
+            border-radius: 4px;
+            margin-left: 10px;
+        }
+        .status-OPEN { background-color: #4CAF50; color: white; }
+        .status-CLOSED { background-color: #f44336; color: white; }
+        .status-DONE { background-color: #2196F3; color: white; }
+    </style>
+</head>
+<body>
+<h1>Groups and Players by Round</h1>
+
+<div class="round-selector">
+    <label for="round-select">Select Round:</label>
+    <select id="round-select" onchange="changeRound()">
+        {{#each rounds as |round roundIndex|}}
+            <option value="{{roundIndex}}">Round {{roundIndex}}</option>
+        {{/each}}
+    </select>
+</div>
+<button id="actionButton" hx-post="/perform-action" hx-trigger="click" hx-target="#result">
+    Perform Action
+</button>
+<div id="groups-container">
+    {{#if rounds.[0]}}
+        {{#each rounds.[0] as |group groupIndex|}}
+            <div class="group" id="{{group.id}}">
+                <div class="group-header" onclick="toggleGroup(this)">
+                    <h2>
+                        <input type="checkbox" name="group" value="{{groupIndex}}" class="group-checkbox">
+                        Group {{groupIndex}}
+                        <span class="status-indicator status-{{group.status}}">{{group.status}}</span>
+                    </h2>
+                    <span class="toggle-icon">▼</span>
+                </div>
+                <div class="group-content">
+                    {{#each group.players as |player|}}
+                        <div class="player">
+                            <input type="checkbox" name="player" value="{{player.id}}" class="player-checkbox">
+                            {{player.name}}
+                        </div>
+                    {{/each}}
+                </div>
+            </div>
+        {{/each}}
+    {{else}}
+        <p>No groups available for this round.</p>
+    {{/if}}
+</div>
+
+
+
+<div id="result"></div>
+
+<script>
+
+
+    function toggleGroup(header) {
+        const content = header.nextElementSibling;
+        const icon = header.querySelector('.toggle-icon');
+        if (content.style.display === "none" || content.style.display === "") {
+            content.style.display = "block";
+            icon.textContent = "▲";
+        } else {
+            content.style.display = "none";
+            icon.textContent = "▼";
+        }
+    }
+
+    function changeRound() {
+        const roundIndex = document.getElementById('round-select').value;
+        const rounds = {{{rounds}}};
+        const groupsContainer = document.getElementById('groups-container');
+
+        if (!rounds || !rounds[roundIndex]) {
+            groupsContainer.innerHTML = '<p>No groups available for this round.</p>';
+            return;
+        }
+
+
+
+        groupsContainer.innerHTML = groupsHtml;
+        updateButtonState();
+    }
+
+    document.addEventListener('click', function(e) {
+        if (e.target.classList.contains('group-checkbox')) {
+            var group = e.target.closest('.group');
+            var playerCheckboxes = group.querySelectorAll('.player-checkbox');
+            playerCheckboxes.forEach(function(checkbox) {
+                checkbox.checked = e.target.checked;
+            });
+        }
+
+        updateButtonState();
+    });
+
+    function updateButtonState() {
+        var selected = document.querySelectorAll('input[type="checkbox"]:checked');
+        var button = document.getElementById('actionButton');
+        button.disabled = selected.length === 0;
+
+        var ids = Array.from(selected).map(cb => cb.value).join(',');
+        button.setAttribute('hx-vals', JSON.stringify({ids: ids}));
+    }
+
+    // Initialize with the first round
+    changeRound();
+</script>
+</body>
+</html>

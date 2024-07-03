@@ -150,7 +150,6 @@ pub enum PoolStatus {
 pub mod group {
     use rocket_okapi::okapi::schemars;
     use schemars::JsonSchema;
-    use serde::Serialize;
     use super::schema;
 
     #[derive(cynic::QueryFragment, Debug,Clone)]

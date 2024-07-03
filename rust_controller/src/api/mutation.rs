@@ -19,3 +19,9 @@ pub async fn load(loader: &State<CoordinatorLoader>, builder: Json<CoordinatorBu
     debug!("{:#?}", &coordinator.focused_player());
     *loader.0.lock().await = Some(coordinator.into());
 }
+
+#[openapi(tag = "Config")]
+#[post("/group/<group_id>")]
+pub async fn set_group(coordinator: Coordinator, group_id: String) -> Result<(), &'static str> {
+    coordinator.lock().await.set_group(&group_id).ok_or("Unable to set group")
+}

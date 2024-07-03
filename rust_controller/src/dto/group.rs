@@ -4,10 +4,15 @@ use serde::Serialize;
 use crate::dto;
 #[derive(Serialize,JsonSchema)]
 pub struct Group {
-    players: Vec<dto::Player>,
+    pub players: Vec<dto::Player>,
     status: crate::controller::queries::group::GroupStatus,
+    pub id: String
 }
-
+impl Group {
+    pub fn player_ids(&self) -> Vec<String> {
+        self.players.iter().map(|player|player.id.clone()).collect()
+    }
+}
 impl From<&crate::controller::queries::Group> for Group {
     fn from(value: &crate::controller::queries::Group) -> Self {
 
@@ -15,7 +20,6 @@ impl From<&crate::controller::queries::Group> for Group {
             value.player_connections_v2.iter().flat_map(|connection|{
                 if let crate::controller::queries::group::GroupPlayerConnectionTypeCombined::GroupPlayerConnection(connection) = connection {
                     let player = &connection.player;
-                    info!("using player {:?}",player.user);
                     let name = format!("{} {}", player.user.first_name.clone().unwrap(),player.user.last_name.clone().unwrap());
                     Some(dto::Player::new(player.id.clone().into_inner().parse().ok()?,name))
                 } else {
@@ -23,10 +27,10 @@ impl From<&crate::controller::queries::Group> for Group {
                 }
             }).collect()
         };
-        info!("{:#?}",&players);
         Self {
             status: value.status,
-            players
+            players,
+            id: value.id.clone().into_inner()
         }
     }
 }
@@ -46,7 +50,8 @@ impl From<crate::controller::queries::Group> for Group {
         };
         Self {
             status: value.status,
-            players
+            players,
+            id: value.id.into_inner()
         }
     }
 }

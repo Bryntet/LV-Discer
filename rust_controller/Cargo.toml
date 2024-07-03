@@ -32,7 +32,7 @@ chrono-tz = "0.9.0"
 
 [dependencies.rocket_dyn_templates]
 version = "0.2.0"
-features = ["handlebars", "tera", "minijinja"]
+features = ["handlebars"]
 
 [build-dependencies]
 cynic-codegen = "3.7.2"

@@ -4,8 +4,8 @@ use schemars::JsonSchema;
 use serde::Serialize;
 #[derive(Serialize, Debug, JsonSchema)]
 pub struct Player {
-    id: String,
-    name: String,
+    pub id: String,
+    pub name: String,
 }
 
 impl Player {

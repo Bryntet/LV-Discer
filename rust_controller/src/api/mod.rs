@@ -16,6 +16,7 @@ use rocket_okapi::settings::UrlObject;
 use rocket_okapi::swagger_ui::{make_swagger_ui, SwaggerUIConfig};
 use rocket_okapi::{openapi_get_routes, JsonSchema};
 use std::sync::Arc;
+use rocket_dyn_templates::Template;
 use tokio::sync::{Mutex, MutexGuard};
 
 pub use guard::MyError;
@@ -55,18 +56,20 @@ pub fn launch() -> Rocket<Build> {
                 get_groups
             ],
         )
+        .mount("/",routes![groups_and_players])
+        .attach(Template::fairing())
         .mount(
-            "/swagger",
+            "/api/swagger",
             make_swagger_ui(&SwaggerUIConfig {
-                url: "../openapi.json".to_owned(),
+                url: "../../openapi.json".to_owned(),
                 ..Default::default()
             }),
         )
         .mount(
-            "/",
+            "/api",
             make_rapidoc(&RapiDocConfig {
                 general: GeneralConfig {
-                    spec_urls: vec![UrlObject::new("General", "./openapi.json")],
+                    spec_urls: vec![UrlObject::new("General", "../openapi.json")],
                     ..Default::default()
                 },
                 ..Default::default()
