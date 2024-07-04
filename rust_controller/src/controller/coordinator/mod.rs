@@ -119,7 +119,6 @@ impl FlipUpVMixCoordinator {
     }
 
     pub fn focused_player(&self) -> &Player {
-        dbg!(self.available_players.len(),self.groups().iter().map(|group|group.players.clone()).len());
         self.card
             .player(&self.available_players, self.focused_player_index)
             .unwrap()
@@ -135,8 +134,8 @@ impl FlipUpVMixCoordinator {
         self.handler.groups()
     }
     
-    pub fn current_players(&self) -> Vec<String> {
-        self.card.players(&self.available_players).iter().map(|player| player.name.clone()).collect()
+    pub fn current_players(&self) -> Vec<&Player> {
+        self.card.players(&self.available_players)
     }
 }
 

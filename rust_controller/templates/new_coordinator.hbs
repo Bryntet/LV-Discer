@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Make coordinator</title>
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 80%;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        .round-selector {
+            margin-bottom: 20px;
+        }
+        #groups-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+        .group {
+            background-color: #fff;
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            flex: 1;
+            min-width: 200px;
+            max-width: 90%;
+        }
+        .group-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+        }
+        .group-header h2 {
+            margin: 0;
+            font-size: 1.2em;
+        }
+        .group-content {
+            display: block;
+            margin-top: 15px;
+        }
+        .player {
+            margin: 10px 0;
+            padding: 5px 0;
+            border-bottom: 1px solid #eee;
+        }
+        .player:last-child {
+            border-bottom: none;
+        }
+        input[type="checkbox"] {
+            margin-right: 10px;
+        }
+        button, select {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover, select:hover {
+            background-color: #45a049;
+        }
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        .toggle-icon {
+            font-size: 1.2em;
+        }
+        .status-indicator {
+            font-size: 0.8em;
+            padding: 2px 6px;
+            border-radius: 4px;
+            margin-left: 10px;
+        }
+        .status-OPEN { background-color: #4CAF50; color: white; }
+        .status-CLOSED { background-color: #f44336; color: white; }
+        .status-DONE { background-color: #2196F3; color: white; }
+    </style>
+</head>
+<body>
+<h1>Make a new coordinator</h1>
+
+<div id="coordinator_loader">
+    <form hx-post="/init" hx-target="body" hx-swap="outerHTML">
+        <div>
+            <label for="ip">What ip is vMix running on?</label>
+            <input name="ip" id="ip" value="10.170.120.134" />
+        </div>
+        <div>
+            <label for="event_id">Which event id?</label>
+            <input name="event_id" id="event_id" value="d8f93dfb-f560-4f6c-b7a8-356164b9e4be" />
+        </div>
+        <div>
+            <button>Send my greetings</button>
+        </div>
+    </form>
+</div>
+
+
+</body>
+</html>

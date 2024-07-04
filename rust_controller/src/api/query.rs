@@ -74,3 +74,5 @@ pub async fn groups_and_players(coordinator: Coordinator) -> RawHtml<Template> {
     let context = json!({"groups": groups});
     RawHtml(Template::render("index", context))
 }
+
+

@@ -1,3 +1,12 @@
-{{#each players as |this|}}
-    <li>{{this}}</li>
+{{#each players as |player|}}
+    {{#if player.focused}}<li class="focused">{{else}}<li>{{/if}}
+        <div class="selected-player">
+            {{#if player.image_url}}
+                <img src="{{player.image_url}}" alt="">
+            {{else}}
+                <img src="https://picsum.photos/200" alt="">
+            {{/if}}
+            <h3>{{player.name}}</h3>
+        </div>
+    </li>
 {{/each}}

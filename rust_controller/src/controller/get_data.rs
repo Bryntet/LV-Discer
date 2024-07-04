@@ -169,10 +169,10 @@ pub struct Player {
     first_name: String,
     surname: String,
     pub rank: RankUpDown,
+    pub image_url: Option<String>,
+    
     pub total_score: isize,
-    // Total score for all rounds
     pub round_score: isize,
-    // Score for only current round
     round_ind: usize,
     pub results: PlayerRound,
     pub hole: usize,
@@ -205,6 +205,7 @@ impl Player {
             round_score: 0,
             round_ind: 0,
             results: Default::default(),
+            image_url: None,
             hole: 0,
             ind: 0,
             throws: 0,
@@ -227,8 +228,10 @@ impl Player {
     fn from_query(player: queries::Player, round: usize) -> Self {
         let first_name = player.user.first_name.unwrap();
         let surname = player.user.last_name.unwrap();
+        let image_id: Option<String> = player.user.profile.and_then(|profile|profile.profile_image_url);
         Self {
             player_id: player.id.into_inner(),
+            image_url: image_id,
             results: PlayerRound::new(player.results.unwrap_or_default(), round),
             first_name: first_name.clone(),
             surname: surname.clone(),

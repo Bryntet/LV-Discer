@@ -85,6 +85,41 @@
         .status-OPEN { background-color: #4CAF50; color: white; }
         .status-CLOSED { background-color: #f44336; color: white; }
         .status-DONE { background-color: #2196F3; color: white; }
+        #selected-players-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            list-style-type: none;
+            padding: 0;
+            max-width: fit-content;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        #selected-players-list li {
+            background-color: #fff;
+            border-radius: 8px;
+            padding: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            text-align: center;
+            width: 20%;
+            max-width: fit-content;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        #selected-players-container li.focused {
+            background-color: #007BFF;
+        }
+        .selected-player img {
+            border-radius: 50%;
+            object-fit: cover;
+            width: 50%;
+
+        }
+        .selected-player h3 {
+            margin: 10px 0 0;
+            font-size: 1em;
+            color: #333;
+        }
     </style>
 </head>
 <body>

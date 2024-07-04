@@ -4,14 +4,13 @@ use serde::Deserialize;
 use crate::api::MyError;
 use rocket_okapi::okapi::{schemars, schemars::JsonSchema};
 
-#[derive(Default, Deserialize, JsonSchema)]
+#[derive(Default, Deserialize, JsonSchema, FromForm)]
 pub struct CoordinatorBuilder {
     ip: String,
     event_id: String,
-    focused_player: usize,
 }
 impl CoordinatorBuilder {
     pub async fn into_coordinator(self) -> Result<FlipUpVMixCoordinator, MyError> {
-        FlipUpVMixCoordinator::new(self.ip, self.event_id, self.focused_player).await
+        FlipUpVMixCoordinator::new(self.ip, self.event_id, 0).await
     }
 }

@@ -4,8 +4,8 @@ mod mutation;
 mod query;
 mod vmix_calls;
 
-use crate::api::mutation::*;
-use crate::api::vmix_calls::*;
+use mutation::*;
+use vmix_calls::*;
 use crate::controller::coordinator::FlipUpVMixCoordinator;
 use guard::*;
 use query::*;
@@ -59,6 +59,7 @@ pub fn launch() -> Rocket<Build> {
         )
         .mount("/", routes![groups_and_players])
         .attach(Template::fairing())
+        .register("/", catchers![make_coordinator])
         .mount(
             "/api/swagger",
             make_swagger_ui(&SwaggerUIConfig {

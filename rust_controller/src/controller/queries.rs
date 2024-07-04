@@ -54,6 +54,11 @@ pub struct HoleResult {
 pub struct User {
     pub first_name: Option<String>,
     pub last_name: Option<String>,
+    pub profile: Option<UserProfile>,
+}
+#[derive(cynic::QueryFragment, Debug, Clone)]
+pub struct UserProfile {
+    pub profile_image_url: Option<String>,
 }
 
 #[derive(cynic::QueryFragment, Debug, Clone)]
