@@ -32,7 +32,8 @@ pub async fn set_group(coordinator: Coordinator, group_id: &str, updater: &State
 #[post("/init", data = "<builder>")]
 pub async fn load(loader: &State<CoordinatorLoader>, builder: Form<CoordinatorBuilder>) -> Template {
     let coordinator = builder.into_inner().into_coordinator().await.unwrap();
-    let groups = coordinator.groups().into_iter().cloned().collect_vec();
+    let mut groups = coordinator.groups().into_iter().cloned().collect_vec();
+    groups.reverse();
     *loader.0.lock().await = Some(coordinator.into());
     Template::render("index", json!({"groups": groups}))
 }
