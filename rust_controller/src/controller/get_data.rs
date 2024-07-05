@@ -300,6 +300,9 @@ impl Player {
         ]
     }
 
+    pub fn amount_of_holes_finished(&self) -> usize {
+        self.results.results.iter().filter(|res| res.score != 0.).count()
+    }
     fn overarching_score_representation(&self) -> OverarchingScore {
         OverarchingScore::from(self)
     }

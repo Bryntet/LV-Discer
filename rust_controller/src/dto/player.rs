@@ -11,11 +11,12 @@ pub struct Player {
     pub name: String,
     pub image_url: Option<String>,
     pub focused: bool,
+    pub holes_finished: usize
 }
 
 impl Player {
-    pub fn new(id: String, name: String, image_url: Option<String>) -> Self {
-        Self { id, name, image_url, focused: false}
+    pub fn new(id: String, name: String, image_url: Option<String>, holes_finished: usize) -> Self {
+        Self { id, name, image_url, focused: false, holes_finished}
     }
 }
 impl From<&controller::Player> for self::Player {
@@ -25,6 +26,7 @@ impl From<&controller::Player> for self::Player {
             name: value.name.clone(),
             image_url: value.image_url.clone(),
             focused: false,
+            holes_finished: value.amount_of_holes_finished()
         }
     }
 }
