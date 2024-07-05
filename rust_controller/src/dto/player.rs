@@ -1,7 +1,11 @@
-use crate::controller;
+use itertools::Itertools;
+use crate::{controller, dto};
 use rocket_okapi::okapi::schemars;
 use schemars::JsonSchema;
 use serde::Serialize;
+use tokio::sync::MutexGuard;
+use crate::controller::coordinator::FlipUpVMixCoordinator;
+
 #[derive(Serialize, Debug, JsonSchema, Clone)]
 pub struct Player {
     pub id: String,
@@ -24,4 +28,12 @@ impl From<&controller::Player> for self::Player {
             focused: false,
         }
     }
+}
+
+pub fn current_dto_players(coordinator: &FlipUpVMixCoordinator) -> Vec<dto::Player> {
+    let mut players: Vec<dto::Player> = coordinator.current_players().into_iter().map(dto::Player::from).collect_vec();
+    if let Some(focused_player) = players.iter_mut().find(|player|player.id==coordinator.focused_player().player_id) {
+        focused_player.focused = true;
+    }
+    players
 }

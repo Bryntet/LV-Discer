@@ -4,7 +4,7 @@ mod vmix_calls;
 pub use super::*;
 use crate::api::MyError;
 use crate::controller::get_data::RustHandler;
-use crate::vmix;
+use crate::{api, vmix};
 use crate::{dto, flipup_vmix_controls};
 use flipup_vmix_controls::LeaderBoardProperty;
 use flipup_vmix_controls::{Leaderboard, LeaderboardState};
@@ -13,8 +13,10 @@ use itertools::Itertools;
 use log::warn;
 use rocket::http::hyper::body::HttpBody;
 use std::cell::RefCell;
-use std::ops::DerefMut;
+use std::ops::{Deref, DerefMut};
 use std::sync::Arc;
+use rocket::State;
+use rocket::tokio::sync::broadcast::{channel, Sender, Receiver};
 use vmix::functions::VMixFunction;
 use vmix::functions::{VMixProperty, VMixSelectionTrait};
 use vmix::Queue;
@@ -104,17 +106,27 @@ impl FlipUpVMixCoordinator {
             leaderboard: Leaderboard::default(),
         };
         coordinator.queue_add(&coordinator.focused_player().set_name());
-        coordinator.set_group(&id);
+        coordinator.set_group(&id, None);
         Ok(coordinator)
     }
+    
+    pub fn set_focused_player(&mut self, index: usize) {
+        if index < self.card.players(&self.available_players).len() {
+            self.focused_player_index = index;
+        }
+    }
 
-    pub fn set_group(&mut self, group_id: &str) -> Option<()> {
+    pub fn set_group(&mut self, group_id: &str, updater: Option<&State<Sender<api::SelectionUpdate>>>) -> Option<()> {
         let groups = self.groups();
         let ids = groups
             .iter()
             .find(|group| group.id == group_id)?
             .player_ids();
         self.card = Card::new(ids);
+        if let Some(updater) = updater {
+            updater.send(api::SelectionUpdate::from(self.deref())).ok()?;
+        }
+       
         Some(())
     }
 
@@ -130,14 +142,17 @@ impl FlipUpVMixCoordinator {
             .unwrap()
     }
 
-    pub fn groups(&self) -> &Vec<dto::Group> {
-        self.handler.groups()
+    pub fn groups(&self) -> Vec<&dto::Group> {
+        self.handler.groups().iter().collect_vec()
     }
     
     pub fn current_players(&self) -> Vec<&Player> {
         self.card.players(&self.available_players)
     }
+    
 }
+
+
 
 impl FlipUpVMixCoordinator {
     fn clear_lb(idx: usize) -> Vec<VMixFunction<LeaderBoardProperty>> {
@@ -300,9 +315,7 @@ impl FlipUpVMixCoordinator {
         self.queue_add(&actions)
     }
 
-    pub fn set_foc(&mut self, idx: usize) {
-        self.focused_player_index = idx;
-    }
+    
     pub fn revert_score(&mut self) {
         let f = self.focused_player_mut().revert_hole_score();
         self.queue_add(&f);
@@ -386,7 +399,7 @@ impl FlipUpVMixCoordinator {
                 .for_each(|(i, player)| {
                     new.set_player(&player);
                 });
-            new.set_foc(0);
+            new.focused_player_index = 0;
             new.set_round(self.round_ind);
             if self.lb_thru > 0 {
                 new.set_to_hole(self.lb_thru - 1);

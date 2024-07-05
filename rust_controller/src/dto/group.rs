@@ -9,10 +9,11 @@ use std::collections::HashMap;
 pub struct Group {
     pub players: Vec<dto::Player>,
     pub id: String,
+    pub group_number: usize,
 }
 impl Group {
-    pub fn new(id: String, players: Vec<Player>) -> Self {
-        Group { players, id }
+    pub fn new(id: String, players: Vec<Player>, group_number: usize) -> Self {
+        Group { players, id,  group_number}
     }
 
     pub fn player_ids(&self) -> Vec<String> {
@@ -38,6 +39,7 @@ impl From<&crate::controller::queries::Group> for Group {
         Self {
             players,
             id: value.id.clone().into_inner(),
+            group_number: value.position as usize + 1,
         }
     }
 }
@@ -59,6 +61,7 @@ impl From<crate::controller::queries::Group> for Group {
         Self {
             players,
             id: value.id.into_inner(),
+            group_number: value.position as usize +1,
         }
     }
 }

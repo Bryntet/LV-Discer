@@ -4,7 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Groups and Players by Round</title>
-    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+    <script src="https://unpkg.com/htmx.org@1.9.12/dist/ext/ws.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -125,10 +126,18 @@
 <body>
 <h1>Groups and Players by Round</h1>
 
-
-<div id="selected-players-container">
-    <h2>Selected Players</h2>
-    <ul id="selected-players-list"></ul>
+<div hx-ext="ws" ws-connect="/selected-players">
+    <div id="selected-players-container">
+        <h2>Selected Players</h2>
+        <ul id="selected-players-list"></ul>
+    </div>
+    <div id="chat_room">
+        <div id="chat_messages"></div>
+    </div>
+    <form id="form" ws-send>
+        <input name="message" >
+        <button type="submit">Send</button>
+    </form>
 </div>
 
 <div id="groups-container">
@@ -137,7 +146,7 @@
             <div class="group" id="{{group.id}}">
                 <div class="group-header">
                     <h2>
-                        Group {{groupIndex}}
+                        Group {{group.group_number}}
                         <span class="status-indicator status-{{group.status}}">{{group.status}}</span>
                     </h2>
                     <button class="select-group" hx-post="/group/{{group.id}}" hx-trigger="click" hx-target="#selected-players-list">
@@ -161,6 +170,9 @@
 <div id="result"></div>
 
 <script>
+    document.body.addEventListener('htmx:wsAfterMessage', function(event) {
+        document.body.dispatchEvent(new Event('newMessage'));
+    });
     function toggleGroup(header) {
         const content = header.nextElementSibling;
         const icon = header.querySelector('.toggle-icon');

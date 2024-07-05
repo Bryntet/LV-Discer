@@ -65,14 +65,21 @@ pub async fn get_divisions(coordinator: Coordinator) -> Json<Vec<String>> {
 #[openapi(tag = "Queue System")]
 #[get("/groups")]
 pub async fn get_groups(coordinator: Coordinator) -> Json<Vec<dto::Group>> {
-    coordinator.lock().await.groups().clone().into()
+    coordinator.lock().await.groups().into_iter().cloned().collect_vec().into()
 }
 #[get("/")]
 pub async fn groups_and_players(coordinator: Coordinator) -> RawHtml<Template> {
     let coordinator = coordinator.lock().await;
-    let groups = coordinator.groups();
+    let mut groups = coordinator.groups();
+    groups.reverse();
     let context = json!({"groups": groups});
     RawHtml(Template::render("index", context))
 }
 
-
+#[get("/focused-players")]
+pub async fn focused_players(coordinator: Coordinator) -> Template {
+    let coordinator = coordinator.lock().await;
+    let players = dto::current_dto_players(&coordinator);
+    
+    Template::render("current_selected",json!({"players": players }))
+}

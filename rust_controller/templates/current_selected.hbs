@@ -1,12 +1,17 @@
-{{#each players as |player|}}
-    {{#if player.focused}}<li class="focused">{{else}}<li>{{/if}}
-        <div class="selected-player">
-            {{#if player.image_url}}
-                <img src="{{player.image_url}}" alt="">
-            {{else}}
-                <img src="https://picsum.photos/200" alt="">
-            {{/if}}
-            <h3>{{player.name}}</h3>
-        </div>
-    </li>
-{{/each}}
+<div id="selected-players-container" hx-swap-oob="true">
+    <h2>Selected Players</h2>
+    <ul id="selected-players-list">
+    {{#each players as |player|}}
+        {{#if player.focused}}<li class="focused">{{else}}<li>{{/if}}
+            <div class="selected-player">
+                {{#if player.image_url}}
+                    <img src="{{player.image_url}}" alt="">
+                {{else}}
+                    <img src="https://picsum.photos/200" alt="">
+                {{/if}}
+                <h3>{{player.name}}</h3>
+            </div>
+        </li>
+    {{/each}}
+    </ul>
+</div>

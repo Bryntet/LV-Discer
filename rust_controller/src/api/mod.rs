@@ -3,6 +3,7 @@ mod guard;
 mod mutation;
 mod query;
 mod vmix_calls;
+mod websocket;
 
 use mutation::*;
 use vmix_calls::*;
@@ -18,8 +19,12 @@ use rocket_okapi::{openapi_get_routes, JsonSchema};
 use std::net::IpAddr;
 use std::sync::Arc;
 use tokio::sync::{Mutex, MutexGuard};
+pub use websocket::SelectionUpdate;
+use rocket::tokio::sync::broadcast::{channel, Sender, Receiver};
 
 pub use guard::MyError;
+use websocket::*;
+
 #[derive(Debug, Clone)]
 struct Coordinator(Arc<Mutex<FlipUpVMixCoordinator>>);
 
@@ -34,13 +39,18 @@ impl Coordinator {
     }
 }
 
+
 pub fn launch() -> Rocket<Build> {
+    
+    let (sender, _) = channel::<websocket::SelectionUpdate>(1024);
+    
     rocket::build()
         .configure(rocket::Config {
             address: IpAddr::V4("10.169.122.114".parse().unwrap()),
             ..Default::default()
         })
         .manage(CoordinatorLoader(Mutex::new(None)))
+        .manage(sender)
         .mount(
             "/",
             openapi_get_routes![
@@ -54,12 +64,13 @@ pub fn launch() -> Rocket<Build> {
                 load,
                 get_divisions,
                 get_groups,
-                set_group
+                set_group,
+                
             ],
         )
-        .mount("/", routes![groups_and_players])
+        .mount("/", routes![groups_and_players,echo_stream,focused_players,selection_updater])
         .attach(Template::fairing())
-        .register("/", catchers![make_coordinator])
+        .register("/", catchers![make_coordinator,])
         .mount(
             "/api/swagger",
             make_swagger_ui(&SwaggerUIConfig {
