@@ -86,7 +86,6 @@ impl FlipUpVMixCoordinator {
             selected_div_index: 0,
             focused_player_index: focused_player,
             ip,
-            event_id,
             card: Card::new(
                 handler
                     .groups
