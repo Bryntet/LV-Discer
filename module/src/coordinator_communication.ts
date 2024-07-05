@@ -76,11 +76,12 @@ export class ApiClient {
     }
 
     async increaseScore() {
-        await this.post("/vmix/player/focused/score");
+        await this.post("/vmix/player/focused/score/increase");
     }
 
+    // TODO: Add the following into backend
     async revertScore() {
-        await this.post("/vmix/player/focused/revert-score");
+        await this.post("/vmix/player/focused/score/revert");
     }
 
     async increaseThrow() {

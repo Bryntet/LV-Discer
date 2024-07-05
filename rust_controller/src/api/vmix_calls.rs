@@ -57,7 +57,7 @@ pub async fn update_leaderboard(co: Coordinator) {
 /// # Increase score
 /// Increase the score of the currently focused player
 #[openapi(tag = "VMix")]
-#[post("/vmix/player/focused/score")]
+#[post("/vmix/player/focused/score/increase")]
 pub async fn increase_score(co: Coordinator) {
     co.lock().await.increase_score()
 }
