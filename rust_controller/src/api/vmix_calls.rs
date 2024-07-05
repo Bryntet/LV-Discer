@@ -1,10 +1,6 @@
 use crate::api::Coordinator;
-use crate::controller::coordinator::FlipUpVMixCoordinator;
-use crate::vmix::functions::{VMixFunction, VMixProperty, VMixSelection};
-use rocket::State;
+use crate::vmix::functions::{VMixFunction, VMixProperty};
 use rocket_okapi::openapi;
-use std::ops::Deref;
-use std::sync::{Mutex, RwLock};
 
 /// # Play animation
 /// Play the animation that corresponds with the upcoming score of the currently focused player

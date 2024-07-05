@@ -3,7 +3,6 @@ use crate::{controller, dto};
 use rocket_okapi::okapi::schemars;
 use schemars::JsonSchema;
 use serde::Serialize;
-use tokio::sync::MutexGuard;
 use crate::controller::coordinator::FlipUpVMixCoordinator;
 
 #[derive(Serialize, Debug, JsonSchema, Clone)]

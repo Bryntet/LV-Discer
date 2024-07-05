@@ -1,6 +1,5 @@
 use crate::controller::coordinator::FlipUpVMixCoordinator;
 use crate::controller::get_data::HoleScoreOrDefault;
-use crate::vmix::functions::{VMixFunction, VMixProperty};
 
 impl FlipUpVMixCoordinator {
     pub fn make_hole_info(&mut self) {

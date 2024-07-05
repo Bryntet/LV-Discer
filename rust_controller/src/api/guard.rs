@@ -1,18 +1,12 @@
 use crate::api::Coordinator;
-use crate::controller::coordinator::FlipUpVMixCoordinator;
-use crate::dto::CoordinatorBuilder;
-use rocket::http::{Header, Status};
+use rocket::http::Status;
 use rocket::request::{FromRequest, Outcome};
-use rocket::response::{status, Responder};
-use rocket::serde::json::Json;
-use rocket::{Request, State};
+use rocket::response::Responder;
+use rocket::Request;
 use rocket_okapi::gen::OpenApiGenerator;
 use rocket_okapi::okapi::openapi3::{MediaType, Responses};
-use rocket_okapi::okapi::schemars;
 use rocket_okapi::request::{OpenApiFromRequest, RequestHeaderInput};
-use rocket_okapi::{openapi, JsonSchema};
-use std::ops::{Deref, DerefMut};
-use tokio::sync::{Mutex, MutexGuard};
+use tokio::sync::Mutex;
 
 pub struct CoordinatorLoader(pub Mutex<Option<Coordinator>>);
 

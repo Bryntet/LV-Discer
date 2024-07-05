@@ -124,7 +124,7 @@ impl Default for Hole {
 
 pub mod round {
     use super::schema;
-    use cynic::{QueryFragment, QueryVariables};
+    
     #[derive(cynic::QueryVariables, Debug)]
     pub struct RoundsQueryVariables {
         pub event_id: cynic::Id,

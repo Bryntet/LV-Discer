@@ -1,23 +1,17 @@
 mod channels;
 
 use std::fmt::Debug;
-use rocket::{Orbit, Rocket};
-use rocket_dyn_templates::{context, Metadata, Template};
-use rocket_okapi::okapi::schemars::_private::NoSerialize;
-use rocket_okapi::openapi;
+use rocket_dyn_templates::Metadata;
 use rocket_ws as ws;
 use rocket_ws::Message;
-use serde::{Deserialize, Serialize};
-use serde_json::{json, Value};
+use serde::Deserialize;
+use serde_json::json;
 use crate::api::Coordinator;
 use crate::dto;
 use rocket::{State, Shutdown};
-use rocket::futures::stream::FusedStream;
-use rocket::futures::{FutureExt, TryStreamExt};
-use rocket::response::stream::{EventStream, Event};
-use rocket::tokio::sync::broadcast::{channel, Sender, Receiver};
+use rocket::futures::FutureExt;
+use rocket::tokio::sync::broadcast::Sender;
 use rocket::tokio::select;
-use crate::controller::coordinator::FlipUpVMixCoordinator;
 
 pub use channels::SelectionUpdate;
 
@@ -74,7 +68,7 @@ async fn interpret_message<'r>(message: Message, coordinator: &Coordinator, upda
 }
 
 async fn make_html_response<'r>(coordinator: &Coordinator, metadata: &Metadata<'r>) -> Option<String> {
-    let mut c = coordinator.lock().await;
+    let c = coordinator.lock().await;
      metadata.render("current_selected", json!({"players": dto::current_dto_players(&c)})).map(|(_,b)|b)
 
 }

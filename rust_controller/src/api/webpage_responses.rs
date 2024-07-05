@@ -3,7 +3,6 @@ use rocket_dyn_templates::Template;
 use rocket_okapi::openapi;
 use serde_json::json;
 use crate::api::{Coordinator, query};
-use crate::dto;
 
 
 #[openapi(tag = "HTMX")]

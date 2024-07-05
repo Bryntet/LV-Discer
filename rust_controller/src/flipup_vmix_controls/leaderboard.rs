@@ -350,7 +350,7 @@ pub use prop::LeaderBoardProperty;
 #[cfg(test)]
 mod test {
     use super::{Leaderboard, LeaderboardState};
-    use crate::get_data::Player;
+    use crate::controller::Player;
     use crate::vmix::functions::VMixFunction;
     use itertools::Itertools;
 

@@ -3,7 +3,6 @@ use crate::dto::Player;
 use rocket_okapi::okapi::schemars;
 use schemars::JsonSchema;
 use serde::Serialize;
-use std::collections::HashMap;
 
 #[derive(Serialize, JsonSchema, Clone, Debug)]
 pub struct Group {

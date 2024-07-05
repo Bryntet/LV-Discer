@@ -1,15 +1,9 @@
-use crate::api::{Coordinator, MyError};
-use crate::controller::coordinator::FlipUpVMixCoordinator;
+use crate::api::Coordinator;
 use crate::dto;
 
 use itertools::Itertools;
-use rocket::response::content::RawHtml;
 use rocket::serde::json::Json;
-use rocket::{Build, Rocket, State};
-use rocket_dyn_templates::Template;
 use rocket_okapi::openapi;
-use serde_json::json;
-use std::sync::Mutex;
 
 /// # GET current hole
 #[openapi(tag = "Hole")]

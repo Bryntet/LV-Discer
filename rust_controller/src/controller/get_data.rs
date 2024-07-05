@@ -1,18 +1,14 @@
 use crate::api::MyError;
-use crate::controller::queries::group::GroupPlayerConnection;
 use crate::flipup_vmix_controls::LeaderBoardProperty;
 use cynic::GraphQlResponse;
 use itertools::Itertools;
 use log::warn;
 use rayon::prelude::*;
 use rocket::futures::StreamExt;
-use std::collections::HashMap;
 
 use super::queries;
-use crate::controller::queries::round::RoundsQuery;
 use crate::controller::queries::HoleResult;
 use crate::dto;
-use crate::dto::Group;
 use crate::flipup_vmix_controls::{OverarchingScore, Score};
 use crate::vmix::functions::*;
 

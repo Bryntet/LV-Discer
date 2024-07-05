@@ -15,12 +15,12 @@ use rocket_dyn_templates::Template;
 use rocket_okapi::rapidoc::{make_rapidoc, GeneralConfig, RapiDocConfig};
 use rocket_okapi::settings::UrlObject;
 use rocket_okapi::swagger_ui::{make_swagger_ui, SwaggerUIConfig};
-use rocket_okapi::{openapi_get_routes, JsonSchema};
+use rocket_okapi::openapi_get_routes;
 use std::net::IpAddr;
 use std::sync::Arc;
 use tokio::sync::{Mutex, MutexGuard};
 pub use websocket::SelectionUpdate;
-use rocket::tokio::sync::broadcast::{channel, Sender, Receiver};
+use rocket::tokio::sync::broadcast::channel;
 
 pub use guard::MyError;
 

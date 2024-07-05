@@ -1,15 +1,15 @@
 use itertools::Itertools;
 use crate::api::guard::CoordinatorLoader;
-use crate::api::{Coordinator, MyError, SelectionUpdate};
+use crate::api::{Coordinator, SelectionUpdate};
 use crate::dto::CoordinatorBuilder;
-use rocket::{tokio, State};
+use rocket::State;
 use rocket::form::Form;
 use rocket::response::content::RawHtml;
 use rocket_dyn_templates::Template;
 use rocket_okapi::openapi;
-use serde_json::{json, Value};
+use serde_json::json;
 use crate::dto;
-use rocket::tokio::sync::broadcast::{channel, Sender, Receiver};
+use rocket::tokio::sync::broadcast::Sender;
 
 #[openapi(tag = "Config")]
 #[post("/focused-player/<focused_player>")]
