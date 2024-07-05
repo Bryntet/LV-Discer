@@ -1,4 +1,4 @@
-import post, {AxiosResponse} from "axios";
+import post, {AxiosResponse, get} from "axios";
 
 export class ApiClient {
     baseUrl: string;
@@ -9,7 +9,7 @@ export class ApiClient {
 
     private async get<T>(endpoint: string): Promise<T> {
 
-        const response = await fetch(`${this.baseUrl}${endpoint}`);
+        const response = await get(`${this.baseUrl}${endpoint}`);
 
 
         if (!response.ok) {
@@ -47,7 +47,7 @@ export class ApiClient {
         return this.get<number>('/current-hole')
     }
 
-    async focusedPlayers(): Promise<Player[]> {
+    async chosenPlayers(): Promise<Player[]> {
         const playerObjects = JSON.parse(await this.get<string>("/players"));
         if (!Array.isArray(playerObjects)) {
             throw new Error("Invalid JSON: Expected an array of players");
@@ -59,11 +59,13 @@ export class ApiClient {
     }
 
 
-
+    async focusedPlayer(): Promise<Player> {
+        return this.get<Player>(`/players/focused`);
+    }
 
     // Note: This took a boolean previously, unsure why
     async updateLeaderboard() {
-        await this.post("/vmix/update/leaderboard");
+        await this.post("/vmix/leaderboard/update");
     }
 
     async setFocusedPlayer(player_id: string): Promise<Player> {
@@ -77,10 +79,37 @@ export class ApiClient {
         await this.post("/vmix/player/focused/score");
     }
 
+    async revertScore() {
+        await this.post("/vmix/player/focused/revert-score");
+    }
+
+    async increaseThrow() {
+        await this.post("/vmix/player/focused/throw")
+    }
+
+    async revertThrow() {
+        await this.post("/vmix/player/focused/revert-throw")
+    }
+
+    async playAnmiation() {
+        await this.post("/vmix/play/animation")
+    }
+
+    async playObAnimation() {
+        await this.post("/vmix/play/ob-animation")
+    }
+
+    async setHoleInfo() {
+        await this.post("/vmix/hole-info/set")
+    }
+
+    async doOtherLeaderboard(division: string) {
+        await this.post(`/vmix/leaderboard/${division}/update`)
+    }
 
 }
 
-class Player {
+export class Player {
     id: string;
     name: string;
     image_url: string | null;

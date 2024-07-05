@@ -1,9 +1,8 @@
-import { CompanionActionDefinitions } from "@companion-module/base";
+import {CompanionActionDefinitions, CompanionActionEvent} from "@companion-module/base";
 import { Config } from "./config";
 import { InstanceBaseExt } from "./util";
-import { FeedbackId } from "./feedbacks";
 import { CompanionCommonCallbackContext } from "@companion-module/base/dist/module-api/common";
-
+import {Player} from "./coordinator_communication";
 
 
 
@@ -18,13 +17,6 @@ export enum ActionId {
     DecreaseThrow = 'decrease_throw',
     OB = 'ob',
     RunAnimation = 'run_animation',
-    IncrementRound = 'increment_round',
-    DecrementRound = 'decrement_round',
-    ShowAllPos = 'show_all_pos',
-    HideAllPos = 'hide_all_pos',
-    TogglePos = 'toggle_pos',
-    HidePos = 'hide_pos',
-    ShowPos = 'show_pos',
     SetHoleInfo = 'set_hole_info',
     DoOtherLeaderboard = 'do_other_leaderboard',
 }
@@ -33,6 +25,20 @@ async function parseAuto(context: CompanionCommonCallbackContext): Promise<strin
     return await context.parseVariablesInString("$(lvvmix:foc_player_id)");
 }
 
+async function initPlayerOption<T extends  InstanceBaseExt<Config>>(action: CompanionActionEvent, instance: T): Promise<Player> {
+    if (typeof action.options.focused_player === "string") {
+        return await instance.coordinator.setFocusedPlayer(action.options.focused_player);
+    } else {
+        return await instance.coordinator.focusedPlayer();
+    }
+}
+
+async function exitPlayerOption<T extends InstanceBaseExt<Config>>(instance: T,context: CompanionCommonCallbackContext, currentId: string) {
+    const previousId = await parseAuto(context);
+    if (currentId !== previousId) {
+        await instance.coordinator.setFocusedPlayer(previousId)
+    }
+}
 
 export const setActionDefinitions = <T extends InstanceBaseExt<Config>>(instance: T): CompanionActionDefinitions => {
     const actions: CompanionActionDefinitions = {};
@@ -55,47 +61,26 @@ export const setActionDefinitions = <T extends InstanceBaseExt<Config>>(instance
             },
         ],
         callback: async (action, context) => {
-            const foc_player = action.options.focused_player
-            if (typeof foc_player === "string") {
-                const focusedPlayer = await instance.coordinator.setFocusedPlayer(foc_player);
+            const focusedPlayer = await initPlayerOption(action,instance);
 
-                if (focusedPlayer.holes_finished <= await instance.coordinator.currentHole()) {
-                    await instance.coordinator.increaseScore();
-                }
-
-                let foc_player_id = await parseAuto(context);
-                if (focusedPlayer.id != foc_player_id) {
-
-                    let player = await instance.coordinator.setFocusedPlayer(foc_player_id);
-                    instance.setVariableValues({
-                        hole: player.holes_finished,
-                    })
-                }
-
+            if (focusedPlayer.holes_finished <= await instance.coordinator.currentHole()) {
+                await instance.coordinator.increaseScore();
             }
 
+            await exitPlayerOption(instance, context, focusedPlayer.id);
         },
     }
 
     actions[ActionId.RevertScoreIncrease] = {
         name: 'Revert score increase',
         options: [],
-        callback: () => {
-            instance.coordinator.revert_score();
-            instance.setVariableValues({hole:instance.coordinator.get_hole(true)});
+        callback: async () => {
+            await instance.coordinator.revertScore();
+            instance.setVariableValues({hole:await instance.coordinator.currentHole()});
         },
     }
 
-    actions[ActionId.ResetScore] = {
-        name: 'Reset score',
-        options: [],
-        callback: () => {
-            instance.coordinator.reset_score();
-            instance.setVariableValues({
-                hole: instance.coordinator.hole,
-            })
-        },
-    }
+
     actions[ActionId.ChangeFocusedPlayer] = {
         name: 'Change focused player',
         options: [
@@ -107,19 +92,13 @@ export const setActionDefinitions = <T extends InstanceBaseExt<Config>>(instance
                 choices: instance.focused_players,
             },
         ],
-        callback: (action) => {
-            const foc_player = action.options.focused_player
-            console.log(foc_player)
-            if (typeof foc_player === "number") {
-                instance.coordinator.set_foc(foc_player)
-                // TODO: Impl change throw popup
-                instance.setVariableValues({
-                    player_name: instance.coordinator.get_foc_p_name(),
-                    hole: instance.coordinator.hole,
-                    foc_player_ind: foc_player,
-                })
-                instance.checkFeedbacks(FeedbackId.FocusedPlayer)
-            }
+        callback: async (action) => {
+            const focusedPlayer = await initPlayerOption(action, instance);
+            instance.setVariableValues({
+                player_name: focusedPlayer.name,
+                hole: focusedPlayer.holes_finished,
+                foc_player_id: focusedPlayer.id,
+            })
         },
     }
 
@@ -135,13 +114,9 @@ export const setActionDefinitions = <T extends InstanceBaseExt<Config>>(instance
             },
         ],
         callback: async (action, context) => {
-            const foc_player = action.options.focused_player
-            if (typeof foc_player === "number") {
-                instance.coordinator.set_foc(foc_player);
-            }
-            instance.coordinator.increase_throw();
-            let foc_player_ind = await parseAuto(context)
-            instance.coordinator.set_foc(foc_player_ind);
+            const focusedPlayer = await initPlayerOption(action, instance);
+            await instance.coordinator.increaseThrow();
+            await exitPlayerOption(instance, context, focusedPlayer.id);
         },
     }
     actions[ActionId.DecreaseThrow] = {
@@ -156,21 +131,16 @@ export const setActionDefinitions = <T extends InstanceBaseExt<Config>>(instance
             },
         ],
         callback: async (action, context) => {
-            const foc_player = action.options.focused_player
-            if (typeof foc_player === 'number') {
-                instance.coordinator.set_foc(foc_player)
-            }
-            instance.coordinator.decrease_throw();
-            //sendCommand(inc.join('\r\n') + '\r\n', instance.config)
-            let foc_player_ind = await parseAuto(context)
-            instance.coordinator.set_foc(foc_player_ind);
+            const focusedPlayer = await initPlayerOption(action, instance);
+            await instance.coordinator.revertThrow();
+            await exitPlayerOption(instance, context, focusedPlayer.id);
         },
     }
     actions[ActionId.OB] = {
         name: 'OB',
         options: [],
-        callback: () => {
-            instance.coordinator.ob_anim();
+        callback: async () => {
+            await instance.coordinator.playObAnimation();
         },
     }
     actions[ActionId.RunAnimation] = {
@@ -185,125 +155,18 @@ export const setActionDefinitions = <T extends InstanceBaseExt<Config>>(instance
             },
         ],
         callback: async (action, context) => {
-            const foc_player = action.options.focused_player
-            if (typeof foc_player === 'number') {
-                instance.coordinator.set_foc(foc_player)
-            }
-            instance.log("debug", "Running animation\nfoc play hole: " + instance.coordinator.focused_player_hole + " hole: " + instance.coordinator.hole)
-            if (instance.coordinator.focused_player_hole <= instance.coordinator.hole) {
-                instance.coordinator.play_animation();
-            }
-            let foc_player_ind = await parseAuto(context)
-            instance.coordinator.set_foc(foc_player_ind)
+            const focusedPlayer = await initPlayerOption(action, instance);
 
+            await instance.coordinator.playAnmiation();
+            await exitPlayerOption(instance, context, focusedPlayer.id);
         },
     }
 
-    actions[ActionId.IncrementRound] = {
-        name: 'Increment Round',
-        options: [],
-        callback: () => {
-            if (instance.config.round !== undefined && instance.coordinator.round + 1 < instance.coordinator.rounds) {
-                instance.coordinator.set_round(instance.coordinator.round + 1);
-                instance.setVariableValues({ round: instance.coordinator.round + 1 })
-                instance.config.round = instance.coordinator.round + 1
-            }
-        }
-    }
-    
-    actions[ActionId.DecrementRound] = {
-        name: 'Decrement Round',
-        options: [],
-        callback: () => {
-            if (instance.config.round !== undefined && instance.coordinator.round > 0) {
-                instance.coordinator.set_round(instance.coordinator.round - 1);
-                instance.setVariableValues({ round: instance.coordinator.round + 1 })
-                instance.config.round = instance.coordinator.round + 1
-            }
-        },
-    }
-    actions[ActionId.ShowAllPos] = {
-        name: 'Show all positions',
-        options: [],
-        callback: () => {
-            instance.coordinator.show_all_pos();
-        },
-    }
-    actions[ActionId.HideAllPos] = {
-        name: 'Hide all positions',
-        options: [],
-        callback: () => {
-            instance.coordinator.hide_all_pos();
-        },
-    }
-    actions[ActionId.TogglePos] = {
-        name: 'Toggle current position',
-        options: [
-            {
-                type: 'dropdown',
-                label: 'Choose an option',
-                id: 'focused_player',
-                default: 'none', 
-                choices: instance.focused_players,
-            },
-        ],
-        callback: async (action, context) => {
-            const foc_player = action.options.focused_player
-            if (typeof foc_player === 'number') {
-                instance.coordinator.set_foc(foc_player)
-            }
-            //instance.rust_main.toggle_pos();
-            let foc_player_ind = await parseAuto(context)
-            instance.coordinator.set_foc(foc_player_ind)
-        },
-    }
-    actions[ActionId.HidePos] = {
-        name: 'Hide position',
-        options: [
-            {
-                type: 'dropdown',
-                label: 'Choose an option',
-                id: 'focused_player',
-                default: 'none', 
-                choices: instance.focused_players,
-            },
-        ],
-        callback: async (action, context) => {
-            const foc_player = action.options.focused_player
-            if (typeof foc_player === 'number') {
-                instance.coordinator.set_foc(foc_player)
-            }
-            instance.coordinator.hide_pos();
-            let foc_player_ind = await parseAuto(context);
-            instance.coordinator.set_foc(foc_player_ind)
-        },
-    }
-    actions[ActionId.ShowPos] = {
-        name: 'Show position',
-        options: [
-            {
-                type: 'dropdown',
-                label: 'Choose an option',
-                id: 'focused_player',
-                default: 'none', 
-                choices: instance.focused_players,
-            },
-        ],
-        callback: async (action, context) => {
-            const foc_player = action.options.focused_player
-            if (typeof foc_player === 'number') {
-                instance.coordinator.set_foc(foc_player)
-            }
-            instance.coordinator.show_pos();
-            let foc_player_ind = await parseAuto(context)
-            instance.coordinator.set_foc(foc_player_ind)
-        }
-    }
     actions[ActionId.SetHoleInfo] = {
         name: 'Set hole info',
         options: [],
-        callback: () => {
-            instance.coordinator.make_hole_info();
+        callback: async () => {
+            await instance.coordinator.setHoleInfo();
         }
     }
     actions[ActionId.DoOtherLeaderboard] = {
@@ -318,10 +181,10 @@ export const setActionDefinitions = <T extends InstanceBaseExt<Config>>(instance
                 max: 100
             },
         ],
-        callback: (action) => {
+        callback: async (action) => {
             let div = action.options.division
-            if (typeof div === "number" ) {
-                instance.coordinator.make_separate_lb(div-1);
+            if (typeof div === "string" ) {
+                await instance.coordinator.doOtherLeaderboard(div);
             }
         }
     }

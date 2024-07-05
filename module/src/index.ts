@@ -200,7 +200,7 @@ class LevandeVideoInstance extends InstanceBase<Config> {
 			label: 'None',
 		});
 
-		for (const player of (await this.coordinator.focusedPlayers())) {
+		for (const player of (await this.coordinator.chosenPlayers())) {
 			this.focused_players.push({
 				id: player.id,
 				label: player.name,
@@ -215,7 +215,7 @@ class LevandeVideoInstance extends InstanceBase<Config> {
 
 
 	async setFocusedPlayerVariables() {
-		(await this.coordinator.focusedPlayers()).forEach((player, index) => {
+		(await this.coordinator.chosenPlayers()).forEach((player, index) => {
 			const name_thing = 'p' + (index + 1);
 			this.setVariableValues({ [name_thing]: player.name });
 		});
