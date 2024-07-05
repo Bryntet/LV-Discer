@@ -1,5 +1,5 @@
-import post, {AxiosResponse, get} from "axios";
-
+import post, {AxiosResponse} from "axios";
+import get from "axios";
 export class ApiClient {
     baseUrl: string;
 
@@ -12,14 +12,14 @@ export class ApiClient {
         const response = await get(`${this.baseUrl}${endpoint}`);
 
 
-        if (!response.ok) {
+        if (!response.status) {
             if (response.status === 424) {
                 throw new Error('Coordinator not initialised');
             } else {
                 throw new Error('Network response was not ok');
             }
         }
-        return await response.json() as T;
+        return await response.data as T;
     }
 
     private async post(endpoint: string, data?: any): Promise<AxiosResponse<any,any>> {

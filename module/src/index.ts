@@ -1,10 +1,10 @@
 import { InstanceBase, InstanceStatus, runEntrypoint, SomeCompanionConfigField, DropdownChoice, CompanionStaticUpgradeScript, CompanionVariableValues} from '@companion-module/base';
-import { Config, getConfigFields } from "./config";
+import { Config, } from "./config";
 import { setActionDefinitions } from "./actions";
 import { setFeedbackDefinitions } from './feedbacks';
 import { ApiClient } from './coordinator_communication';
 class LevandeVideoInstance extends InstanceBase<Config> {
-	public coordinator = new ApiClient("10.169.122.114:8000");
+	public coordinator = new ApiClient("http://10.169.122.114:8000");
 	public config: Config = {
 		vmix_ip: '10.170.120.134',
 		event_id: 'd8f93dfb-f560-4f6c-b7a8-356164b9e4be',
@@ -89,10 +89,10 @@ class LevandeVideoInstance extends InstanceBase<Config> {
 		this.config.p4 = 'none'
 		this.config.div = 'none'
 		this.config.round = 1
-		this.saveConfig(config)
+		//this.saveConfig(config)
 
 		
-		this.foc_player_ind = 0
+		this.foc_player_id = 'none'
 		this.setVariableValues(await this.varValues())
 
 		this.hole = 0
@@ -123,18 +123,14 @@ class LevandeVideoInstance extends InstanceBase<Config> {
 
 
 	async varValues(): Promise<CompanionVariableValues> {
-		while (this.focused_players.length < 5) { // First element is always none
-			this.focused_players.push({
-				id: 'none' + this.focused_players.length,
-				label: 'None',
-			})
-		}
+		let focusedPlayers = await this.coordinator.chosenPlayers();
+		
 		return {
 			player_name: this.foc_player,
-			p1: this.focused_players[1].label, 
-			p2: this.focused_players[2].label,
-			p3: this.focused_players[3].label,
-			p4: this.focused_players[4].label,
+			p1: focusedPlayers[0].name, 
+			p2: focusedPlayers[1].name,
+			p3: focusedPlayers[2].name,
+			p4: focusedPlayers[3].name,
 			hole: await this.coordinator.currentHole(),
 			foc_player_id: this.foc_player_id,
 			round: await this.coordinator.getRound(),
@@ -143,7 +139,7 @@ class LevandeVideoInstance extends InstanceBase<Config> {
 
 	
 	public getConfigFields(): SomeCompanionConfigField[] {
-        return getConfigFields(this.div_names, this.players);
+        return [];
     }
 
 	async destroy() {
@@ -153,15 +149,7 @@ class LevandeVideoInstance extends InstanceBase<Config> {
 	initFeedbacks() {
 		this.setFeedbackDefinitions(setFeedbackDefinitions(this))
 	}
-	async intermediaryValuesSet(values: CompanionVariableValues) {
-		if (typeof values.player_name === "string") {
-			this.foc_player = values.player_name
-		}
-		if (typeof values.foc_player_ind === "number") {
-			this.foc_player_id = values.foc_player_ind
-		}
-		super.setVariableValues(await this.varValues())
-	}
+
 
 	
 

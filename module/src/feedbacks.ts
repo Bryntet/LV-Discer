@@ -7,7 +7,7 @@ export enum FeedbackId {
 }
 
 
-export function setFeedbackDefinitions(instance: InstanceBaseExt<Config>): CompanionFeedbackDefinitions {
+export function setFeedbackDefinitions<T extends InstanceBaseExt<Config>>(instance: T): CompanionFeedbackDefinitions {
     return {
         [FeedbackId.FocusedPlayer]: {
             type: 'boolean',
