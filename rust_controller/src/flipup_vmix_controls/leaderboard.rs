@@ -351,13 +351,13 @@ pub use prop::LeaderBoardProperty;
 mod test {
     use super::{Leaderboard, LeaderboardState};
     use crate::controller::Player;
-    use crate::vmix::functions::VMixFunction;
+    
     use itertools::Itertools;
 
     #[test]
     fn test() {
         let p = LeaderboardState::new(1, vec![Player::null_player()]);
-        let mut a = Leaderboard::new(p.clone());
+        let a = Leaderboard::new(p.clone());
         dbg!(a
             .to_vmix_instructions()
             .iter()
