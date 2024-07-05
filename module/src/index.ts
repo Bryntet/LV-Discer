@@ -2,13 +2,12 @@ import { InstanceBase, InstanceStatus, runEntrypoint, SomeCompanionConfigField, 
 import { Config, getConfigFields } from "./config";
 import { setActionDefinitions } from "./actions";
 import { setFeedbackDefinitions } from './feedbacks';
-import wasm from '../../rust_controller/pkg';
-
+import { ApiClient } from './coordinator_communication';
 class LevandeVideoInstance extends InstanceBase<Config> {
-	public rust_main = new wasm.FlipUpVMixCoordinator;
+	public coordinator = new ApiClient("10.169.122.114:8000");
 	public config: Config = {
 		vmix_ip: '10.170.120.134',
-		event_id: 'a57b4ed6-f64a-4710-8f20-f93e82d4fe79',
+		event_id: 'd8f93dfb-f560-4f6c-b7a8-356164b9e4be',
 		vmix_input_id: '506fbd14-52fc-495b-8d17-5b924fba64f3',
 		round: 1,
 		hole: 0,
@@ -33,7 +32,6 @@ class LevandeVideoInstance extends InstanceBase<Config> {
 	async init(config: Config) {
 		console.log('HIII')
 		this.updateStatus(InstanceStatus.Ok)
-		this.rust_main = new wasm.FlipUpVMixCoordinator()
 
 		console.log('Rust module initialized')
 		this.config = config
@@ -95,7 +93,7 @@ class LevandeVideoInstance extends InstanceBase<Config> {
 
 		
 		this.foc_player_ind = 0
-		this.setVariableValues(this.varValues())
+		this.setVariableValues(await this.varValues())
 
 		this.hole = 0
 		if (typeof this.focused_players === 'undefined') {
@@ -124,7 +122,7 @@ class LevandeVideoInstance extends InstanceBase<Config> {
 	}*/
 
 
-	varValues(): CompanionVariableValues {
+	async varValues(): Promise<CompanionVariableValues> {
 		while (this.focused_players.length < 5) { // First element is always none
 			this.focused_players.push({
 				id: 'none' + this.focused_players.length,
@@ -137,9 +135,9 @@ class LevandeVideoInstance extends InstanceBase<Config> {
 			p2: this.focused_players[2].label,
 			p3: this.focused_players[3].label,
 			p4: this.focused_players[4].label,
-			hole: this.rust_main.hole,
+			hole: await this.coordinator.currentHole(),
 			foc_player_ind: this.foc_player_ind,
-			round: this.rust_main.round + 1,
+			round: await this.coordinator.getRound(),
 		}
 	}
 
@@ -155,17 +153,14 @@ class LevandeVideoInstance extends InstanceBase<Config> {
 	initFeedbacks() {
 		this.setFeedbackDefinitions(setFeedbackDefinitions(this))
 	}
-	intermediaryValuesSet(values: CompanionVariableValues) {
-		console.log("here setting values")
-		console.log(values)
+	async intermediaryValuesSet(values: CompanionVariableValues) {
 		if (typeof values.player_name === "string") {
 			this.foc_player = values.player_name
 		}
 		if (typeof values.foc_player_ind === "number") {
 			this.foc_player_ind = values.foc_player_ind
 		}
-		super.setVariableValues(this.varValues())
-		console.log("im so god damn cool")
+		super.setVariableValues(await this.varValues())
 	}
 
 	
@@ -175,159 +170,59 @@ class LevandeVideoInstance extends InstanceBase<Config> {
 	}
 
 	async configUpdated(config: Config) {
-		this.updateVmixIp(config);
 		this.log('debug', 'Config updating');
 		
 		console.log(config);
 		this.config = config;
-		
-		this.updateVmixInputId();
-		this.updateEventId();
-		this.updateDiv();
-		this.updateFocusedPlayers();
-
+		await this.updateFocusedPlayers();
 		this.initActions();
 		this.initFeedbacks();
-		this.setVariableValues(this.varValues());
+		this.setVariableValues(await this.varValues());
 
-		this.setFocusedPlayerVariables();
-		this.updateRoundBasedOnConfig();
-		this.updateHoleIfNecessary();
-		console.log("hello i got all the way here!");
-		this.rust_main.empty_queue()
-	}
-	updateVmixIp(config: Config) {
-		if (config.vmix_ip != this.config.vmix_ip) {
-			console.log('setting ip');
-			this.rust_main.ip = config.vmix_ip;
-			this.config.vmix_ip = config.vmix_ip;
-		}
+		await this.setFocusedPlayerVariables();
 	}
 
-	updateVmixInputId() {
-		if (this.config.vmix_input_id) {
-			console.log('setting id');
-			
-		}
-	}
 
-	updateEventId() {
-		if (this.config.event_id) {
-			console.log('setting event id');
-			this.rust_main.event_id = this.config.event_id;
-			this.rust_main
-				.get_event()
-				.then(this.handleEvent.bind(this))
-				.catch((err) => {
-					console.log(err);
-				});
-		}
-	}
 
-	handleEvent() {
-		console.log('here');
-		
-		this.div_names.length = 0;
-		this.div_names.push({
-			id: 'none',
-			label: 'None',
-		});
-		for (const [idx, name] of this.rust_main.get_div_names().entries()) {
-			this.div_names.push({
-				id: idx,
-				label: name,
-			});
-		}
-	}
 
-	updateDiv() {
-		if (typeof this.config.div === "number") {
-			this.rust_main.div = this.config.div;
-			this.updatePlayers();
-		}
-	}
 
-	updatePlayers() {
-		this.players.length = 0;
-		this.players.push({
-			id: 'none',
-			label: 'None',
-		});
 
-		let ids = this.rust_main.get_player_ids();
-		let names = this.rust_main.get_player_names();
-		for (const [idx, name] of names.entries()) {
-			this.players.push({
-				id: ids[idx],
-				label: name,
-			});
-		}
-	}
 
-	updateFocusedPlayers() {
+
+
+
+
+
+	async updateFocusedPlayers() {
 		this.focused_players.length = 0;
 		this.focused_players.push({
 			id: 'none',
 			label: 'None',
 		});
 
-		for (const [idx, name] of this.rust_main.get_focused_player_names().entries()) {
+		for (const player of (await this.coordinator.focusedPlayers())) {
 			this.focused_players.push({
-				id: idx,
-				label: name,
+				id: player.id,
+				label: player.name,
 			});
 		}
 	}
 
 
-	generatePList(list: any[]) {
-		for (const [idx, player] of list.entries()) {
-			if (typeof player === 'string' && player !== 'none') {
-				this.rust_main.set_player(idx + 1, player);
-			}
-		}
-	}
+
 
 	
 
-	updateHole() {
-		if (this.config.hole != 0) {
 
-			this.rust_main.set_all_to_hole(this.config.hole);
-			this.setVariableValues({
-				hole: this.config.hole,
-			});
-		}
-	}
-	setFocusedPlayerVariables() {
-		this.rust_main.get_focused_player_names().forEach((name, index) => {
+	async setFocusedPlayerVariables() {
+		(await this.coordinator.focusedPlayers()).forEach((player, index) => {
 			const name_thing = 'p' + (index + 1);
-			console.log(name_thing);
-			this.setVariableValues({ [name_thing]: name });
+			this.setVariableValues({ [name_thing]: player.name });
 		});
 	}
 
-	updateRoundBasedOnConfig() {
-		if (this.rust_main.round != this.config.round - 1) {
-			this.rust_main.set_round(this.config.round - 1);
-			console.log('Round increased');
-		}
-	}
 
-	updateHoleIfNecessary() {
-		console.log('hereeee');
-		console.log(this.config.hole);
 
-		if (this.config.hole != 0) {
-			console.log('setting hole');
-			console.log(this.config.hole);
-			this.rust_main.set_all_to_hole(this.config.hole);
-
-			this.setVariableValues({
-				hole: this.config.hole,
-			});
-		}
-	}
 
 		
 

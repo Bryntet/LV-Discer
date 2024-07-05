@@ -34,19 +34,13 @@ async function parseAuto(context: CompanionCommonCallbackContext): Promise<numbe
 }
 
 
-export const setActionDefinitions = (instance: InstanceBaseExt<Config>): CompanionActionDefinitions => {
+export const setActionDefinitions = <T extends InstanceBaseExt<Config>>(instance: T): CompanionActionDefinitions => {
     const actions: CompanionActionDefinitions = {};
     actions[ActionId.LeaderboardUpdate] = {
         name: 'Leaderboard update',
         options: [],
-        callback: () => {
-            console.log("gonna send lb update")
-            instance.rust_main.set_leaderboard(true);
-            console.log("sent lb update")
-            instance.setVariableValues({
-                hole: instance.rust_main.hole,
-            })
-            console.log("set var values")
+        callback: async () => {
+            await instance.coordinator.updateLeaderboard();
         },
     }
     actions[ActionId.IncreaseScore] = {
@@ -62,16 +56,19 @@ export const setActionDefinitions = (instance: InstanceBaseExt<Config>): Compani
         ],
         callback: async (action, context) => {
             const foc_player = action.options.focused_player
-            if (typeof foc_player === "number") {
-                instance.rust_main.set_foc(foc_player)
+            if (typeof foc_player === "string") {
+                const focusedPlayer = await instance.coordinator.setFocusedPlayer(foc_player);
+                if (focusedPlayer.holes_finished <= await instance.coordinator.currentHole()) {
+                    instance.coordinator.();
+                }
             }
-            if (instance.rust_main.focused_player_hole <= instance.rust_main.hole) {
-                instance.rust_main.increase_score();
+            if (await instance.coordinator.focusedPlayer() <= instance.coordinator.hole) {
+                instance.coordinator.increase_score();
             }
                 let foc_player_ind = await parseAuto(context)
-                instance.rust_main.set_foc(foc_player_ind)
+                instance.coordinator.set_foc(foc_player_ind)
             instance.setVariableValues({
-                hole: instance.rust_main.hole,
+                hole: instance.coordinator.hole,
             })
         },
     }
@@ -80,8 +77,8 @@ export const setActionDefinitions = (instance: InstanceBaseExt<Config>): Compani
         name: 'Revert score increase',
         options: [],
         callback: () => {
-            instance.rust_main.revert_score();
-            instance.setVariableValues({hole:instance.rust_main.get_hole(true)});
+            instance.coordinator.revert_score();
+            instance.setVariableValues({hole:instance.coordinator.get_hole(true)});
         },
     }
 
@@ -89,9 +86,9 @@ export const setActionDefinitions = (instance: InstanceBaseExt<Config>): Compani
         name: 'Reset score',
         options: [],
         callback: () => {
-            instance.rust_main.reset_score();
+            instance.coordinator.reset_score();
             instance.setVariableValues({
-                hole: instance.rust_main.hole,
+                hole: instance.coordinator.hole,
             })
         },
     }
@@ -110,11 +107,11 @@ export const setActionDefinitions = (instance: InstanceBaseExt<Config>): Compani
             const foc_player = action.options.focused_player
             console.log(foc_player)
             if (typeof foc_player === "number") {
-                instance.rust_main.set_foc(foc_player)
+                instance.coordinator.set_foc(foc_player)
                 // TODO: Impl change throw popup
                 instance.setVariableValues({
-                    player_name: instance.rust_main.get_foc_p_name(),
-                    hole: instance.rust_main.hole,
+                    player_name: instance.coordinator.get_foc_p_name(),
+                    hole: instance.coordinator.hole,
                     foc_player_ind: foc_player,
                 })
                 instance.checkFeedbacks(FeedbackId.FocusedPlayer)
@@ -136,11 +133,11 @@ export const setActionDefinitions = (instance: InstanceBaseExt<Config>): Compani
         callback: async (action, context) => {
             const foc_player = action.options.focused_player
             if (typeof foc_player === "number") {
-                instance.rust_main.set_foc(foc_player);
+                instance.coordinator.set_foc(foc_player);
             }
-            instance.rust_main.increase_throw();
+            instance.coordinator.increase_throw();
             let foc_player_ind = await parseAuto(context)
-            instance.rust_main.set_foc(foc_player_ind);
+            instance.coordinator.set_foc(foc_player_ind);
         },
     }
     actions[ActionId.DecreaseThrow] = {
@@ -157,19 +154,19 @@ export const setActionDefinitions = (instance: InstanceBaseExt<Config>): Compani
         callback: async (action, context) => {
             const foc_player = action.options.focused_player
             if (typeof foc_player === 'number') {
-                instance.rust_main.set_foc(foc_player)
+                instance.coordinator.set_foc(foc_player)
             }
-            instance.rust_main.decrease_throw();
+            instance.coordinator.decrease_throw();
             //sendCommand(inc.join('\r\n') + '\r\n', instance.config)
             let foc_player_ind = await parseAuto(context)
-            instance.rust_main.set_foc(foc_player_ind);
+            instance.coordinator.set_foc(foc_player_ind);
         },
     }
     actions[ActionId.OB] = {
         name: 'OB',
         options: [],
         callback: () => {
-            instance.rust_main.ob_anim();
+            instance.coordinator.ob_anim();
         },
     }
     actions[ActionId.RunAnimation] = {
@@ -186,14 +183,14 @@ export const setActionDefinitions = (instance: InstanceBaseExt<Config>): Compani
         callback: async (action, context) => {
             const foc_player = action.options.focused_player
             if (typeof foc_player === 'number') {
-                instance.rust_main.set_foc(foc_player)
+                instance.coordinator.set_foc(foc_player)
             }
-            instance.log("debug", "Running animation\nfoc play hole: " + instance.rust_main.focused_player_hole + " hole: " + instance.rust_main.hole)
-            if (instance.rust_main.focused_player_hole <= instance.rust_main.hole) {
-                instance.rust_main.play_animation();
+            instance.log("debug", "Running animation\nfoc play hole: " + instance.coordinator.focused_player_hole + " hole: " + instance.coordinator.hole)
+            if (instance.coordinator.focused_player_hole <= instance.coordinator.hole) {
+                instance.coordinator.play_animation();
             }
             let foc_player_ind = await parseAuto(context)
-            instance.rust_main.set_foc(foc_player_ind)
+            instance.coordinator.set_foc(foc_player_ind)
 
         },
     }
@@ -202,10 +199,10 @@ export const setActionDefinitions = (instance: InstanceBaseExt<Config>): Compani
         name: 'Increment Round',
         options: [],
         callback: () => {
-            if (instance.config.round !== undefined && instance.rust_main.round + 1 < instance.rust_main.rounds) {
-                instance.rust_main.set_round(instance.rust_main.round + 1);
-                instance.setVariableValues({ round: instance.rust_main.round + 1 })
-                instance.config.round = instance.rust_main.round + 1
+            if (instance.config.round !== undefined && instance.coordinator.round + 1 < instance.coordinator.rounds) {
+                instance.coordinator.set_round(instance.coordinator.round + 1);
+                instance.setVariableValues({ round: instance.coordinator.round + 1 })
+                instance.config.round = instance.coordinator.round + 1
             }
         }
     }
@@ -214,10 +211,10 @@ export const setActionDefinitions = (instance: InstanceBaseExt<Config>): Compani
         name: 'Decrement Round',
         options: [],
         callback: () => {
-            if (instance.config.round !== undefined && instance.rust_main.round > 0) {
-                instance.rust_main.set_round(instance.rust_main.round - 1);
-                instance.setVariableValues({ round: instance.rust_main.round + 1 })
-                instance.config.round = instance.rust_main.round + 1
+            if (instance.config.round !== undefined && instance.coordinator.round > 0) {
+                instance.coordinator.set_round(instance.coordinator.round - 1);
+                instance.setVariableValues({ round: instance.coordinator.round + 1 })
+                instance.config.round = instance.coordinator.round + 1
             }
         },
     }
@@ -225,14 +222,14 @@ export const setActionDefinitions = (instance: InstanceBaseExt<Config>): Compani
         name: 'Show all positions',
         options: [],
         callback: () => {
-            instance.rust_main.show_all_pos();
+            instance.coordinator.show_all_pos();
         },
     }
     actions[ActionId.HideAllPos] = {
         name: 'Hide all positions',
         options: [],
         callback: () => {
-            instance.rust_main.hide_all_pos();
+            instance.coordinator.hide_all_pos();
         },
     }
     actions[ActionId.TogglePos] = {
@@ -249,11 +246,11 @@ export const setActionDefinitions = (instance: InstanceBaseExt<Config>): Compani
         callback: async (action, context) => {
             const foc_player = action.options.focused_player
             if (typeof foc_player === 'number') {
-                instance.rust_main.set_foc(foc_player)
+                instance.coordinator.set_foc(foc_player)
             }
             //instance.rust_main.toggle_pos();
             let foc_player_ind = await parseAuto(context)
-            instance.rust_main.set_foc(foc_player_ind)
+            instance.coordinator.set_foc(foc_player_ind)
         },
     }
     actions[ActionId.HidePos] = {
@@ -270,11 +267,11 @@ export const setActionDefinitions = (instance: InstanceBaseExt<Config>): Compani
         callback: async (action, context) => {
             const foc_player = action.options.focused_player
             if (typeof foc_player === 'number') {
-                instance.rust_main.set_foc(foc_player)
+                instance.coordinator.set_foc(foc_player)
             }
-            instance.rust_main.hide_pos();
+            instance.coordinator.hide_pos();
             let foc_player_ind = await parseAuto(context);
-            instance.rust_main.set_foc(foc_player_ind)
+            instance.coordinator.set_foc(foc_player_ind)
         },
     }
     actions[ActionId.ShowPos] = {
@@ -291,18 +288,18 @@ export const setActionDefinitions = (instance: InstanceBaseExt<Config>): Compani
         callback: async (action, context) => {
             const foc_player = action.options.focused_player
             if (typeof foc_player === 'number') {
-                instance.rust_main.set_foc(foc_player)
+                instance.coordinator.set_foc(foc_player)
             }
-            instance.rust_main.show_pos();
+            instance.coordinator.show_pos();
             let foc_player_ind = await parseAuto(context)
-            instance.rust_main.set_foc(foc_player_ind)
+            instance.coordinator.set_foc(foc_player_ind)
         }
     }
     actions[ActionId.SetHoleInfo] = {
         name: 'Set hole info',
         options: [],
         callback: () => {
-            instance.rust_main.make_hole_info();
+            instance.coordinator.make_hole_info();
         }
     }
     actions[ActionId.DoOtherLeaderboard] = {
@@ -320,7 +317,7 @@ export const setActionDefinitions = (instance: InstanceBaseExt<Config>): Compani
         callback: (action) => {
             let div = action.options.division
             if (typeof div === "number" ) {
-                instance.rust_main.make_separate_lb(div-1);
+                instance.coordinator.make_separate_lb(div-1);
             }
         }
     }
