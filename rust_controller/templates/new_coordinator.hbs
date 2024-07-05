@@ -6,6 +6,7 @@
     <title>Make coordinator</title>
     <script src="https://unpkg.com/htmx.org@1.9.10"></script>
     <style>
+
         body {
             font-family: Arial, sans-serif;
             line-height: 1.6;
@@ -85,23 +86,34 @@
         .status-OPEN { background-color: #4CAF50; color: white; }
         .status-CLOSED { background-color: #f44336; color: white; }
         .status-DONE { background-color: #2196F3; color: white; }
+        .htmx-indicator{
+            opacity:0;
+            transition: opacity 500ms ease-in;
+        }
+        .htmx-request .htmx-indicator{
+            opacity:1
+        }
+        .htmx-request.htmx-indicator{
+            opacity:1
+        }
     </style>
 </head>
 <body>
 <h1>Make a new coordinator</h1>
 
 <div id="coordinator_loader">
-    <form hx-post="/init" hx-target="body" hx-swap="outerHTML">
+    <form hx-post="/htmx/init" hx-target="body" hx-swap="outerHTML">
         <div>
             <label for="ip">What ip is vMix running on?</label>
-            <input name="ip" id="ip" value="10.170.120.134" />
+            <input name="ip" id="ip" value="10.170.120.134" required/>
         </div>
         <div>
             <label for="event_id">Which event id?</label>
-            <input name="event_id" id="event_id" value="d8f93dfb-f560-4f6c-b7a8-356164b9e4be" />
+            <input name="event_id" id="event_id" value="d8f93dfb-f560-4f6c-b7a8-356164b9e4be" required/>
         </div>
         <div>
-            <button>Send my greetings</button>
+            <button type="submit">Load</button>
+            <img  class="htmx-indicator" src="https://htmx.org/img/bars.svg"/>
         </div>
     </form>
 </div>

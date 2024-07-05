@@ -47,7 +47,6 @@ impl Card {
 
     fn player<'a>(&self, all_players: &'a [Player], index: usize) -> Option<&'a Player> {
         let player_id = self.player_ids.get(index)?;
-        info!("{}", index);
         all_players
             .iter()
             .find(|player| &player.player_id == player_id)

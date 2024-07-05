@@ -155,7 +155,7 @@
                         Group {{group.group_number}}
                         <span class="status-indicator status-{{group.status}}">{{group.status}}</span>
                     </h2>
-                    <button class="select-group" hx-post="/group/{{group.id}}" hx-trigger="click" hx-target="#selected-players-list">
+                    <button class="select-group" hx-post="/htmx/group/{{group.id}}" hx-trigger="click" hx-target="#selected-players-list">
                         Select Group
                     </button>
                 </div>
@@ -174,76 +174,5 @@
 </div>
 
 <div id="result"></div>
-
-<script>
-    document.body.addEventListener('htmx:wsAfterMessage', function(event) {
-        document.body.dispatchEvent(new Event('newMessage'));
-    });
-    function toggleGroup(header) {
-        const content = header.nextElementSibling;
-        const icon = header.querySelector('.toggle-icon');
-        if (content.style.display === "none" || content.style.display === "") {
-            content.style.display = "block";
-            icon.textContent = "▲";
-        } else {
-            content.style.display = "none";
-            icon.textContent = "▼";
-        }
-    }
-
-    function changeRound() {
-        const roundIndex = document.getElementById('round-select').value;
-        const rounds = {{{rounds}}};
-        const groupsContainer = document.getElementById('groups-container');
-
-        if (!rounds || !rounds[roundIndex]) {
-            groupsContainer.innerHTML = '<p>No groups available for this round.</p>';
-            return;
-        }
-
-        groupsContainer.innerHTML = groupsHtml;
-        updateButtonState();
-    }
-
-    document.addEventListener('click', function(e) {
-        if (e.target.classList.contains('group-checkbox')) {
-            var group = e.target.closest('.group');
-            var playerCheckboxes = group.querySelectorAll('.player-checkbox');
-            playerCheckboxes.forEach(function(checkbox) {
-                checkbox.checked = e.target.checked;
-            });
-        }
-
-        if (e.target.classList.contains('player-checkbox') || e.target.classList.contains('group-checkbox')) {
-            updateButtonState();
-            updateSelectedPlayers();
-        }
-    });
-
-    function updateButtonState() {
-        var selected = document.querySelectorAll('input[type="checkbox"]:checked');
-        var button = document.getElementById('actionButton');
-        button.disabled = selected.length === 0;
-
-        var ids = Array.from(selected).map(cb => cb.value).join(',');
-        button.setAttribute('hx-vals', JSON.stringify({ids: ids}));
-    }
-
-    function updateSelectedPlayers() {
-        var selectedPlayersList = document.getElementById('selected-players-list');
-        var selectedPlayers = document.querySelectorAll('.player-checkbox:checked');
-        selectedPlayersList.innerHTML = '';
-
-        selectedPlayers.forEach(function(playerCheckbox) {
-            var playerName = playerCheckbox.nextElementSibling.textContent;
-            var li = document.createElement('li');
-            li.textContent = playerName;
-            selectedPlayersList.appendChild(li);
-        });
-    }
-
-    // Initialize with the first round
-    changeRound();
-</script>
 </body>
 </html>

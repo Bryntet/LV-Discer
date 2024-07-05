@@ -43,6 +43,7 @@ fn get_normal_routes() -> Vec<Route> {
     use query::*;
     use mutation::*;
     use vmix_calls::*;
+    use webpage_responses::{index,okapi_add_operation_for_index_};
     openapi_get_routes![
         current_hole,
         amount_of_rounds,
@@ -57,7 +58,8 @@ fn get_normal_routes() -> Vec<Route> {
         play_animation,
         clear_all,
         get_groups,
-
+        index
+        
     ]
 }
 
@@ -68,7 +70,7 @@ fn get_websocket_routes() -> Vec<Route> {
 fn get_webpage_routes() -> Vec<Route> {
     use webpage_responses::*;
     
-    openapi_get_routes![focused_players]
+    openapi_get_routes![focused_players,set_group,load]
 }
 
 pub fn launch() -> Rocket<Build> {
