@@ -1,4 +1,3 @@
-use itertools::Itertools;
 use crate::api::guard::CoordinatorLoader;
 use crate::api::{Coordinator, SelectionUpdate};
 use crate::dto::CoordinatorBuilder;
@@ -13,9 +12,8 @@ use rocket::tokio::sync::broadcast::Sender;
 
 #[openapi(tag = "Config")]
 #[post("/focused-player/<focused_player>")]
-pub async fn set_focus(focused_player: &str, coordinator: Coordinator) {
-    //coordinator.lock().await.set_player(focused_player)
-    todo!()
+pub async fn set_focus(focused_player: usize, coordinator: Coordinator, updater: &State<Sender<SelectionUpdate>>) {
+    coordinator.lock().await.set_focused_player(focused_player, Some(updater));
 }
 
 #[openapi(tag = "Config")]

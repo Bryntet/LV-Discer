@@ -9,24 +9,21 @@ use rocket_okapi::openapi;
 #[openapi(tag = "Hole")]
 #[get("/current-hole")]
 pub async fn current_hole(coordinator: Coordinator) -> Json<usize> {
-    //coordinator.lock().await.current_hole().into()
-    Json(1)
+    coordinator.lock().await.current_hole().into()
 }
 
 /// # GET Amount of rounds
 #[openapi(tag = "Round")]
 #[get("/rounds")]
 pub async fn amount_of_rounds(coordinator: Coordinator) -> Json<usize> {
-    //coordinator.lock().await.get_rounds().into()
-    Json(1)
+    coordinator.lock().await.amount_of_rounds().into()
 }
 
 /// # GET Current round
 #[openapi(tag = "Round")]
 #[get("/round")]
 pub async fn current_round(coordinator: Coordinator) -> Json<usize> {
-    //coordinator.lock().await.get_round().into()
-    Json(1)
+    coordinator.lock().await.get_round().into()
 }
 
 /// # Rounds structure

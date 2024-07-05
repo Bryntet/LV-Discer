@@ -810,6 +810,10 @@ impl RustHandler {
             .collect_vec()
 
     }
+    
+    pub fn amount_of_rounds(&self) -> usize {
+        self.player_container.rounds_with_players.len()
+    }
 
     pub fn get_players(self) -> Vec<Player> {
         self.player_container.players().clone()

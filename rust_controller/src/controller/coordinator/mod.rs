@@ -20,11 +20,6 @@ use vmix::functions::VMixFunction;
 use vmix::functions::{VMixProperty, VMixSelectionTrait};
 use vmix::Queue;
 
-mod old_public {
-    pub fn greet() {
-        println!("Hello, wasm-test!");
-    }
-}
 
 #[derive(Clone, Debug)]
 pub struct FlipUpVMixCoordinator {
@@ -143,6 +138,10 @@ impl FlipUpVMixCoordinator {
         self.card
             .player(&self.available_players, self.focused_player_index)
             .unwrap()
+    }
+    
+    pub fn amount_of_rounds(&self) -> usize {
+        self.handler.amount_of_rounds()
     }
 
     pub fn focused_player_mut(&mut self) -> &mut Player {
