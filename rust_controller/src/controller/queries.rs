@@ -91,7 +91,7 @@ impl HoleResult {
     }
 
     fn to_score(&self) -> Score {
-        self.try_into().unwrap()
+        self.into()
     }
 
     pub fn get_score_colour(&self, player: usize) -> VMixFunction<VMixProperty> {

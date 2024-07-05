@@ -34,7 +34,6 @@ pub struct FlipUpVMixCoordinator {
     leaderboard: Leaderboard,
     focused_player_index: usize,
     ip: String,
-    event_id: String,
     handler: RustHandler,
     pub available_players: Vec<Player>,
     round_ind: usize,
@@ -389,9 +388,6 @@ impl FlipUpVMixCoordinator {
     }
 
     /// TODO: Refactor out into api function
-    pub fn set_event_id(&mut self, event_id: String) {
-        self.event_id = String::from(event_id);
-    }
 
     pub fn make_separate_lb(&mut self, div_ind: usize) {
         if self.lb_thru != 0 {

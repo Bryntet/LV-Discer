@@ -27,6 +27,16 @@ pub async fn load(loader: &State<CoordinatorLoader>, builder: Form<CoordinatorBu
 }
 
 #[openapi(tag = "Config")]
+#[post("/round/<round_number>")]
+pub async fn set_round(coordinator: Coordinator, round_number: usize) {
+    let mut coordinator = coordinator
+        .lock()
+        .await;
+    coordinator
+        .set_round(round_number);
+}
+
+#[openapi(tag = "Config")]
 #[post("/group/<group_id>")]
 pub async fn set_group(coordinator: Coordinator, group_id: &str, updater: &State<Sender<SelectionUpdate>>) -> Result<Template, &'static str> {
     let mut coordinator = coordinator

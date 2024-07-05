@@ -42,9 +42,8 @@ pub async fn selection_updater<'r>(ws: ws::WebSocket, queue: &State<Sender<Selec
 
     }))
 }
-
 #[get("/selected-players")]
-pub fn echo_stream<'r>(ws: ws::WebSocket, coordinator: Coordinator,metadata: Metadata<'r>, updater: &'r State<Sender<SelectionUpdate>>) -> ws::Stream!['r] {
+pub fn focused_player_changer<'r>(ws: ws::WebSocket, coordinator: Coordinator,metadata: Metadata<'r>, updater: &'r State<Sender<SelectionUpdate>>) -> ws::Stream!['r] {
     let ws = ws.config(ws::Config {
         ..Default::default()
     });

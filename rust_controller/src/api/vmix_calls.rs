@@ -21,7 +21,7 @@ pub async fn play_animation(co: Coordinator) {
 #[openapi(tag = "VMix")]
 #[post("/vmix/clear/all")]
 pub async fn clear_all(co: Coordinator) {
-    /*let queue = co.lock().await.queue.clone();
+    let queue = co.lock().await.queue.clone();
     let mut actions = vec![];
     for player in 0..=3 {
         for hole in 1..=9 {
@@ -45,5 +45,5 @@ pub async fn clear_all(co: Coordinator) {
             input: VMixProperty::RoundScore(player).into()
         }])
     }
-    queue.add(&actions)*/
+    queue.add(&actions)
 }

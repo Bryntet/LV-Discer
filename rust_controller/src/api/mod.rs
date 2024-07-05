@@ -4,13 +4,13 @@ mod mutation;
 mod query;
 mod vmix_calls;
 mod websocket;
+mod webpage_responses;
 
 use mutation::*;
-use vmix_calls::*;
 use crate::controller::coordinator::FlipUpVMixCoordinator;
 use guard::*;
-use query::*;
-use rocket::{Build, Rocket};
+
+use rocket::{Build, Rocket, Route};
 use rocket_dyn_templates::Template;
 use rocket_okapi::rapidoc::{make_rapidoc, GeneralConfig, RapiDocConfig};
 use rocket_okapi::settings::UrlObject;
@@ -23,7 +23,6 @@ pub use websocket::SelectionUpdate;
 use rocket::tokio::sync::broadcast::{channel, Sender, Receiver};
 
 pub use guard::MyError;
-use websocket::*;
 
 #[derive(Debug, Clone)]
 struct Coordinator(Arc<Mutex<FlipUpVMixCoordinator>>);
@@ -40,6 +39,38 @@ impl Coordinator {
 }
 
 
+fn get_normal_routes() -> Vec<Route> {
+    use query::*;
+    use mutation::*;
+    use vmix_calls::*;
+    openapi_get_routes![
+        current_hole,
+        amount_of_rounds,
+        current_round,
+        rounds_structure,
+        get_players,
+        get_divisions,
+        set_focus,
+        load,
+        set_group,
+        set_round,
+        play_animation,
+        clear_all,
+        get_groups,
+        
+    ]
+}
+
+fn get_websocket_routes() -> Vec<Route> {
+    use websocket::*;
+    routes![selection_updater,focused_player_changer]
+}
+fn get_webpage_routes() -> Vec<Route> {
+    use webpage_responses::*;
+    
+    openapi_get_routes![focused_players]
+}
+
 pub fn launch() -> Rocket<Build> {
     
     let (sender, _) = channel::<websocket::SelectionUpdate>(1024);
@@ -53,22 +84,10 @@ pub fn launch() -> Rocket<Build> {
         .manage(sender)
         .mount(
             "/",
-            openapi_get_routes![
-                current_hole,
-                amount_of_rounds,
-                current_round,
-                play_animation,
-                clear_all,
-                rounds_structure,
-                set_focus,
-                load,
-                get_divisions,
-                get_groups,
-                set_group,
-                
-            ],
+            get_normal_routes(),
         )
-        .mount("/", routes![groups_and_players,echo_stream,focused_players,selection_updater])
+        .mount("/", get_websocket_routes())
+        .mount("/htmx/", get_webpage_routes())
         .attach(Template::fairing())
         .register("/", catchers![make_coordinator,])
         .mount(

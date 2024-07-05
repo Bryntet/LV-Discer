@@ -108,8 +108,7 @@ impl LeaderboardState {
         let players = self.leaderboard_players(other);
         players
             .iter()
-            .map(LeaderboardPlayer::combine)
-            .flatten()
+            .flat_map(LeaderboardPlayer::combine)
             .collect_vec()
     }
 }

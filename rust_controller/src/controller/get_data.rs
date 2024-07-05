@@ -276,11 +276,7 @@ impl Player {
     }
 
     pub fn score_before_round(&mut self) -> isize {
-        let mut total_score = 0;
-        self.total_score - self.round_score;
-
-        // log(&format!("round_ind {} tot_score {}", self.round_ind, total_score));
-        total_score
+        self.total_score - self.round_score
     }
 
     pub fn get_score(&self) -> Score {
@@ -798,7 +794,7 @@ impl RustHandler {
             .await
             .unwrap();
 
-        let groups = groups
+         groups
             .data
             .unwrap()
             .event
@@ -815,9 +811,8 @@ impl RustHandler {
                     .map(dto::Group::from)
                     .collect_vec()
             })
-            .collect_vec();
+            .collect_vec()
 
-        groups
     }
 
     pub fn get_players(self) -> Vec<Player> {
