@@ -29,8 +29,8 @@ export enum ActionId {
     DoOtherLeaderboard = 'do_other_leaderboard',
 }
 
-async function parseAuto(context: CompanionCommonCallbackContext): Promise<number> {
-    return Number.parseInt(await context.parseVariablesInString("$(lvvmix:foc_player_ind)"));
+async function parseAuto(context: CompanionCommonCallbackContext): Promise<string> {
+    return await context.parseVariablesInString("$(lvvmix:foc_player_id)");
 }
 
 
@@ -58,18 +58,22 @@ export const setActionDefinitions = <T extends InstanceBaseExt<Config>>(instance
             const foc_player = action.options.focused_player
             if (typeof foc_player === "string") {
                 const focusedPlayer = await instance.coordinator.setFocusedPlayer(foc_player);
+
                 if (focusedPlayer.holes_finished <= await instance.coordinator.currentHole()) {
-                    instance.coordinator.();
+                    await instance.coordinator.increaseScore();
                 }
+
+                let foc_player_id = await parseAuto(context);
+                if (focusedPlayer.id != foc_player_id) {
+
+                    let player = await instance.coordinator.setFocusedPlayer(foc_player_id);
+                    instance.setVariableValues({
+                        hole: player.holes_finished,
+                    })
+                }
+
             }
-            if (await instance.coordinator.focusedPlayer() <= instance.coordinator.hole) {
-                instance.coordinator.increase_score();
-            }
-                let foc_player_ind = await parseAuto(context)
-                instance.coordinator.set_foc(foc_player_ind)
-            instance.setVariableValues({
-                hole: instance.coordinator.hole,
-            })
+
         },
     }
 

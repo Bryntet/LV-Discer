@@ -5,7 +5,7 @@ use rocket_okapi::openapi;
 /// # Play animation
 /// Play the animation that corresponds with the upcoming score of the currently focused player
 #[openapi(tag = "VMix")]
-#[post("/vmix/play/animation")]
+#[post("/vmix/player/focused/animation")]
 pub async fn play_animation(co: Coordinator) {
     co.lock().await.play_animation()
 }
@@ -54,3 +54,10 @@ pub async fn update_leaderboard(co: Coordinator) {
 }
 
 
+/// # Increase score
+/// Increase the score of the currently focused player
+#[openapi(tag = "VMix")]
+#[post("/vmix/player/focused/score")]
+pub async fn increase_score(co: Coordinator) {
+    co.lock().await.increase_score()
+}

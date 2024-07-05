@@ -73,6 +73,11 @@ export class ApiClient {
         
     }
 
+    async increaseScore() {
+        await this.post("/vmix/player/focused/score");
+    }
+
+
 }
 
 class Player {

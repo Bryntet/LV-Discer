@@ -19,7 +19,7 @@ class LevandeVideoInstance extends InstanceBase<Config> {
 	};
 	private players: DropdownChoice[] = [{ id: 'none', label: 'None' }];
 	private div_names: DropdownChoice[] = [{ id: "none", label: 'None' }];
-	public foc_player_ind: number = 0;
+	public foc_player_id: string = "";
 	public foc_player: string = "z";
 	public focused_players: DropdownChoice[] = [{ id: 'none', label: 'None' }];
 	public hole: number = 0;
@@ -62,8 +62,8 @@ class LevandeVideoInstance extends InstanceBase<Config> {
 				variableId: "hole",
 			},
 			{
-				name: "Focused player index",
-				variableId: "foc_player_ind",
+				name: "Focused player id",
+				variableId: "foc_player_id",
 			},
 			{
 				name: "Round",
@@ -136,7 +136,7 @@ class LevandeVideoInstance extends InstanceBase<Config> {
 			p3: this.focused_players[3].label,
 			p4: this.focused_players[4].label,
 			hole: await this.coordinator.currentHole(),
-			foc_player_ind: this.foc_player_ind,
+			foc_player_id: this.foc_player_id,
 			round: await this.coordinator.getRound(),
 		}
 	}
@@ -158,7 +158,7 @@ class LevandeVideoInstance extends InstanceBase<Config> {
 			this.foc_player = values.player_name
 		}
 		if (typeof values.foc_player_ind === "number") {
-			this.foc_player_ind = values.foc_player_ind
+			this.foc_player_id = values.foc_player_ind
 		}
 		super.setVariableValues(await this.varValues())
 	}

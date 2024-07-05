@@ -59,8 +59,8 @@ fn get_normal_routes() -> Vec<Route> {
         clear_all,
         get_groups,
         index,
-        update_leaderboard // TODO
-        
+        update_leaderboard, // TODO
+        increase_score
         
     ]
 }
