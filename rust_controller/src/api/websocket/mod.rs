@@ -13,7 +13,7 @@ use crate::api::Coordinator;
 use crate::dto;
 use rocket::{State, Shutdown};
 use rocket::futures::stream::FusedStream;
-use rocket::futures::TryStreamExt;
+use rocket::futures::{FutureExt, TryStreamExt};
 use rocket::response::stream::{EventStream, Event};
 use rocket::tokio::sync::broadcast::{channel, Sender, Receiver};
 use rocket::tokio::select;
@@ -22,20 +22,24 @@ use crate::controller::coordinator::FlipUpVMixCoordinator;
 pub use channels::SelectionUpdate;
 
 #[get("/player-selection-updater")]
-pub async fn selection_updater<'r>(ws: ws::WebSocket, queue: &State<Sender<SelectionUpdate>>, metadata: Metadata<'r>) -> ws::Channel<'r> {
-    use rocket::futures::{SinkExt, StreamExt};
+pub async fn selection_updater<'r>(ws: ws::WebSocket, queue: &State<Sender<SelectionUpdate>>, metadata: Metadata<'r>, shutdown: Shutdown) -> ws::Channel<'r> {
+    use rocket::futures::SinkExt;
 
     let mut receiver = queue.subscribe();
     ws.channel(move |mut stream| Box::pin(async move {
+
         loop {
-            if stream.is_terminated() {
-                break;
-            }
-            if let Ok(Some(message)) = receiver.recv().await.map(|update|update.make_html(&metadata)) {
-                let _ = stream.send(message).await;
+            select! {
+                message = receiver.recv().fuse() => {
+                    if let Ok(Some(message)) = message.map(|update|update.make_html(&metadata)) {
+                        let _ = stream.send(message).await;
+                    }
+                },
+                _ = shutdown.clone().fuse() => break,
             }
         }
-        stream.close(None).await
+        Ok(())
+
     }))
 }
 
