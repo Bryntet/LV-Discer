@@ -18,6 +18,7 @@ use rocket_okapi::swagger_ui::{make_swagger_ui, SwaggerUIConfig};
 use rocket_okapi::openapi_get_routes;
 use std::net::IpAddr;
 use std::sync::Arc;
+use rocket::config::LogLevel;
 use tokio::sync::{Mutex, MutexGuard};
 pub use websocket::SelectionUpdate;
 use rocket::tokio::sync::broadcast::channel;
@@ -60,8 +61,8 @@ fn get_normal_routes() -> Vec<Route> {
         get_groups,
         index,
         update_leaderboard, // TODO
-        increase_score
-        
+        increase_score,
+        focused_players,
     ]
 }
 
@@ -82,6 +83,7 @@ pub fn launch() -> Rocket<Build> {
     rocket::build()
         .configure(rocket::Config {
             address: IpAddr::V4("10.169.122.114".parse().unwrap()),
+            log_level: LogLevel::Debug,
             ..Default::default()
         })
         .manage(CoordinatorLoader(Mutex::new(None)))

@@ -47,6 +47,8 @@ pub async fn get_players(coordinator: Coordinator) -> Json<Vec<dto::Player>> {
         .into()
 }
 
+
+
 #[openapi(tag = "Preprocessing")]
 #[get("/divisions")]
 pub async fn get_divisions(coordinator: Coordinator) -> Json<Vec<String>> {
@@ -62,8 +64,8 @@ pub async fn get_groups(coordinator: Coordinator) -> Json<Vec<dto::Group>> {
 
 
 #[openapi(tag = "Player")]
-#[get("/focused-players")]
+#[get("/players/focused")]
 pub async fn focused_players(coordinator: Coordinator) -> Json<Vec<dto::Player>> {
     let coordinator = coordinator.lock().await;
-    dto::current_dto_players(&coordinator).into()
+    dbg!(dto::current_dto_players(&coordinator).into())
 }

@@ -123,14 +123,15 @@ class LevandeVideoInstance extends InstanceBase<Config> {
 
 
 	async varValues(): Promise<CompanionVariableValues> {
-		let focusedPlayers = await this.coordinator.chosenPlayers();
-		
+		let focusedPlayers = await this.coordinator.chosenPlayers(this);
+		this.log("info", "HELLO");
+		this.log("info", focusedPlayers.toString())
 		return {
 			player_name: this.foc_player,
-			p1: focusedPlayers[0].name, 
-			p2: focusedPlayers[1].name,
-			p3: focusedPlayers[2].name,
-			p4: focusedPlayers[3].name,
+			p1: this.focused_players[0].label,
+			p2: this.focused_players[0].label,
+			p3: this.focused_players[0].label,
+			p4: this.focused_players[0].label,
 			hole: await this.coordinator.currentHole(),
 			foc_player_id: this.foc_player_id,
 			round: await this.coordinator.getRound(),
@@ -188,7 +189,7 @@ class LevandeVideoInstance extends InstanceBase<Config> {
 			label: 'None',
 		});
 
-		for (const player of (await this.coordinator.chosenPlayers())) {
+		for (const player of (await this.coordinator.chosenPlayers(this))) {
 			this.focused_players.push({
 				id: player.id,
 				label: player.name,
@@ -203,7 +204,7 @@ class LevandeVideoInstance extends InstanceBase<Config> {
 
 
 	async setFocusedPlayerVariables() {
-		(await this.coordinator.chosenPlayers()).forEach((player, index) => {
+		(await this.coordinator.chosenPlayers(this)).forEach((player, index) => {
 			const name_thing = 'p' + (index + 1);
 			this.setVariableValues({ [name_thing]: player.name });
 		});

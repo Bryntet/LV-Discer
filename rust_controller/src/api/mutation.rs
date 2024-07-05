@@ -12,7 +12,7 @@ use crate::dto;
 use rocket::tokio::sync::broadcast::Sender;
 
 #[openapi(tag = "Config")]
-#[post("/focused-player/<focused_player>")]
+#[post("/player/focused/set/<focused_player>")]
 pub async fn set_focus(focused_player: usize, coordinator: Coordinator, updater: &State<Sender<SelectionUpdate>>) -> Json<dto::Player> {
     let mut coordinator = coordinator.lock().await;
     coordinator.set_focused_player(focused_player, Some(updater));

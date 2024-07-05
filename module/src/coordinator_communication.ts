@@ -1,5 +1,7 @@
 import post, {AxiosResponse} from "axios";
-import get from "axios";
+
+import * as console from "node:console";
+import {InstanceBase} from "@companion-module/base";
 export class ApiClient {
     baseUrl: string;
 
@@ -8,10 +10,8 @@ export class ApiClient {
     }
 
     private async get<T>(endpoint: string): Promise<T> {
-
-        const response = await get(`${this.baseUrl}${endpoint}`);
-
-
+        console.log(`${this.baseUrl}${endpoint}`);
+        const response = await fetch(`${this.baseUrl}${endpoint}`);
         if (!response.status) {
             if (response.status === 424) {
                 throw new Error('Coordinator not initialised');
@@ -19,7 +19,10 @@ export class ApiClient {
                 throw new Error('Network response was not ok');
             }
         }
-        return await response.data as T;
+        let data = response.json();
+        console.log(data);
+        return data as T;
+
     }
 
     private async post(endpoint: string, data?: any): Promise<AxiosResponse<any,any>> {
@@ -47,20 +50,27 @@ export class ApiClient {
         return this.get<number>('/current-hole')
     }
 
-    async chosenPlayers(): Promise<Player[]> {
-        const playerObjects = JSON.parse(await this.get<string>("/players"));
-        if (!Array.isArray(playerObjects)) {
+    async chosenPlayers(instance: InstanceBase<any>): Promise<Player[]> {
+
+        const playerObjects = await fetch(`${this.baseUrl}/players/focused`);
+        instance.log("info", "HELLO THIS MY LOG" + playerObjects.body);
+        /*if (!Array.isArray(playerObjects)) {
             throw new Error("Invalid JSON: Expected an array of players");
         }
 
+        console.log(playerObjects);
         return playerObjects.map(obj => {
             return Player.fromJSON(obj);
-        });
+        });*/
+        setTimeout( () => {
+
+        },200);
+        return [];
     }
 
 
     async focusedPlayer(): Promise<Player> {
-        return this.get<Player>(`/players/focused`);
+        return this.get<Player>(`/player/focused`);
     }
 
     // Note: This took a boolean previously, unsure why
@@ -70,7 +80,7 @@ export class ApiClient {
 
     async setFocusedPlayer(player_id: string): Promise<Player> {
 
-        const response = await this.post(`/focused-player/${player_id}`);
+        const response = await this.post(`/player/focused/set/${player_id}`);
         return Player.fromJSON(response.data);
         
     }
@@ -126,6 +136,8 @@ export class Player {
     }
 
     static fromJSON(jsonString: string): Player {
+
+        console.log(jsonString);
         const jsonObject = JSON.parse(jsonString);
         if (!jsonObject.id || !jsonObject.name || jsonObject.focused || jsonObject.holes_finished === undefined) {
             throw new Error("Invalid JSON: Missing required player properties");
