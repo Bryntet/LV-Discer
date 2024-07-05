@@ -10,6 +10,12 @@ pub struct CoordinatorBuilder {
     event_id: String,
 }
 impl CoordinatorBuilder {
+    pub fn new(ip: String, event_id: String) -> Self {
+        Self { ip, event_id }
+    }
+}
+
+impl CoordinatorBuilder {
     pub async fn into_coordinator(self) -> Result<FlipUpVMixCoordinator, MyError> {
         FlipUpVMixCoordinator::new(self.ip, self.event_id, 0).await
     }

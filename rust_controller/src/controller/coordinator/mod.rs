@@ -421,33 +421,24 @@ impl FlipUpVMixCoordinator {
 mod tests {
     //! Tests need to run with high node version otherwise it fails!
 
+    use crate::dto::CoordinatorBuilder;
     use super::*;
 
     async fn generate_app() -> FlipUpVMixCoordinator {
-        let mut app = FlipUpVMixCoordinator {
-            event_id: "5c243af9-ea9d-4f44-ab07-9c55be23bd8c".to_string(),
-            ..Default::default()
-        };
-        app.fetch_event().await.unwrap();
-        println!("{:#?}", app.pools);
+        let mut app = CoordinatorBuilder::new("10.170.120.134".to_string(), "d8f93dfb-f560-4f6c-b7a8-356164b9e4be".to_string()).into_coordinator().await.unwrap();
         app.set_div(0);
         app.fetch_players(false);
         let players = app.get_player_ids();
-        // app.set_player(1, players[0].clone());
-        // app.set_player(2, players[1].clone());
-        // app.set_player(3, players[2].clone());
-        // app.set_player(4, players[3].clone());
-        // app.set_foc(1);
         players
             .iter()
             .enumerate()
             .take(4 + 1)
             .skip(1)
             .for_each(|(i, player)| {
-                app.set_player(i, player.clone());
+                app.set_player(player);
                 //send(&handle_js_vec(test));
             });
-        app.set_foc(1);
+        app.set_focused_player(1, None);
         app
     }
 }

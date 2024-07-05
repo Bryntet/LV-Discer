@@ -356,13 +356,12 @@ mod test {
 
     #[test]
     fn test() {
-        let p = LeaderboardState::new(1, vec![Player::default()]);
+        let p = LeaderboardState::new(1, vec![Player::null_player()]);
         let mut a = Leaderboard::new(p.clone());
         dbg!(a
             .to_vmix_instructions()
             .iter()
             .map(|a| a.to_cmd())
             .collect_vec());
-        panic!()
     }
 }

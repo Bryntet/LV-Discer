@@ -116,9 +116,7 @@ mod test {
     use crate::flipup_vmix_controls::Score;
     use crate::vmix::functions::{VMixFunction, VMixProperty, VMixSelection};
 
-    use crate::get_data::{
-        DEFAULT_BACKGROUND_COL, DEFAULT_FOREGROUND_COL, DEFAULT_FOREGROUND_COL_ALPHA,
-    };
+    
     use rand::Rng;
 
     fn random_score_type(hole: usize) -> Score {
