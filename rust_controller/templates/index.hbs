@@ -126,11 +126,17 @@
 <body>
 <h1>Groups and Players by Round</h1>
 
-<div hx-ext="ws" ws-connect="/selected-players">
+
+<div hx-ext="ws" ws-connect="/player-selection-updater">
     <div id="selected-players-container">
         <h2>Selected Players</h2>
         <ul id="selected-players-list"></ul>
     </div>
+</div>
+
+
+<div hx-ext="ws" ws-connect="/selected-players">
+
     <div id="chat_room">
         <div id="chat_messages"></div>
     </div>

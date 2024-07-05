@@ -1,3 +1,4 @@
+mod channels;
 
 use std::fmt::Debug;
 use rocket::{Orbit, Rocket};
@@ -11,44 +12,35 @@ use serde_json::{json, Value};
 use crate::api::Coordinator;
 use crate::dto;
 use rocket::{State, Shutdown};
+use rocket::futures::stream::FusedStream;
+use rocket::futures::TryStreamExt;
 use rocket::response::stream::{EventStream, Event};
 use rocket::tokio::sync::broadcast::{channel, Sender, Receiver};
 use rocket::tokio::select;
 use crate::controller::coordinator::FlipUpVMixCoordinator;
 
-#[derive(Debug, Clone, Serialize)]
-pub struct SelectionUpdate {
-    players: Vec<dto::Player>,
-}
-
-impl From<&FlipUpVMixCoordinator> for SelectionUpdate {
-    fn from(value: &FlipUpVMixCoordinator) -> Self {
-        Self {
-            players: dto::current_dto_players(value),
-        }
-    }
-}
+pub use channels::SelectionUpdate;
 
 #[get("/player-selection-updater")]
-pub async fn selection_updater(queue: &State<Sender<SelectionUpdate>>, mut end: Shutdown) -> EventStream![] {
-    let mut rx = queue.subscribe();
-    EventStream! {
-        loop {
-            let msg = select! {
-                msg = rx.recv() => match msg {
-                    Ok(msg) => msg,
-                    Err(_) => break,
-                },
-                _ = &mut end => break,
-            };
+pub async fn selection_updater<'r>(ws: ws::WebSocket, queue: &State<Sender<SelectionUpdate>>, metadata: Metadata<'r>) -> ws::Channel<'r> {
+    use rocket::futures::{SinkExt, StreamExt};
 
-            yield Event::json(&msg);
+    let mut receiver = queue.subscribe();
+    ws.channel(move |mut stream| Box::pin(async move {
+        loop {
+            if stream.is_terminated() {
+                break;
+            }
+            if let Ok(Some(message)) = receiver.recv().await.map(|update|update.make_html(&metadata)) {
+                let _ = stream.send(message).await;
+            }
         }
-    }
+        stream.close(None).await
+    }))
 }
 
 #[get("/selected-players")]
-pub fn echo_stream(ws: ws::WebSocket, coordinator: Coordinator,metadata: Metadata<'_>) -> ws::Stream!['_] {
+pub fn echo_stream<'r>(ws: ws::WebSocket, coordinator: Coordinator,metadata: Metadata<'r>, updater: &'r State<Sender<SelectionUpdate>>) -> ws::Stream!['r] {
     let ws = ws.config(ws::Config {
         ..Default::default()
     });
@@ -58,7 +50,7 @@ pub fn echo_stream(ws: ws::WebSocket, coordinator: Coordinator,metadata: Metadat
         for await message in ws {
             let message = message?;
 
-            if interpret_message(message.clone(), &coordinator).await.is_ok() {
+            if interpret_message(message.clone(), &coordinator,updater).await.is_ok() {
                 if let Some(html) = make_html_response(&coordinator,&metadata).await {
                     info!("Sending html response");
                     yield Message::from(html);
@@ -68,11 +60,11 @@ pub fn echo_stream(ws: ws::WebSocket, coordinator: Coordinator,metadata: Metadat
     }
 }
 
-async fn interpret_message<'r>(message: Message, coordinator: &Coordinator) -> Result<Interpreter, serde_json::Error> {
+async fn interpret_message<'r>(message: Message, coordinator: &Coordinator, updater: &State<Sender<SelectionUpdate>>) -> Result<Interpreter, serde_json::Error> {
     let interpreter: Interpreter = serde_json::from_str(&message.to_string())?;
     if let Ok(num) = interpreter.message.parse::<usize>() {
         let mut c = coordinator.lock().await;
-        c.set_focused_player(num);
+        c.set_focused_player(num, Some(updater));
     }
     Ok(interpreter)
 

@@ -109,10 +109,16 @@ impl FlipUpVMixCoordinator {
         coordinator.set_group(&id, None);
         Ok(coordinator)
     }
-    
-    pub fn set_focused_player(&mut self, index: usize) {
+
+    pub fn set_focused_player(&mut self, index: usize, updater: Option<&State<Sender<api::SelectionUpdate>>>) {
         if index < self.card.players(&self.available_players).len() {
             self.focused_player_index = index;
+        }
+        if let Some(updater) = updater {
+            match updater.send(api::SelectionUpdate::from(self.deref())) {
+                Ok(_) => (),
+                Err(e) => warn!("{}", e),
+            }
         }
     }
 
@@ -124,9 +130,15 @@ impl FlipUpVMixCoordinator {
             .player_ids();
         self.card = Card::new(ids);
         if let Some(updater) = updater {
-            updater.send(api::SelectionUpdate::from(self.deref())).ok()?;
+            match updater.send(api::SelectionUpdate::from(self.deref())) {
+                Ok(_) => (),
+                Err(e) => { 
+                    warn!("{}", e);
+                    None?
+                },
+            }
         }
-       
+
         Some(())
     }
 

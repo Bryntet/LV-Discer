@@ -2,7 +2,6 @@ use itertools::Itertools;
 use crate::api::guard::CoordinatorLoader;
 use crate::api::{Coordinator, MyError, SelectionUpdate};
 use crate::dto::CoordinatorBuilder;
-use rocket::serde::json::Json;
 use rocket::{tokio, State};
 use rocket::form::Form;
 use rocket::response::content::RawHtml;
