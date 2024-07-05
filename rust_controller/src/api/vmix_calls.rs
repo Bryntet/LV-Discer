@@ -43,3 +43,14 @@ pub async fn clear_all(co: Coordinator) {
     }
     queue.add(&actions)
 }
+
+
+/// # Update leaderboard
+/// Set the leaderboard to the current state
+#[openapi(tag = "VMix")]
+#[post("/vmix/update/leaderboard")]
+pub async fn update_leaderboard(co: Coordinator) {
+    todo!();
+}
+
+

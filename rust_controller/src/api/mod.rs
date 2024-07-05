@@ -58,7 +58,9 @@ fn get_normal_routes() -> Vec<Route> {
         play_animation,
         clear_all,
         get_groups,
-        index
+        index,
+        update_leaderboard // TODO
+        
         
     ]
 }
