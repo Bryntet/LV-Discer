@@ -3,28 +3,28 @@ mod guard;
 mod mutation;
 mod query;
 mod vmix_calls;
-mod websocket;
 mod webpage_responses;
+mod websocket;
 
-use mutation::*;
 use crate::controller::coordinator::FlipUpVMixCoordinator;
 use guard::*;
+use mutation::*;
 
+use rocket::config::LogLevel;
+use rocket::tokio::sync::broadcast::channel;
 use rocket::{Build, Rocket, Route};
 use rocket_dyn_templates::Template;
+use rocket_okapi::openapi_get_routes;
 use rocket_okapi::rapidoc::{make_rapidoc, GeneralConfig, RapiDocConfig};
 use rocket_okapi::settings::UrlObject;
 use rocket_okapi::swagger_ui::{make_swagger_ui, SwaggerUIConfig};
-use rocket_okapi::openapi_get_routes;
 use std::net::IpAddr;
 use std::sync::Arc;
-use rocket::config::LogLevel;
 use tokio::sync::{Mutex, MutexGuard};
-pub use websocket::channels::{GroupSelectionUpdate,HoleUpdate};
-use rocket::tokio::sync::broadcast::channel;
+pub use websocket::channels::{GroupSelectionUpdate, HoleUpdate};
 
-pub use guard::MyError;
 pub use crate::api::websocket::channels::GeneralChannel;
+pub use guard::MyError;
 
 #[derive(Debug, Clone)]
 struct Coordinator(Arc<Mutex<FlipUpVMixCoordinator>>);
@@ -40,12 +40,11 @@ impl Coordinator {
     }
 }
 
-
 fn get_normal_routes() -> Vec<Route> {
-    use query::*;
     use mutation::*;
+    use query::*;
     use vmix_calls::*;
-    use webpage_responses::{index,okapi_add_operation_for_index_};
+    use webpage_responses::{index, okapi_add_operation_for_index_};
     openapi_get_routes![
         current_hole,
         amount_of_rounds,
@@ -71,34 +70,31 @@ fn get_normal_routes() -> Vec<Route> {
         play_ob_animation,
         set_hole_info,
         update_other_leaderboard,
-
     ]
 }
 
 fn get_websocket_routes() -> Vec<Route> {
     use websocket::*;
-    routes![selection_watcher,hole_watcher]
+    routes![selection_watcher, hole_watcher]
 }
 
 fn get_websocket_htmx_routes() -> Vec<Route> {
     use websocket::htmx::*;
-    routes![selection_updater,focused_player_changer]
+    routes![selection_updater, focused_player_changer]
 }
 
 fn get_webpage_routes() -> Vec<Route> {
     use webpage_responses::*;
-    
-    openapi_get_routes![focused_players,set_group,load]
+
+    openapi_get_routes![focused_players, set_group, load]
 }
 
 pub fn launch() -> Rocket<Build> {
-    
     let (group_selection_sender, _) = channel::<websocket::GroupSelectionUpdate>(1024);
     let group_selection_sender = GeneralChannel::from(group_selection_sender);
     let (hole_update_sender, _) = channel::<HoleUpdate>(1024);
     let hole_update_sender = GeneralChannel::from(hole_update_sender);
-    
-    
+
     rocket::build()
         .configure(rocket::Config {
             address: IpAddr::V4("10.169.122.114".parse().unwrap()),
@@ -107,10 +103,7 @@ pub fn launch() -> Rocket<Build> {
         .manage(CoordinatorLoader(Mutex::new(None)))
         .manage(group_selection_sender)
         .manage(hole_update_sender)
-        .mount(
-            "/",
-            get_normal_routes(),
-        )
+        .mount("/", get_normal_routes())
         .mount("/htmx/", get_webpage_routes())
         .mount("/ws", get_websocket_routes())
         .mount("/ws/htmx/", get_websocket_htmx_routes())

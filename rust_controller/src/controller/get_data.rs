@@ -1,5 +1,10 @@
+use super::queries;
 use crate::api::{HoleUpdate, MyError};
+use crate::controller::queries::HoleResult;
+use crate::dto;
 use crate::flipup_vmix_controls::LeaderBoardProperty;
+use crate::flipup_vmix_controls::{OverarchingScore, Score};
+use crate::vmix::functions::*;
 use cynic::GraphQlResponse;
 use itertools::Itertools;
 use log::warn;
@@ -7,11 +12,6 @@ use rayon::prelude::*;
 use rocket::futures::StreamExt;
 use rocket::State;
 use tokio::sync::broadcast::Sender;
-use super::queries;
-use crate::controller::queries::HoleResult;
-use crate::dto;
-use crate::flipup_vmix_controls::{OverarchingScore, Score};
-use crate::vmix::functions::*;
 
 pub const DEFAULT_FOREGROUND_COL: &str = "3F334D";
 pub const DEFAULT_FOREGROUND_COL_ALPHA: &str = "3F334D00";
@@ -167,7 +167,7 @@ pub struct Player {
     surname: String,
     pub rank: RankUpDown,
     pub image_url: Option<String>,
-    
+
     pub total_score: isize,
     pub round_score: isize,
     round_ind: usize,
@@ -225,7 +225,10 @@ impl Player {
     fn from_query(player: queries::Player, round: usize) -> Self {
         let first_name = player.user.first_name.unwrap();
         let surname = player.user.last_name.unwrap();
-        let image_id: Option<String> = player.user.profile.and_then(|profile|profile.profile_image_url);
+        let image_id: Option<String> = player
+            .user
+            .profile
+            .and_then(|profile| profile.profile_image_url);
         Self {
             player_id: player.id.into_inner(),
             image_url: image_id,
@@ -277,7 +280,12 @@ impl Player {
     }
 
     pub fn get_score(&self) -> Score {
-        self.results.results.iter().find(|result|result.hole.number as usize ==(self.hole_shown_up_until+1)).unwrap().into()
+        self.results
+            .results
+            .iter()
+            .find(|result| result.hole.number as usize == (self.hole_shown_up_until + 1))
+            .unwrap()
+            .into()
     }
 
     pub fn check_if_allowed_to_visible(&mut self) {
@@ -302,13 +310,17 @@ impl Player {
     }
 
     pub fn amount_of_holes_finished(&self) -> usize {
-        self.results.results.iter().filter(|res| res.score != 0.).count()
+        self.results
+            .results
+            .iter()
+            .filter(|res| res.score != 0.)
+            .count()
     }
     fn overarching_score_representation(&self) -> OverarchingScore {
         OverarchingScore::from(self)
     }
 
-    pub fn set_hole_score(&mut self, ) -> Vec<VMixFunction<VMixProperty>> {
+    pub fn set_hole_score(&mut self) -> Vec<VMixFunction<VMixProperty>> {
         let mut return_vec: Vec<VMixFunction<VMixProperty>> = vec![];
 
         if !self.first_scored {
@@ -346,7 +358,6 @@ impl Player {
             // Previously had shift-scores here
             return_vec.push(self.set_tot_score());
             self.add_round_score(&mut return_vec);
-
         }
         return_vec
     }
@@ -541,7 +552,11 @@ impl Player {
     }
 
     fn set_lb_hr(&self) -> VMixFunction<LeaderBoardProperty> {
-        let value = if self.hot_round && self.round_ind != 0 && self.hole_shown_up_until != 0 && self.hole_shown_up_until < 19 {
+        let value = if self.hot_round
+            && self.round_ind != 0
+            && self.hole_shown_up_until != 0
+            && self.hole_shown_up_until < 19
+        {
             r"X:\FLIPUP\grafik\fire.png"
         } else {
             r"X:\FLIPUP\grafik\alpha.png"
@@ -687,14 +702,19 @@ impl RustHandler {
                 .collect_vec(),
         );
 
-        for (i,round) in container.rounds_with_players.iter_mut().enumerate() {
+        for (i, round) in container.rounds_with_players.iter_mut().enumerate() {
             round.iter_mut().for_each(|player| {
-                if let Some(group_index) = groups[i].iter().flat_map(|group|&group.players).enumerate().find(|(_,group_player)|group_player.id==player.player_id).map(|(group_index,_)|group_index) {
+                if let Some(group_index) = groups[i]
+                    .iter()
+                    .flat_map(|group| &group.players)
+                    .enumerate()
+                    .find(|(_, group_player)| group_player.id == player.player_id)
+                    .map(|(group_index, _)| group_index)
+                {
                     player.index = group_index;
                 }
             });
         }
-
 
         Ok(Self {
             chosen_division: divisions.first().expect("NO DIV CHOSEN").id.clone(),
@@ -764,7 +784,7 @@ impl RustHandler {
             .collect_vec())
     }
 
-    pub fn groups(&self) -> &Vec<dto::Group>{
+    pub fn groups(&self) -> &Vec<dto::Group> {
         self.groups.get(self.round_ind).unwrap()
     }
 
@@ -793,7 +813,7 @@ impl RustHandler {
             .await
             .unwrap();
 
-         groups
+        groups
             .data
             .unwrap()
             .event
@@ -811,7 +831,6 @@ impl RustHandler {
                     .collect_vec()
             })
             .collect_vec()
-
     }
 
     pub fn amount_of_rounds(&self) -> usize {

@@ -1,5 +1,5 @@
-use rocket::serde::json::Json;
 use crate::controller::coordinator::FlipUpVMixCoordinator;
+use rocket::serde::json::Json;
 use serde::Deserialize;
 
 use crate::api::MyError;
@@ -10,7 +10,6 @@ pub struct CoordinatorBuilder {
     ip: String,
     event_id: String,
 }
-
 
 impl CoordinatorBuilder {
     pub fn new(ip: String, event_id: String) -> Self {

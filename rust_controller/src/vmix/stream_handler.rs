@@ -114,9 +114,7 @@ mod test {
 
     use super::*;
     use crate::flipup_vmix_controls::Score;
-    
 
-    
     use rand::Rng;
 
     fn random_score_type(hole: usize) -> Score {

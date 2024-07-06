@@ -12,7 +12,11 @@ pub struct Group {
 }
 impl Group {
     pub fn new(id: String, players: Vec<Player>, group_number: usize) -> Self {
-        Group { players, id,  group_number}
+        Group {
+            players,
+            id,
+            group_number,
+        }
     }
 
     pub fn player_ids(&self) -> Vec<String> {
@@ -60,7 +64,7 @@ impl From<crate::controller::queries::Group> for Group {
         Self {
             players,
             id: value.id.into_inner(),
-            group_number: value.position as usize +1,
+            group_number: value.position as usize + 1,
         }
     }
 }

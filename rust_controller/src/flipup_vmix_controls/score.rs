@@ -150,7 +150,6 @@ impl Score {
         }
     }
     pub fn update_score(&self, player: usize) -> [VMixFunction<VMixProperty>; 3] {
-        
         [
             self.update_score_text(player),
             self.show_score(player),

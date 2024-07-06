@@ -47,8 +47,6 @@ pub async fn get_players(coordinator: Coordinator) -> Json<Vec<dto::Player>> {
         .into()
 }
 
-
-
 #[openapi(tag = "Preprocessing")]
 #[get("/divisions")]
 pub async fn get_divisions(coordinator: Coordinator) -> Json<Vec<String>> {
@@ -58,10 +56,15 @@ pub async fn get_divisions(coordinator: Coordinator) -> Json<Vec<String>> {
 #[openapi(tag = "Queue System")]
 #[get("/groups")]
 pub async fn get_groups(coordinator: Coordinator) -> Json<Vec<dto::Group>> {
-    coordinator.lock().await.groups().into_iter().cloned().collect_vec().into()
+    coordinator
+        .lock()
+        .await
+        .groups()
+        .into_iter()
+        .cloned()
+        .collect_vec()
+        .into()
 }
-
-
 
 #[openapi(tag = "Player")]
 #[get("/players/focused")]

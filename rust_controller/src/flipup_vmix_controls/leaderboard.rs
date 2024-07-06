@@ -52,7 +52,11 @@ impl Leaderboard {
 }
 impl LeaderboardState {
     pub fn new(round: usize, mut players: Vec<Player>) -> Self {
-        let hole = players.iter().map(|p| p.hole_shown_up_until).max().expect("Vec not empty");
+        let hole = players
+            .iter()
+            .map(|p| p.hole_shown_up_until)
+            .max()
+            .expect("Vec not empty");
         Self::sort_players(&mut players);
         Self {
             hole,
@@ -351,15 +355,14 @@ pub use prop::LeaderBoardProperty;
 mod test {
     use super::{Leaderboard, LeaderboardState};
     use crate::controller::Player;
-    
+
     use itertools::Itertools;
 
     #[test]
     fn test() {
         let p = LeaderboardState::new(1, vec![Player::null_player()]);
         let a = Leaderboard::new(p.clone());
-        a
-            .to_vmix_instructions()
+        a.to_vmix_instructions()
             .iter()
             .map(|a| a.to_cmd())
             .collect_vec();

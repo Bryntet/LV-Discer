@@ -1,25 +1,29 @@
-use std::fmt::Debug;
+use crate::api::{Coordinator, GeneralChannel};
+use crate::dto;
+use rocket::futures::FutureExt;
+use rocket::tokio::select;
+use rocket::tokio::sync::broadcast::Sender;
+use rocket::{Shutdown, State};
 use rocket_dyn_templates::Metadata;
 use rocket_ws as ws;
 use rocket_ws::Message;
 use serde::Deserialize;
 use serde_json::json;
-use crate::api::{Coordinator, GeneralChannel};
-use crate::dto;
-use rocket::{State, Shutdown};
-use rocket::futures::FutureExt;
-use rocket::tokio::sync::broadcast::Sender;
-use rocket::tokio::select;
+use std::fmt::Debug;
 
 pub use crate::api::websocket::channels::GroupSelectionUpdate;
 use crate::api::websocket::{interpret_message, ChannelAttributes};
 
 #[get("/players/selected/watch")]
-pub fn focused_player_changer<'r>(ws: ws::WebSocket, coordinator: Coordinator, metadata: Metadata<'r>, updater: &'r State<GeneralChannel<GroupSelectionUpdate>>) -> ws::Stream!['r] {
+pub fn focused_player_changer<'r>(
+    ws: ws::WebSocket,
+    coordinator: Coordinator,
+    metadata: Metadata<'r>,
+    updater: &'r State<GeneralChannel<GroupSelectionUpdate>>,
+) -> ws::Stream!['r] {
     let ws = ws.config(ws::Config {
         ..Default::default()
     });
-
 
     ws::Stream! { ws =>
         for await message in ws {
@@ -34,9 +38,14 @@ pub fn focused_player_changer<'r>(ws: ws::WebSocket, coordinator: Coordinator, m
     }
 }
 
-
 #[get("/players/selected/set")]
-pub async fn selection_updater<'r>(ws: ws::WebSocket, coordinator: Coordinator, queue: &State<GeneralChannel<GroupSelectionUpdate>>, metadata: Metadata<'r>, shutdown: Shutdown) -> ws::Channel<'r> {
+pub async fn selection_updater<'r>(
+    ws: ws::WebSocket,
+    coordinator: Coordinator,
+    queue: &State<GeneralChannel<GroupSelectionUpdate>>,
+    metadata: Metadata<'r>,
+    shutdown: Shutdown,
+) -> ws::Channel<'r> {
     use rocket::futures::SinkExt;
 
     let mut receiver = queue.subscribe();
@@ -57,7 +66,15 @@ pub async fn selection_updater<'r>(ws: ws::WebSocket, coordinator: Coordinator, 
     }))
 }
 
-async fn make_html_response<'r>(coordinator: &Coordinator, metadata: &Metadata<'r>) -> Option<String> {
+async fn make_html_response<'r>(
+    coordinator: &Coordinator,
+    metadata: &Metadata<'r>,
+) -> Option<String> {
     let c = coordinator.lock().await;
-    metadata.render("current_selected", json!({"players": dto::current_dto_players(&c)})).map(|(_,b)|b)
+    metadata
+        .render(
+            "current_selected",
+            json!({"players": dto::current_dto_players(&c)}),
+        )
+        .map(|(_, b)| b)
 }

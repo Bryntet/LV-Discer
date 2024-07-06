@@ -5,7 +5,12 @@ impl FlipUpVMixCoordinator {
     pub fn make_hole_info(&mut self) {
         self.set_current_through();
         if self.current_hole() <= 18 {
-            self.queue_add(&self.focused_player().results.get_hole_info(self.current_through));
+            self.queue_add(
+                &self
+                    .focused_player()
+                    .results
+                    .get_hole_info(self.current_through),
+            );
         }
     }
 

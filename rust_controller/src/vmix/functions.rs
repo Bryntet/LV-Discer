@@ -17,7 +17,7 @@ impl From<VMixProperty> for VMixSelection<VMixProperty> {
     }
 }
 
-#[derive(Clone,Debug)]
+#[derive(Clone, Debug)]
 pub enum VMixFunction<InputEnum: VMixSelectionTrait> {
     SetText {
         value: String,
@@ -51,11 +51,10 @@ impl<InputEnum: VMixSelectionTrait> VMixFunction<InputEnum> {
             SetText { input, .. } => Some(input.get_selection()),
             SetColor { input, .. } => Some(input.get_selection()),
             OverlayInput4(mov) => {
-
                 let test = format!(r#"C:\livegrafik-flipup\".mov bumps"\{}"#, mov);
                 println!("test: {}", &test);
                 Some(test)
-            },
+            }
             OverlayInput4Off | SetPanX { .. } => None,
             SetImage { input, .. } => Some(input.get_selection()),
             SetTextVisibleOn { input } => Some(input.get_selection()),
@@ -150,13 +149,13 @@ impl VMixSelectionTrait for VMixProperty {
         self.get_id()
             + &(match self {
                 VMixProperty::Score { hole, .. } => {
-                    format!("SelectedName=p{}s{}.Text", 1,hole)
+                    format!("SelectedName=p{}s{}.Text", 1, hole)
                 }
                 VMixProperty::HoleNumber(v1, v2) => {
                     format!("SelectedName=HN{}p{}.Text", v1, v2 + 1)
                 }
                 VMixProperty::ScoreColor { hole, .. } => {
-                    format!("SelectedName=p{}h{}.Fill.Color",  1,hole)
+                    format!("SelectedName=p{}h{}.Fill.Color", 1, hole)
                 }
                 VMixProperty::PosRightTriColor(v1) => {
                     format!("SelectedName=rghtri{}.Fill.Color", v1 + 1)

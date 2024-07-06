@@ -1,9 +1,9 @@
-use rocket_okapi::okapi::schemars;
-use schemars::JsonSchema;
-use serde::Deserialize;
 use crate::flipup_vmix_controls::Score;
 use crate::vmix::functions::{VMixFunction, VMixProperty};
 pub use group::Group;
+use rocket_okapi::okapi::schemars;
+use schemars::JsonSchema;
+use serde::Deserialize;
 
 #[derive(cynic::QueryVariables, Debug)]
 pub struct RoundResultsQueryVariables {
@@ -127,7 +127,7 @@ impl Default for Hole {
 
 pub mod round {
     use super::schema;
-    
+
     #[derive(cynic::QueryVariables, Debug)]
     pub struct RoundsQueryVariables {
         pub event_id: cynic::Id,
