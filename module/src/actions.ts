@@ -3,6 +3,7 @@ import { Config } from "./config";
 import { InstanceBaseExt } from "./util";
 import { CompanionCommonCallbackContext } from "@companion-module/base/dist/module-api/common";
 import {Player} from "./coordinator_communication";
+import {LevandeVideoInstance} from "./index";
 
 
 
@@ -19,6 +20,7 @@ export enum ActionId {
     RunAnimation = 'run_animation',
     SetHoleInfo = 'set_hole_info',
     DoOtherLeaderboard = 'do_other_leaderboard',
+    ReloadWebSockets = 'reload_websockets',
 }
 
 async function parseAuto(context: CompanionCommonCallbackContext): Promise<number> {
@@ -40,7 +42,7 @@ async function exitPlayerOption<T extends InstanceBaseExt<Config>>(instance: T,c
     }
 }
 
-export const setActionDefinitions = <T extends InstanceBaseExt<Config>>(instance: T): CompanionActionDefinitions => {
+export const setActionDefinitions = (instance: LevandeVideoInstance): CompanionActionDefinitions => {
     const actions: CompanionActionDefinitions = {};
     actions[ActionId.LeaderboardUpdate] = {
         name: 'Leaderboard update',
@@ -63,8 +65,9 @@ export const setActionDefinitions = <T extends InstanceBaseExt<Config>>(instance
         callback: async (action, context) => {
             const focusedPlayer = await initPlayerOption(action,instance);
 
+            await instance.coordinator.increaseScore();
+
             if (focusedPlayer.holes_finished <= await instance.coordinator.currentHole()) {
-                await instance.coordinator.increaseScore();
             }
 
             await exitPlayerOption(instance, context, focusedPlayer.index);
@@ -187,6 +190,16 @@ export const setActionDefinitions = <T extends InstanceBaseExt<Config>>(instance
             let div = action.options.division
             if (typeof div === "string" ) {
                 await instance.coordinator.doOtherLeaderboard(div);
+            }
+        }
+    }
+
+    actions[ActionId.ReloadWebSockets] = {
+        name: 'Reload WebSockets',
+        options: [],
+        callback: async () => {
+            for (const subscription of instance.websockets) {
+                subscription.reload();
             }
         }
     }

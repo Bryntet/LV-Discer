@@ -1,5 +1,5 @@
 use crate::api::guard::CoordinatorLoader;
-use crate::api::{Coordinator, SelectionUpdate};
+use crate::api::{Coordinator, GroupSelectionUpdate};
 use crate::dto::CoordinatorBuilder;
 use rocket::State;
 use rocket::form::Form;
@@ -13,7 +13,7 @@ use rocket::tokio::sync::broadcast::Sender;
 
 #[openapi(tag = "Config")]
 #[post("/player/focused/set/<focused_player>")]
-pub async fn set_focus(focused_player: usize, coordinator: Coordinator, updater: &State<Sender<SelectionUpdate>>) -> Json<dto::Player> {
+pub async fn set_focus(focused_player: usize, coordinator: Coordinator, updater: &State<Sender<GroupSelectionUpdate>>) -> Json<dto::Player> {
     let mut coordinator = coordinator.lock().await;
     
     coordinator.set_focused_player(focused_player, Some(updater));
@@ -39,7 +39,7 @@ pub async fn set_round(coordinator: Coordinator, round_number: usize) {
 
 #[openapi(tag = "Config")]
 #[post("/group/<group_id>")]
-pub async fn set_group(coordinator: Coordinator, group_id: &str, updater: &State<Sender<SelectionUpdate>>) -> Result<(), &'static str> {
+pub async fn set_group(coordinator: Coordinator, group_id: &str, updater: &State<Sender<GroupSelectionUpdate>>) -> Result<(), &'static str> {
     let mut coordinator = coordinator
         .lock()
         .await;

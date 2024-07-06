@@ -171,7 +171,7 @@ pub struct Player {
     pub round_score: isize,
     round_ind: usize,
     pub results: PlayerRound,
-    pub hole: usize,
+    pub hole_shown_up_until: usize,
     pub ind: usize,
     pub index: usize,
     pub throws: u8,
@@ -204,7 +204,7 @@ impl Player {
             index: 0,
             results: Default::default(),
             image_url: None,
-            hole: 0,
+            hole_shown_up_until: 0,
             ind: 0,
             throws: 0,
             shift: 0,
@@ -242,7 +242,7 @@ impl Player {
             thru: 0,
             index: 0,
             hot_round: false,
-            hole: 0,
+            hole_shown_up_until: 0,
             ind: 0,
             throws: 0,
             shift: 0,
@@ -325,7 +325,7 @@ impl Player {
 
         return_vec.push(self.set_tot_score());
         return_vec.extend(overarching.set_round_score());
-        self.hole += 1;
+        self.hole_shown_up_until += 1;
         self.throws = 0;
         return_vec.push(self.set_throw());
         if self.visible_player {
@@ -343,14 +343,14 @@ impl Player {
     }
     pub fn revert_hole_score(&mut self) -> Vec<VMixFunction<VMixProperty>> {
         let mut return_vec = vec![];
-        if self.hole > 0 {
-            self.hole -= 1;
+        if self.hole_shown_up_until > 0 {
+            self.hole_shown_up_until -= 1;
             return_vec.extend(self.del_score());
-            let result = self.results.hole_score(self.hole);
+            let result = self.results.hole_score(self.hole_shown_up_until);
             self.round_score -= result;
             self.total_score -= result;
-            if self.hole > 8 {
-                self.hole -= 1;
+            if self.hole_shown_up_until > 8 {
+                self.hole_shown_up_until -= 1;
                 self.round_score -= result;
                 self.total_score -= result;
                 return_vec.extend(self.shift_scores(true));
@@ -430,22 +430,22 @@ impl Player {
 
     pub fn shift_scores(&mut self, last_blank: bool) -> Vec<VMixFunction<VMixProperty>> {
         let mut return_vec = vec![];
-        let in_hole = self.hole;
+        let in_hole = self.hole_shown_up_until;
 
-        let diff = self.hole - 8 + {
-            if last_blank && self.hole != 17 {
+        let diff = self.hole_shown_up_until - 8 + {
+            if last_blank && self.hole_shown_up_until != 17 {
                 1
             } else {
                 0
             }
         };
 
-        self.hole = diff;
+        self.hole_shown_up_until = diff;
         self.shift = diff;
         for _ in diff..=in_hole {
             return_vec.extend(self.set_hole_score());
         }
-        if last_blank && self.hole != 18 {
+        if last_blank && self.hole_shown_up_until != 18 {
             return_vec.push(VMixFunction::SetText {
                 value: (in_hole + 2).to_string(),
                 input: VMixProperty::HoleNumber(9, self.ind).into(),
@@ -475,15 +475,15 @@ impl Player {
 
     fn del_score(&self) -> [VMixFunction<VMixProperty>; 4] {
         let score_prop = VMixProperty::Score {
-            hole: self.hole + 1,
+            hole: self.hole_shown_up_until + 1,
             player: self.ind,
         };
 
         let col_prop = VMixProperty::ScoreColor {
-            hole: self.hole + 1,
+            hole: self.hole_shown_up_until + 1,
             player: self.ind,
         };
-        let h_num_prop = VMixProperty::HoleNumber(self.hole + 1, self.ind);
+        let h_num_prop = VMixProperty::HoleNumber(self.hole_shown_up_until + 1, self.ind);
         [
             VMixFunction::SetText {
                 value: "".to_string(),
@@ -494,7 +494,7 @@ impl Player {
                 input: col_prop.into(),
             },
             VMixFunction::SetText {
-                value: (self.hole + 1).to_string(),
+                value: (self.hole_shown_up_until + 1).to_string(),
                 input: h_num_prop.into(),
             },
             VMixFunction::SetTextVisibleOff {
@@ -506,10 +506,10 @@ impl Player {
     pub fn reset_scores(&mut self) -> Vec<VMixFunction<VMixProperty>> {
         let mut return_vec: Vec<VMixFunction<VMixProperty>> = vec![];
         for i in 0..9 {
-            self.hole = i;
+            self.hole_shown_up_until = i;
             return_vec.extend(self.del_score());
         }
-        self.hole = 0;
+        self.hole_shown_up_until = 0;
         self.shift = 0;
         self.round_score = 0;
         self.total_score = self.score_before_round();
@@ -553,7 +553,7 @@ impl Player {
     }
 
     fn set_lb_hr(&self) -> VMixFunction<LeaderBoardProperty> {
-        let value = if self.hot_round && self.round_ind != 0 && self.hole != 0 && self.hole < 19 {
+        let value = if self.hot_round && self.round_ind != 0 && self.hole_shown_up_until != 0 && self.hole_shown_up_until < 19 {
             r"X:\FLIPUP\grafik\fire.png"
         } else {
             r"X:\FLIPUP\grafik\alpha.png"

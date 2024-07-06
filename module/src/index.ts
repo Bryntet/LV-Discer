@@ -5,14 +5,21 @@ import { setFeedbackDefinitions } from './feedbacks';
 import { ApiClient } from './coordinator_communication';
 
 
+
+
 export class LevandeVideoInstance extends InstanceBase<Config> {
 	public coordinator = new ApiClient("http://10.169.122.114:8000");
-	private websocket: WebSocketSubscription = {
+	private webSocketSubscriptions: WebSocketSubscription[] = [{
 		url: 'ws://10.169.122.114:8000/ws/players/selected/watch',
 		debug_messages: true,
 		variableName: 'selected_players',
 		subpath: 'players',
-	};
+	},{
+		url: 'ws://10.169.122.114:8000/ws/hole/watch',
+		debug_messages: true,
+		variableName: 'current_hole',
+		subpath: 'hole',
+	}];
 	public config: Config = {
 		vmix_ip: '10.170.120.134',
 		event_id: 'd8f93dfb-f560-4f6c-b7a8-356164b9e4be',
@@ -25,6 +32,7 @@ export class LevandeVideoInstance extends InstanceBase<Config> {
 		p3: 'none',
 		p4: 'none',
 	};
+	public websockets: WebSocketManager[] = [];
 	private players: DropdownChoice[] = [{ id: 'none', label: 'None' }];
 	private div_names: DropdownChoice[] = [{ id: "none", label: 'None' }];
 	public foc_player_ind: number = 0;
@@ -40,7 +48,9 @@ export class LevandeVideoInstance extends InstanceBase<Config> {
 	async init(config: Config) {
 		console.log('HIII')
 		this.updateStatus(InstanceStatus.Ok)
-		new WebSocketManager(this, this.websocket);
+		for (const sub of this.webSocketSubscriptions) {
+			this.websockets.push(new WebSocketManager(this, sub));
+		}
 		console.log('Rust module initialized')
 		this.config = config
 

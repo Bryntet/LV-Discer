@@ -45,12 +45,18 @@ export class WebSocketManager {
         if (this.subscription.variableName === 'selected_players') {
             JSON.parse(value).forEach((p: any,index:number) => {
                 let player = Player.fromJSON(p);
+                if (player.focused) {
+                    this.instance.setVariableValues({player_name: player.name, foc_player_ind: index });
+                }
                 this.instance.setVariableValues({[`p${index + 1}`]: player.name});
             });
         }
         this.instance.setVariableValues({ [this.subscription.variableName]: value });
     }
 
+    public reload(): void {
+        this.initWebSocket();
+    }
 
     public destroy(): void {
         if (this.ws) {

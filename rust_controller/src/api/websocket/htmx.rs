@@ -11,11 +11,11 @@ use rocket::futures::FutureExt;
 use rocket::tokio::sync::broadcast::Sender;
 use rocket::tokio::select;
 
-pub use crate::api::websocket::channels::SelectionUpdate;
-use crate::api::websocket::{interpret_message};
+pub use crate::api::websocket::channels::GroupSelectionUpdate;
+use crate::api::websocket::{interpret_message, ChannelAttributes};
 
 #[get("/players/selected/watch")]
-pub fn focused_player_changer<'r>(ws: ws::WebSocket, coordinator: Coordinator,metadata: Metadata<'r>, updater: &'r State<Sender<SelectionUpdate>>) -> ws::Stream!['r] {
+pub fn focused_player_changer<'r>(ws: ws::WebSocket, coordinator: Coordinator, metadata: Metadata<'r>, updater: &'r State<Sender<GroupSelectionUpdate>>) -> ws::Stream!['r] {
     let ws = ws.config(ws::Config {
         ..Default::default()
     });
@@ -36,7 +36,7 @@ pub fn focused_player_changer<'r>(ws: ws::WebSocket, coordinator: Coordinator,me
 
 
 #[get("/players/selected/set")]
-pub async fn selection_updater<'r>(ws: ws::WebSocket,coordinator: Coordinator, queue: &State<Sender<SelectionUpdate>>, metadata: Metadata<'r>, shutdown: Shutdown) -> ws::Channel<'r> {
+pub async fn selection_updater<'r>(ws: ws::WebSocket, coordinator: Coordinator, queue: &State<Sender<GroupSelectionUpdate>>, metadata: Metadata<'r>, shutdown: Shutdown) -> ws::Channel<'r> {
     use rocket::futures::SinkExt;
 
     let mut receiver = queue.subscribe();

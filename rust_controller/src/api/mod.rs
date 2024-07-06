@@ -20,7 +20,7 @@ use std::net::IpAddr;
 use std::sync::Arc;
 use rocket::config::LogLevel;
 use tokio::sync::{Mutex, MutexGuard};
-pub use websocket::SelectionUpdate;
+pub use websocket::GroupSelectionUpdate;
 use rocket::tokio::sync::broadcast::channel;
 
 pub use guard::MyError;
@@ -92,7 +92,7 @@ fn get_webpage_routes() -> Vec<Route> {
 
 pub fn launch() -> Rocket<Build> {
     
-    let (sender, _) = channel::<websocket::SelectionUpdate>(1024);
+    let (sender, _) = channel::<websocket::GroupSelectionUpdate>(1024);
     
     rocket::build()
         .configure(rocket::Config {

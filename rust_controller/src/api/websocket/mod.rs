@@ -16,9 +16,9 @@ use rocket::serde::json::Json;
 use rocket::tokio::sync::broadcast::Sender;
 use rocket::tokio::select;
 
-pub use channels::SelectionUpdate;
+pub use channels::{GroupSelectionUpdate, ChannelAttributes};
 
-async fn interpret_message<'r>(message: Message, coordinator: &Coordinator, updater: &State<Sender<SelectionUpdate>>) -> Result<Interpreter, serde_json::Error> {
+async fn interpret_message<'r>(message: Message, coordinator: &Coordinator, updater: &State<Sender<GroupSelectionUpdate>>) -> Result<Interpreter, serde_json::Error> {
     let interpreter: Interpreter = serde_json::from_str(&message.to_string())?;
     if let Ok(num) = interpreter.message.parse::<usize>() {
         let mut c = coordinator.lock().await;
@@ -28,7 +28,7 @@ async fn interpret_message<'r>(message: Message, coordinator: &Coordinator, upda
 }
 
 #[get("/players/selected/watch")]
-pub async fn selection_updater<'r>(ws: ws::WebSocket, queue: &State<Sender<SelectionUpdate>>, metadata: Metadata<'r>, shutdown: Shutdown) -> ws::Channel<'r> {
+pub async fn selection_updater<'r>(ws: ws::WebSocket, queue: &State<Sender<GroupSelectionUpdate>>, metadata: Metadata<'r>, shutdown: Shutdown) -> ws::Channel<'r> {
     use rocket::futures::SinkExt;
 
     let mut receiver = queue.subscribe();

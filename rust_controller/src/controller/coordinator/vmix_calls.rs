@@ -3,9 +3,9 @@ use crate::controller::get_data::HoleScoreOrDefault;
 
 impl FlipUpVMixCoordinator {
     pub fn make_hole_info(&mut self) {
-        self.set_lb_thru();
+        self.set_current_through();
         if self.current_hole() <= 18 {
-            self.queue_add(&self.focused_player().results.get_hole_info(self.lb_thru));
+            self.queue_add(&self.focused_player().results.get_hole_info(self.current_through));
         }
     }
 

@@ -144,13 +144,13 @@ impl VMixSelectionTrait for VMixProperty {
         self.get_id()
             + &(match self {
                 VMixProperty::Score { hole, player } => {
-                    format!("SelectedName=s{}p{}.Text", hole, player + 1)
+                    format!("SelectedName=p{}s{}.Text", 1,hole)
                 }
                 VMixProperty::HoleNumber(v1, v2) => {
                     format!("SelectedName=HN{}p{}.Text", v1, v2 + 1)
                 }
                 VMixProperty::ScoreColor { hole, player } => {
-                    format!("SelectedName=h{}p{}.Fill.Color", hole, player + 1)
+                    format!("SelectedName=p{}h{}.Fill.Color", hole, player + 1)
                 }
                 VMixProperty::PosRightTriColor(v1) => {
                     format!("SelectedName=rghtri{}.Fill.Color", v1 + 1)

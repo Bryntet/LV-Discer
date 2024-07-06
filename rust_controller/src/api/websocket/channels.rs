@@ -6,24 +6,54 @@ use crate::controller::coordinator::FlipUpVMixCoordinator;
 use crate::dto;
 
 #[derive(Debug, Clone, Serialize)]
-pub struct SelectionUpdate {
+pub struct GroupSelectionUpdate {
     players: Vec<dto::Player>,
 }
 
-impl SelectionUpdate {
-    pub fn try_into_message(self) -> Option<Message> {
+
+
+pub trait ChannelAttributes {
+    fn try_into_message(self) -> Option<Message>;
+    fn make_html(self, metadata: &Metadata) -> Option<Message>;
+}
+
+impl ChannelAttributes for GroupSelectionUpdate {
+    fn try_into_message(self) -> Option<Message> {
         Some(Message::from(serde_json::to_string(&self.players).ok()?))
     }
     
-    pub fn make_html(self, metadata: &Metadata) -> Option<Message> {
+    fn make_html(self, metadata: &Metadata) -> Option<Message> {
         metadata.render("current_selected", json!({"players": self.players})).map(|(_,b)|Message::from(b))
     }
 }
 
-impl From<&FlipUpVMixCoordinator> for SelectionUpdate {
+impl From<&FlipUpVMixCoordinator> for GroupSelectionUpdate {
     fn from(value: &FlipUpVMixCoordinator) -> Self {
         Self {
             players: dto::current_dto_players(value),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct HoleUpdate {
+    hole: usize,
+}
+
+impl ChannelAttributes for HoleUpdate {
+    fn try_into_message(self) -> Option<Message> {
+        Some(Message::from(serde_json::to_string(&self.hole).ok()?))
+    }
+    
+    fn make_html(self, metadata: &Metadata) -> Option<Message> {
+        metadata.render("current_hole", json!({"hole": self.hole})).map(|(_,b)|Message::from(b))
+    }
+}
+
+impl From<&FlipUpVMixCoordinator> for HoleUpdate {
+    fn from(value: &FlipUpVMixCoordinator) -> Self {
+        Self {
+            hole: value.current_hole(),
         }
     }
 }

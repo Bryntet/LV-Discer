@@ -32,7 +32,7 @@ pub struct FlipUpVMixCoordinator {
     pub available_players: Vec<Player>,
     round_ind: usize,
     lb_div_ind: usize,
-    lb_thru: usize,
+    current_through: usize,
     pub queue: Arc<Queue>,
     card: Card,
 }
@@ -92,7 +92,7 @@ impl FlipUpVMixCoordinator {
             available_players,
             round_ind: 0,
             lb_div_ind: 0,
-            lb_thru: 0,
+            current_through: 0,
             queue: Arc::new(queue),
             leaderboard: Leaderboard::default(),
         };
@@ -103,20 +103,21 @@ impl FlipUpVMixCoordinator {
 
     
     
-    pub fn set_focused_player(&mut self, index: usize, updater: Option<&State<Sender<api::SelectionUpdate>>>) {
+    pub fn set_focused_player(&mut self, index: usize, updater: Option<&State<Sender<api::GroupSelectionUpdate>>>) {
         if index >= self.card.players(&self.available_players).len() {
             return;
         }
         self.focused_player_index = index;
+        self.queue_add(&self.focused_player().set_name());
         if let Some(updater) = updater {
-            match updater.send(api::SelectionUpdate::from(self.deref())) {
+            match updater.send(api::GroupSelectionUpdate::from(self.deref())) {
                 Ok(_) => (),
                 Err(e) => warn!("{}", e),
             }
         }
     }
 
-    pub fn set_group(&mut self, group_id: &str, updater: Option<&State<Sender<api::SelectionUpdate>>>) -> Option<()> {
+    pub fn set_group(&mut self, group_id: &str, updater: Option<&State<Sender<api::GroupSelectionUpdate>>>) -> Option<()> {
         let groups = self.groups();
         let ids = groups
             .iter()
@@ -124,7 +125,7 @@ impl FlipUpVMixCoordinator {
             .player_ids();
         self.card = Card::new(ids);
         if let Some(updater) = updater {
-            match updater.send(api::SelectionUpdate::from(self.deref())) {
+            match updater.send(api::GroupSelectionUpdate::from(self.deref())) {
                 Ok(_) => (),
                 Err(e) => { 
                     warn!("{}", e);
@@ -177,15 +178,11 @@ impl FlipUpVMixCoordinator {
     }
 
     fn queue_add<T: VMixSelectionTrait>(&self, funcs: &[VMixFunction<T>]) {
-        println!(
-            "hello i am adding: {:#?}",
-            funcs.iter().map(|f| f.to_cmd()).collect_vec()
-        );
         self.queue.add(funcs)
     }
 
-    fn set_lb_thru(&mut self) {
-        self.lb_thru = self.focused_player().thru
+    fn set_current_through(&mut self) {
+        self.current_through = self.focused_player().thru
     }
 
     fn make_checkin_text(&self) -> VMixFunction<LeaderBoardProperty> {
@@ -234,7 +231,7 @@ impl FlipUpVMixCoordinator {
         self.queue_add(&FlipUpVMixCoordinator::clear_lb(10));
         println!("set_leaderboard");
         //let mut lb_copy = self.clone();
-        self.set_lb_thru();
+        self.set_current_through();
         println!("past set_lb_thru");
         if self.current_hole() <= 19 {
             println!("hole <= 19");
@@ -261,11 +258,11 @@ impl FlipUpVMixCoordinator {
         let player = self.focused_player_mut();
         let mut actions = vec![];
         if hole >= 9 {
-            player.hole = hole - 1;
+            player.hole_shown_up_until = hole - 1;
             actions.extend(player.shift_scores(true));
         } else {
             for x in 1..=hole {
-                player.hole = x;
+                player.hole_shown_up_until = x;
                 actions.extend(player.set_hole_score());
             }
         }
@@ -274,7 +271,7 @@ impl FlipUpVMixCoordinator {
 
     pub fn set_round(&mut self, idx: usize) {
         self.round_ind = idx;
-        self.lb_thru = 0;
+        self.current_through = 0;
         let actions = self.focused_player_mut().set_round(idx);
         self.queue_add(&actions);
     }
@@ -282,7 +279,7 @@ impl FlipUpVMixCoordinator {
     pub async fn fetch_event(&mut self) {}
 
     pub fn increase_score(&mut self) {
-        let hole = self.focused_player_mut().hole;
+        let hole = self.focused_player_mut().hole_shown_up_until;
         self.hide_pos();
         //println!(format!("hole: {}", hole).as_str());
         if hole <= 17 {
@@ -340,7 +337,7 @@ impl FlipUpVMixCoordinator {
         self.queue_add(&f);
     }
     pub fn reset_score(&mut self) {
-        self.lb_thru = 0;
+        self.current_through = 0;
         let f = self.focused_player_mut().reset_scores();
         self.queue_add(&f)
     }
@@ -398,7 +395,7 @@ impl FlipUpVMixCoordinator {
     /// TODO: Refactor out into api function
 
     pub fn make_separate_lb(&mut self, div: &Division) {
-        if self.lb_thru != 0 {
+        if self.current_through != 0 {
             let mut new = self.clone();
             new.set_div(div);
             new.fetch_players(false);
@@ -417,8 +414,8 @@ impl FlipUpVMixCoordinator {
                 });
             new.focused_player_index = 0;
             new.set_round(self.round_ind);
-            if self.lb_thru > 0 {
-                new.set_to_hole(self.lb_thru - 1);
+            if self.current_through > 0 {
+                new.set_to_hole(self.current_through - 1);
             } else {
                 new.set_to_hole(0);
             }

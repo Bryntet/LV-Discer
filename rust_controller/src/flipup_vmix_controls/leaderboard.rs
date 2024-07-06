@@ -52,7 +52,7 @@ impl Leaderboard {
 }
 impl LeaderboardState {
     pub fn new(round: usize, mut players: Vec<Player>) -> Self {
-        let hole = players.iter().map(|p| p.hole).max().expect("Vec not empty");
+        let hole = players.iter().map(|p| p.hole_shown_up_until).max().expect("Vec not empty");
         Self::sort_players(&mut players);
         Self {
             hole,
