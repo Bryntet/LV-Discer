@@ -19,7 +19,7 @@ use rocket::tokio::sync::broadcast::Sender;
 use vmix::functions::VMixFunction;
 use vmix::functions::{VMixProperty, VMixSelectionTrait};
 use vmix::Queue;
-
+use crate::controller::queries::Division;
 
 #[derive(Clone, Debug)]
 pub struct FlipUpVMixCoordinator {
@@ -214,14 +214,23 @@ impl FlipUpVMixCoordinator {
         self.ip.clone_from(&ip);
         println!("ip set to {}", &self.ip);
     }
-    pub fn set_div(&mut self, idx: usize) {
-        println!("div set to {}", idx);
-        self.selected_div_index = idx;
-        self.handler.set_chosen_by_ind(idx);
-        self.fetch_players(false);
+    pub fn set_div(&mut self, div: &Division) {
+        if let Some((idx,_)) = self.all_divs.iter().find_position(|d|d.id==div.id) {
+
+            self.selected_div_index = idx;
+            self.handler.set_chosen_by_ind(idx);
+            self.fetch_players(false);
+        }
     }
 
-    pub fn set_leaderboard(&mut self, lb_start_ind: Option<usize>) {
+    
+    pub fn find_division(&self, div_id: &str) -> Option<Division> {
+        self.handler.get_divisions().iter().find(|div| div.id.inner() == div_id).cloned()
+    }
+    
+    
+    // TODO: Use division to set the leaderboard 
+    pub fn set_leaderboard(&mut self, division: &Division,lb_start_ind: Option<usize>) {
         self.queue_add(&FlipUpVMixCoordinator::clear_lb(10));
         println!("set_leaderboard");
         //let mut lb_copy = self.clone();
@@ -388,10 +397,10 @@ impl FlipUpVMixCoordinator {
 
     /// TODO: Refactor out into api function
 
-    pub fn make_separate_lb(&mut self, div_ind: usize) {
+    pub fn make_separate_lb(&mut self, div: &Division) {
         if self.lb_thru != 0 {
             let mut new = self.clone();
-            new.set_div(div_ind);
+            new.set_div(div);
             new.fetch_players(false);
             new.available_players
                 .iter_mut()
@@ -413,7 +422,7 @@ impl FlipUpVMixCoordinator {
             } else {
                 new.set_to_hole(0);
             }
-            new.set_leaderboard(None);
+            new.set_leaderboard(div,None);
         }
     }
 }

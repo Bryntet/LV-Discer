@@ -64,13 +64,26 @@ fn get_normal_routes() -> Vec<Route> {
         increase_score,
         focused_players,
         focused_player,
+        revert_score,
+        increase_throw,
+        revert_throw,
+        play_ob_animation,
+        set_hole_info,
+        update_other_leaderboard,
+
     ]
 }
 
 fn get_websocket_routes() -> Vec<Route> {
     use websocket::*;
+    routes![selection_updater]
+}
+
+fn get_websocket_htmx_routes() -> Vec<Route> {
+    use websocket::htmx::*;
     routes![selection_updater,focused_player_changer]
 }
+
 fn get_webpage_routes() -> Vec<Route> {
     use webpage_responses::*;
     
@@ -92,8 +105,9 @@ pub fn launch() -> Rocket<Build> {
             "/",
             get_normal_routes(),
         )
-        .mount("/", get_websocket_routes())
         .mount("/htmx/", get_webpage_routes())
+        .mount("/ws", get_websocket_routes())
+        .mount("/ws/htmx/", get_websocket_htmx_routes())
         .attach(Template::fairing())
         .register("/", catchers![make_coordinator,])
         .mount(

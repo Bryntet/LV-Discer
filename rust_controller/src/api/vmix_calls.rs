@@ -1,6 +1,7 @@
 use crate::api::Coordinator;
 use crate::vmix::functions::{VMixFunction, VMixProperty};
 use rocket_okapi::openapi;
+use crate::controller::queries::Division;
 
 /// # Play animation
 /// Play the animation that corresponds with the upcoming score of the currently focused player
@@ -60,4 +61,63 @@ pub async fn update_leaderboard(co: Coordinator) {
 #[post("/vmix/player/focused/score/increase")]
 pub async fn increase_score(co: Coordinator) {
     co.lock().await.increase_score()
+}
+
+
+
+
+/// # Revert score
+/// Revert the score of the currently focused player
+#[openapi(tag = "VMix")]
+#[post("/vmix/player/focused/revert-score")]
+pub async fn revert_score(co: Coordinator) {
+    co.lock().await.revert_score()
+}
+
+/// # Increase throw
+/// Increase the throw count of the currently focused player
+#[openapi(tag = "VMix")]
+#[post("/vmix/player/focused/throw/increase")]
+pub async fn increase_throw(co: Coordinator) {
+    co.lock().await.increase_throw()
+}
+
+
+/// # Revert throw
+/// Revert the throw count of the currently focused player
+#[openapi(tag = "VMix")]
+#[post("/vmix/player/focused/throw/decrease")]
+pub async fn revert_throw(co: Coordinator) {
+    co.lock().await.decrease_throw()
+}
+
+/// # Play OB animation
+/// Play the out-of-bounds animation
+#[openapi(tag = "VMix")]
+#[post("/vmix/play/animation/ob")]
+pub async fn play_ob_animation(co: Coordinator) {
+    co.lock().await.ob_anim()
+}
+
+
+
+
+/// # Set hole info
+/// Set the hole information
+#[openapi(tag = "VMix")]
+#[post("/vmix/hole-info/set")]
+pub async fn set_hole_info(co: Coordinator) {
+    co.lock().await.make_hole_info()
+}
+
+/// # Update other leaderboard
+/// Update the leaderboard for a specific division
+#[openapi(tag = "VMix")]
+#[post("/vmix/leaderboard/<division>/update")]
+pub async fn update_other_leaderboard(co: Coordinator, division: &str) -> Result<(), &'static str>{
+    let mut coordinator = co.lock().await;
+    let division = coordinator.find_division(division).ok_or("Unable to find division")?;
+    coordinator.set_leaderboard(&division, None);
+    coordinator.make_separate_lb(&division);
+    Ok(())
 }

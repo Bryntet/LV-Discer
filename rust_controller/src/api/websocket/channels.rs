@@ -12,7 +12,7 @@ pub struct SelectionUpdate {
 
 impl SelectionUpdate {
     pub fn try_into_message(self) -> Option<Message> {
-        Some(Message::from(serde_json::to_string(&self).ok()?))
+        Some(Message::from(serde_json::to_string(&self.players).ok()?))
     }
     
     pub fn make_html(self, metadata: &Metadata) -> Option<Message> {

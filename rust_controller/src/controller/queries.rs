@@ -1,3 +1,6 @@
+use rocket_okapi::okapi::schemars;
+use schemars::JsonSchema;
+use serde::Deserialize;
 use crate::flipup_vmix_controls::Score;
 use crate::vmix::functions::{VMixFunction, VMixProperty};
 pub use group::Group;

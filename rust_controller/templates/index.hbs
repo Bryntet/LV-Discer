@@ -127,7 +127,7 @@
 <h1>Groups and Players by Round</h1>
 
 
-<div hx-ext="ws" ws-connect="/player-selection-updater">
+<div hx-ext="ws" ws-connect="/ws/htmx/players/selected/watch">
     <div id="selected-players-container">
         <h2>Selected Players</h2>
         <ul id="selected-players-list"></ul>
@@ -135,7 +135,7 @@
 </div>
 
 
-<div hx-ext="ws" ws-connect="/selected-players">
+<div hx-ext="ws" ws-connect="/ws/htmx/players/selected/set">
 
     <div id="chat_room">
         <div id="chat_messages"></div>

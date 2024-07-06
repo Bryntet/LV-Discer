@@ -1,10 +1,18 @@
 import { InstanceBase, InstanceStatus, runEntrypoint, SomeCompanionConfigField, DropdownChoice, CompanionStaticUpgradeScript, CompanionVariableValues} from '@companion-module/base';
-import { Config, } from "./config";
+import {Config, WebSocketSubscription,} from "./config";
 import { setActionDefinitions } from "./actions";
 import { setFeedbackDefinitions } from './feedbacks';
 import { ApiClient } from './coordinator_communication';
-class LevandeVideoInstance extends InstanceBase<Config> {
+
+
+export class LevandeVideoInstance extends InstanceBase<Config> {
 	public coordinator = new ApiClient("http://10.169.122.114:8000");
+	private websocket: WebSocketSubscription = {
+		url: 'ws://10.169.122.114:8000/ws/players/selected/watch',
+		debug_messages: true,
+		variableName: 'selected_players',
+		subpath: 'players',
+	};
 	public config: Config = {
 		vmix_ip: '10.170.120.134',
 		event_id: 'd8f93dfb-f560-4f6c-b7a8-356164b9e4be',
@@ -32,7 +40,7 @@ class LevandeVideoInstance extends InstanceBase<Config> {
 	async init(config: Config) {
 		console.log('HIII')
 		this.updateStatus(InstanceStatus.Ok)
-
+		new WebSocketManager(this, this.websocket);
 		console.log('Rust module initialized')
 		this.config = config
 
@@ -168,16 +176,6 @@ class LevandeVideoInstance extends InstanceBase<Config> {
 	}
 
 
-
-
-
-
-
-
-
-
-
-
 	async updateFocusedPlayers() {
 		this.focused_players.length = 0;
 		this.focused_players.push({
@@ -215,6 +213,7 @@ class LevandeVideoInstance extends InstanceBase<Config> {
 }
 import { example_conversion } from './upgrades'
 import * as console from "console";
+import {WebSocketManager} from "./websocket_manager";
 const upgradeScripts: CompanionStaticUpgradeScript<Config>[] = [example_conversion]
 
 

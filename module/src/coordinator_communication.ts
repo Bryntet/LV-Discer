@@ -90,11 +90,11 @@ export class ApiClient {
     }
 
     async increaseThrow() {
-        await this.post("/vmix/player/focused/throw")
+        await this.post("/vmix/player/focused/throw/increase")
     }
 
     async revertThrow() {
-        await this.post("/vmix/player/focused/revert-throw")
+        await this.post("/vmix/player/focused/throw/decrease")
     }
 
     async playAnmiation() {
@@ -102,7 +102,7 @@ export class ApiClient {
     }
 
     async playObAnimation() {
-        await this.post("/vmix/play/ob-animation")
+        await this.post("/vmix/play/animation/ob")
     }
 
     async setHoleInfo() {
