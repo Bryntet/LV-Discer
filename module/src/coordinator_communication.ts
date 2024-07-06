@@ -1,7 +1,8 @@
 import post, {AxiosResponse} from "axios";
-
 import * as console from "node:console";
 import {InstanceBase} from "@companion-module/base";
+import fetch from "node-fetch";
+
 export class ApiClient {
     baseUrl: string;
 
@@ -53,19 +54,13 @@ export class ApiClient {
     async chosenPlayers(instance: InstanceBase<any>): Promise<Player[]> {
 
         const playerObjects = await fetch(`${this.baseUrl}/players/focused`);
-        instance.log("info", "HELLO THIS MY LOG" + playerObjects.body);
-        /*if (!Array.isArray(playerObjects)) {
-            throw new Error("Invalid JSON: Expected an array of players");
+        let players: any = await playerObjects.json();
+        let array: Player[] = [];
+        for (const player of players) {
+            array.push(Player.fromJSON(player));
         }
-
-        console.log(playerObjects);
-        return playerObjects.map(obj => {
-            return Player.fromJSON(obj);
-        });*/
-        setTimeout( () => {
-
-        },200);
-        return [];
+        instance.log("info", array.toString());
+        return array;
     }
 
 
@@ -135,13 +130,8 @@ export class Player {
         this.holes_finished = holes_finished
     }
 
-    static fromJSON(jsonString: string): Player {
+    static fromJSON(jsonObject: any): Player {
 
-        console.log(jsonString);
-        const jsonObject = JSON.parse(jsonString);
-        if (!jsonObject.id || !jsonObject.name || jsonObject.focused || jsonObject.holes_finished === undefined) {
-            throw new Error("Invalid JSON: Missing required player properties");
-        }
-        return new Player(jsonObject.id, jsonObject.name, jsonObject.focused, jsonObject.image_url || null, jsonObject.holes_finished);
+        return new Player(jsonObject["id"], jsonObject["name"], jsonObject["focused"], jsonObject["image_url"] || null, jsonObject["holes_finished"]);
     }
 }

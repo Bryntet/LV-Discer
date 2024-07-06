@@ -128,10 +128,10 @@ class LevandeVideoInstance extends InstanceBase<Config> {
 		this.log("info", focusedPlayers.toString())
 		return {
 			player_name: this.foc_player,
-			p1: this.focused_players[0].label,
-			p2: this.focused_players[0].label,
-			p3: this.focused_players[0].label,
-			p4: this.focused_players[0].label,
+			p1: focusedPlayers[0].name,
+			p2: focusedPlayers[1].name,
+			p3: focusedPlayers[2].name,
+			p4: focusedPlayers[3].name,
 			hole: await this.coordinator.currentHole(),
 			foc_player_id: this.foc_player_id,
 			round: await this.coordinator.getRound(),
