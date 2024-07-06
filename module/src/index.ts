@@ -19,8 +19,8 @@ class LevandeVideoInstance extends InstanceBase<Config> {
 	};
 	private players: DropdownChoice[] = [{ id: 'none', label: 'None' }];
 	private div_names: DropdownChoice[] = [{ id: "none", label: 'None' }];
-	public foc_player_id: string = "";
-	public foc_player: string = "z";
+	public foc_player_ind: number = 0;
+	public foc_player: string = "z"
 	public focused_players: DropdownChoice[] = [{ id: 'none', label: 'None' }];
 	public hole: number = 0;
 
@@ -35,6 +35,8 @@ class LevandeVideoInstance extends InstanceBase<Config> {
 
 		console.log('Rust module initialized')
 		this.config = config
+
+		await this.refreshInternalFocusedPlayers();
 
 		this.setVariableDefinitions([
 			{
@@ -62,8 +64,8 @@ class LevandeVideoInstance extends InstanceBase<Config> {
 				variableId: "hole",
 			},
 			{
-				name: "Focused player id",
-				variableId: "foc_player_id",
+				name: "Focused player index",
+				variableId: "foc_player_ind",
 			},
 			{
 				name: "Round",
@@ -92,35 +94,29 @@ class LevandeVideoInstance extends InstanceBase<Config> {
 		//this.saveConfig(config)
 
 		
-		this.foc_player_id = 'none'
+		this.foc_player_ind = 0;
 		this.setVariableValues(await this.varValues())
 
 		this.hole = 0
-		if (typeof this.focused_players === 'undefined') {
-			this.focused_players = []
-		}
-		this.focused_players = [
-			{
-				id: 'none',
-				label: 'None',
-			},
-		]
 
 		console.log("gonna start the queue!")
 	}
 
-	/*async startWorker()  {
-		const worker = new Worker('./worker.js');  // Ensure this path points to the compiled JS file
 
-		worker.on('message', (message: string) => {
-			if (message === 'callFunction') {
-				this.rust_main.empty_queue();
-			}
-		});
+	async refreshInternalFocusedPlayers() {
+		this.focused_players = []
+		this.focused_players.push({
+			id: 'none',
+			label: 'None',
+		})
+		for (const player of (await this.coordinator.chosenPlayers(this))) {
+			this.focused_players.push({
+				id: player.index,
+				label: player.name,
+			})
+		}
 
-		worker.postMessage('start');
-	}*/
-
+	}
 
 	async varValues(): Promise<CompanionVariableValues> {
 		let focusedPlayers = await this.coordinator.chosenPlayers(this);
@@ -133,7 +129,7 @@ class LevandeVideoInstance extends InstanceBase<Config> {
 			p3: focusedPlayers[2].name,
 			p4: focusedPlayers[3].name,
 			hole: await this.coordinator.currentHole(),
-			foc_player_id: this.foc_player_id,
+			foc_player_ind: this.foc_player_ind,
 			round: await this.coordinator.getRound(),
 		}
 	}
@@ -191,7 +187,7 @@ class LevandeVideoInstance extends InstanceBase<Config> {
 
 		for (const player of (await this.coordinator.chosenPlayers(this))) {
 			this.focused_players.push({
-				id: player.id,
+				id: player.index,
 				label: player.name,
 			});
 		}

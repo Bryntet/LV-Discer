@@ -21,22 +21,22 @@ export enum ActionId {
     DoOtherLeaderboard = 'do_other_leaderboard',
 }
 
-async function parseAuto(context: CompanionCommonCallbackContext): Promise<string> {
-    return await context.parseVariablesInString("$(lvvmix:foc_player_id)");
+async function parseAuto(context: CompanionCommonCallbackContext): Promise<number> {
+    return Number.parseInt(await context.parseVariablesInString("$(lvvmix:foc_player_ind)"));
 }
 
 async function initPlayerOption<T extends  InstanceBaseExt<Config>>(action: CompanionActionEvent, instance: T): Promise<Player> {
-    if (typeof action.options.focused_player === "string") {
+    if (typeof action.options.focused_player === "number") {
         return await instance.coordinator.setFocusedPlayer(action.options.focused_player);
     } else {
         return await instance.coordinator.focusedPlayer();
     }
 }
 
-async function exitPlayerOption<T extends InstanceBaseExt<Config>>(instance: T,context: CompanionCommonCallbackContext, currentId: string) {
-    const previousId = await parseAuto(context);
-    if (currentId !== previousId) {
-        await instance.coordinator.setFocusedPlayer(previousId)
+async function exitPlayerOption<T extends InstanceBaseExt<Config>>(instance: T,context: CompanionCommonCallbackContext, currentIndex: number) {
+    const previousNum = await parseAuto(context);
+    if (currentIndex !== previousNum) {
+        await instance.coordinator.setFocusedPlayer(previousNum)
     }
 }
 
@@ -67,7 +67,7 @@ export const setActionDefinitions = <T extends InstanceBaseExt<Config>>(instance
                 await instance.coordinator.increaseScore();
             }
 
-            await exitPlayerOption(instance, context, focusedPlayer.id);
+            await exitPlayerOption(instance, context, focusedPlayer.index);
         },
     }
 
@@ -94,10 +94,12 @@ export const setActionDefinitions = <T extends InstanceBaseExt<Config>>(instance
         ],
         callback: async (action) => {
             const focusedPlayer = await initPlayerOption(action, instance);
+            instance.log("info", `Changing focused player to ${focusedPlayer.name} with index ${focusedPlayer.index}`)
+            await instance.coordinator.setFocusedPlayer(focusedPlayer.index);
             instance.setVariableValues({
                 player_name: focusedPlayer.name,
                 hole: focusedPlayer.holes_finished,
-                foc_player_id: focusedPlayer.id,
+                foc_player_ind: focusedPlayer.index,
             })
         },
     }
@@ -116,7 +118,7 @@ export const setActionDefinitions = <T extends InstanceBaseExt<Config>>(instance
         callback: async (action, context) => {
             const focusedPlayer = await initPlayerOption(action, instance);
             await instance.coordinator.increaseThrow();
-            await exitPlayerOption(instance, context, focusedPlayer.id);
+            await exitPlayerOption(instance, context, focusedPlayer.index);
         },
     }
     actions[ActionId.DecreaseThrow] = {
@@ -133,7 +135,7 @@ export const setActionDefinitions = <T extends InstanceBaseExt<Config>>(instance
         callback: async (action, context) => {
             const focusedPlayer = await initPlayerOption(action, instance);
             await instance.coordinator.revertThrow();
-            await exitPlayerOption(instance, context, focusedPlayer.id);
+            await exitPlayerOption(instance, context, focusedPlayer.index);
         },
     }
     actions[ActionId.OB] = {
@@ -158,7 +160,7 @@ export const setActionDefinitions = <T extends InstanceBaseExt<Config>>(instance
             const focusedPlayer = await initPlayerOption(action, instance);
 
             await instance.coordinator.playAnmiation();
-            await exitPlayerOption(instance, context, focusedPlayer.id);
+            await exitPlayerOption(instance, context, focusedPlayer.index);
         },
     }
 

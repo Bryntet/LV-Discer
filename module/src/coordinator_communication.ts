@@ -1,4 +1,3 @@
-import post, {AxiosResponse} from "axios";
 import * as console from "node:console";
 import {InstanceBase} from "@companion-module/base";
 import fetch from "node-fetch";
@@ -26,8 +25,9 @@ export class ApiClient {
 
     }
 
-    private async post(endpoint: string, data?: any): Promise<AxiosResponse<any,any>> {
-        return post(`${this.baseUrl}${endpoint}`, data);
+    private async post(endpoint: string, data?: any): Promise<any> {
+        return await fetch(`${this.baseUrl}${endpoint}`, {method:"POST",
+        body: data, headers: {'Content-Type': 'application/json'}});
 
     }
 
@@ -48,7 +48,7 @@ export class ApiClient {
     }
 
     async currentHole(): Promise<number> {
-        return this.get<number>('/current-hole')
+        return this.get<number>('/hole/current')
     }
 
     async chosenPlayers(instance: InstanceBase<any>): Promise<Player[]> {
@@ -73,7 +73,7 @@ export class ApiClient {
         await this.post("/vmix/leaderboard/update");
     }
 
-    async setFocusedPlayer(player_id: string): Promise<Player> {
+    async setFocusedPlayer(player_id: number): Promise<Player> {
 
         const response = await this.post(`/player/focused/set/${player_id}`);
         return Player.fromJSON(response.data);
@@ -121,17 +121,19 @@ export class Player {
     image_url: string | null;
     focused: boolean;
     holes_finished: number;
+    index: number;
 
-    constructor(id: string, name: string, focused: boolean, image_url: string | null = null, holes_finished: number) {
+    constructor(id: string, name: string, focused: boolean, image_url: string | null = null, holes_finished: number, index: number) {
         this.id = id;
         this.name = name;
         this.focused = focused;
         this.image_url = image_url;
-        this.holes_finished = holes_finished
+        this.holes_finished = holes_finished;
+        this.index = index;
     }
 
     static fromJSON(jsonObject: any): Player {
 
-        return new Player(jsonObject["id"], jsonObject["name"], jsonObject["focused"], jsonObject["image_url"] || null, jsonObject["holes_finished"]);
+        return new Player(jsonObject["id"], jsonObject["name"], jsonObject["focused"], jsonObject["image_url"] || null, jsonObject["holes_finished"], jsonObject["index"]);
     }
 }

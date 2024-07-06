@@ -7,7 +7,7 @@ use rocket_okapi::openapi;
 
 /// # GET current hole
 #[openapi(tag = "Hole")]
-#[get("/current-hole")]
+#[get("/hole/current")]
 pub async fn current_hole(coordinator: Coordinator) -> Json<usize> {
     coordinator.lock().await.current_hole().into()
 }
@@ -68,4 +68,11 @@ pub async fn get_groups(coordinator: Coordinator) -> Json<Vec<dto::Group>> {
 pub async fn focused_players(coordinator: Coordinator) -> Json<Vec<dto::Player>> {
     let coordinator = coordinator.lock().await;
     dbg!(dto::current_dto_players(&coordinator).into())
+}
+
+#[openapi(tag = "Player")]
+#[get("/player/focused")]
+pub async fn focused_player(coordinator: Coordinator) -> Json<dto::Player> {
+    let coordinator = coordinator.lock().await;
+    dto::Player::from(coordinator.focused_player()).into()
 }

@@ -101,10 +101,13 @@ impl FlipUpVMixCoordinator {
         Ok(coordinator)
     }
 
+    
+    
     pub fn set_focused_player(&mut self, index: usize, updater: Option<&State<Sender<api::SelectionUpdate>>>) {
-        if index < self.card.players(&self.available_players).len() {
-            self.focused_player_index = index;
+        if index >= self.card.players(&self.available_players).len() {
+            return;
         }
+        self.focused_player_index = index;
         if let Some(updater) = updater {
             match updater.send(api::SelectionUpdate::from(self.deref())) {
                 Ok(_) => (),

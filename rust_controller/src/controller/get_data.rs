@@ -173,6 +173,7 @@ pub struct Player {
     pub results: PlayerRound,
     pub hole: usize,
     pub ind: usize,
+    pub index: usize,
     pub throws: u8,
     shift: usize,
     pub ob: bool,
@@ -200,6 +201,7 @@ impl Player {
             total_score: 0,
             round_score: 0,
             round_ind: 0,
+            index: 0,
             results: Default::default(),
             image_url: None,
             hole: 0,
@@ -238,6 +240,7 @@ impl Player {
             first_scored: false,
             round_ind: round,
             thru: 0,
+            index: 0,
             hot_round: false,
             hole: 0,
             ind: 0,
@@ -681,7 +684,7 @@ impl RustHandler {
             .unique_by(|division| division.id.clone())
             .for_each(|division| divisions.push(division));
 
-        let container = PlayerContainer::new(
+        let mut container = PlayerContainer::new(
             event
                 .into_iter()
                 .enumerate()
@@ -695,6 +698,15 @@ impl RustHandler {
                 })
                 .collect_vec(),
         );
+
+        for (i,round) in container.rounds_with_players.iter_mut().enumerate() {
+            round.iter_mut().for_each(|player| {
+                if let Some(group_index) = groups[i].iter().flat_map(|group|&group.players).enumerate().find(|(_,group_player)|group_player.id==player.player_id).map(|(group_index,_)|group_index) {
+                    player.index = group_index;
+                }
+            });
+        }
+
 
         Ok(Self {
             chosen_division: divisions.first().expect("NO DIV CHOSEN").id.clone(),
@@ -813,7 +825,7 @@ impl RustHandler {
             .collect_vec()
 
     }
-    
+
     pub fn amount_of_rounds(&self) -> usize {
         self.player_container.rounds_with_players.len()
     }

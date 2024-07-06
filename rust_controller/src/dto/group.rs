@@ -29,7 +29,7 @@ impl From<&crate::controller::queries::Group> for Group {
                 if let crate::controller::queries::group::GroupPlayerConnectionTypeCombined::GroupPlayerConnection(connection) = connection {
                     let player = &connection.player;
                     let name = format!("{} {}", player.user.first_name.clone().unwrap(),player.user.last_name.clone().unwrap());
-                    Some(dto::Player::new(player.id.clone().into_inner(),name, None,0))
+                    Some(dto::Player::new(player.id.clone().into_inner(),name, None,0,100))
                 } else {
                     None
                 }
@@ -51,7 +51,7 @@ impl From<crate::controller::queries::Group> for Group {
                     let player = connection.player;
 
                     let name = format!("{} {}", player.user.first_name.unwrap(),player.user.last_name.unwrap());
-                    Some(dto::Player::new(player.id.into_inner().parse().ok()?,name,None,0))
+                    Some(dto::Player::new(player.id.into_inner().parse().ok()?,name,None,0, 100))
                 } else {
                     None
                 }

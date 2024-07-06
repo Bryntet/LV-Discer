@@ -63,6 +63,7 @@ fn get_normal_routes() -> Vec<Route> {
         update_leaderboard, // TODO
         increase_score,
         focused_players,
+        focused_player,
     ]
 }
 
@@ -83,7 +84,6 @@ pub fn launch() -> Rocket<Build> {
     rocket::build()
         .configure(rocket::Config {
             address: IpAddr::V4("10.169.122.114".parse().unwrap()),
-            log_level: LogLevel::Debug,
             ..Default::default()
         })
         .manage(CoordinatorLoader(Mutex::new(None)))
