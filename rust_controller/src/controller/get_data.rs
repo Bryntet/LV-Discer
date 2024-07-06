@@ -1,11 +1,12 @@
-use crate::api::MyError;
+use crate::api::{HoleUpdate, MyError};
 use crate::flipup_vmix_controls::LeaderBoardProperty;
 use cynic::GraphQlResponse;
 use itertools::Itertools;
 use log::warn;
 use rayon::prelude::*;
 use rocket::futures::StreamExt;
-
+use rocket::State;
+use tokio::sync::broadcast::Sender;
 use super::queries;
 use crate::controller::queries::HoleResult;
 use crate::dto;
@@ -175,7 +176,6 @@ pub struct Player {
     pub ind: usize,
     pub index: usize,
     pub throws: u8,
-    shift: usize,
     pub ob: bool,
     pub position: usize,
     pub lb_even: bool,
@@ -207,7 +207,6 @@ impl Player {
             hole_shown_up_until: 0,
             ind: 0,
             throws: 0,
-            shift: 0,
             ob: false,
             position: 0,
             lb_even: false,
@@ -245,7 +244,6 @@ impl Player {
             hole_shown_up_until: 0,
             ind: 0,
             throws: 0,
-            shift: 0,
             ob: false,
             position: 0,
             lb_pos: 0,
@@ -279,7 +277,7 @@ impl Player {
     }
 
     pub fn get_score(&self) -> Score {
-        self.results.results.last().unwrap().into()
+        self.results.results.iter().find(|result|result.hole.number as usize ==(self.hole_shown_up_until+1)).unwrap().into()
     }
 
     pub fn check_if_allowed_to_visible(&mut self) {
@@ -310,7 +308,7 @@ impl Player {
         OverarchingScore::from(self)
     }
 
-    pub fn set_hole_score(&mut self) -> Vec<VMixFunction<VMixProperty>> {
+    pub fn set_hole_score(&mut self, ) -> Vec<VMixFunction<VMixProperty>> {
         let mut return_vec: Vec<VMixFunction<VMixProperty>> = vec![];
 
         if !self.first_scored {
@@ -318,7 +316,7 @@ impl Player {
         }
 
         // Update score text, visibility, and colour
-        let score = self.get_score().update_score(self.ind);
+        let score = self.get_score().update_score(1);
         return_vec.extend(score);
 
         let overarching = self.overarching_score_representation();
@@ -328,11 +326,7 @@ impl Player {
         self.hole_shown_up_until += 1;
         self.throws = 0;
         return_vec.push(self.set_throw());
-        if self.visible_player {
-            return_vec
-        } else {
-            vec![]
-        }
+        return_vec
     }
     fn add_total_score(&self, outside_instructions: &mut Vec<VMixFunction<VMixProperty>>) {
         outside_instructions.push(self.overarching_score_representation().set_total_score())
@@ -349,15 +343,10 @@ impl Player {
             let result = self.results.hole_score(self.hole_shown_up_until);
             self.round_score -= result;
             self.total_score -= result;
-            if self.hole_shown_up_until > 8 {
-                self.hole_shown_up_until -= 1;
-                self.round_score -= result;
-                self.total_score -= result;
-                return_vec.extend(self.shift_scores(true));
-            } else {
-                return_vec.push(self.set_tot_score());
-                self.add_round_score(&mut return_vec);
-            }
+            // Previously had shift-scores here
+            return_vec.push(self.set_tot_score());
+            self.add_round_score(&mut return_vec);
+
         }
         return_vec
     }
@@ -428,7 +417,7 @@ impl Player {
         }
     }
 
-    pub fn shift_scores(&mut self, last_blank: bool) -> Vec<VMixFunction<VMixProperty>> {
+    /*pub fn shift_scores(&mut self, last_blank: bool) -> Vec<VMixFunction<VMixProperty>> {
         let mut return_vec = vec![];
         let in_hole = self.hole_shown_up_until;
 
@@ -471,7 +460,7 @@ impl Player {
         } else {
             vec![]
         }
-    }
+    }*/
 
     fn del_score(&self) -> [VMixFunction<VMixProperty>; 4] {
         let score_prop = VMixProperty::Score {
@@ -505,12 +494,11 @@ impl Player {
 
     pub fn reset_scores(&mut self) -> Vec<VMixFunction<VMixProperty>> {
         let mut return_vec: Vec<VMixFunction<VMixProperty>> = vec![];
-        for i in 0..9 {
+        for i in 0..=17 {
             self.hole_shown_up_until = i;
             return_vec.extend(self.del_score());
         }
         self.hole_shown_up_until = 0;
-        self.shift = 0;
         self.round_score = 0;
         self.total_score = self.score_before_round();
 

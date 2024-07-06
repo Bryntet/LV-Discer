@@ -1,12 +1,14 @@
-use crate::api::Coordinator;
+use rocket::State;
+use crate::api::{Coordinator, GeneralChannel, HoleUpdate};
 use crate::vmix::functions::{VMixFunction, VMixProperty};
 use rocket_okapi::openapi;
+use tokio::sync::broadcast::Sender;
 use crate::controller::queries::Division;
 
 /// # Play animation
 /// Play the animation that corresponds with the upcoming score of the currently focused player
 #[openapi(tag = "VMix")]
-#[post("/vmix/player/focused/animation")]
+#[post("/vmix/player/focused/animation/play")]
 pub async fn play_animation(co: Coordinator) {
     co.lock().await.play_animation()
 }
@@ -59,8 +61,10 @@ pub async fn update_leaderboard(co: Coordinator) {
 /// Increase the score of the currently focused player
 #[openapi(tag = "VMix")]
 #[post("/vmix/player/focused/score/increase")]
-pub async fn increase_score(co: Coordinator) {
-    co.lock().await.increase_score()
+pub async fn increase_score(co: Coordinator, hole_update: &State<GeneralChannel<HoleUpdate>>) {
+    let mut coordinator = co.lock().await;
+    coordinator.increase_score(hole_update);
+    
 }
 
 
@@ -69,7 +73,7 @@ pub async fn increase_score(co: Coordinator) {
 /// # Revert score
 /// Revert the score of the currently focused player
 #[openapi(tag = "VMix")]
-#[post("/vmix/player/focused/revert-score")]
+#[post("/vmix/player/focused/score/revert")]
 pub async fn revert_score(co: Coordinator) {
     co.lock().await.revert_score()
 }
@@ -94,7 +98,7 @@ pub async fn revert_throw(co: Coordinator) {
 /// # Play OB animation
 /// Play the out-of-bounds animation
 #[openapi(tag = "VMix")]
-#[post("/vmix/play/animation/ob")]
+#[post("/vmix/player/focused/animation/play/ob")]
 pub async fn play_ob_animation(co: Coordinator) {
     co.lock().await.ob_anim()
 }

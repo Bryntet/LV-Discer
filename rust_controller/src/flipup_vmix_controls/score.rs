@@ -150,6 +150,7 @@ impl Score {
         }
     }
     pub fn update_score(&self, player: usize) -> [VMixFunction<VMixProperty>; 3] {
+        
         [
             self.update_score_text(player),
             self.show_score(player),
@@ -171,7 +172,7 @@ impl Score {
         VMixFunction::SetText {
             value: self.get_score_text(),
             input: VMixSelection(VMixProperty::Score {
-                hole: self.hole,
+                hole: self.hole, // TODO remove
                 player,
             }),
         }
@@ -189,7 +190,7 @@ impl Score {
     pub fn play_mov_vmix(&self, player: usize, ob: bool) -> [VMixFunction<VMixProperty>; 3] {
         [
             Self::stop_previous_mov(),
-            self.set_input_pan(player),
+            self.set_input_pan(0),
             self.to_vmix_mov(ob),
         ]
     }

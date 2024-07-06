@@ -2,7 +2,7 @@ pub trait VMixSelectionTrait {
     fn get_selection(&self) -> String;
     fn get_id(&self) -> String;
 }
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct VMixSelection<T: VMixSelectionTrait>(pub T);
 
 impl<T: VMixSelectionTrait> VMixSelection<T> {
@@ -17,6 +17,7 @@ impl From<VMixProperty> for VMixSelection<VMixProperty> {
     }
 }
 
+#[derive(Clone,Debug)]
 pub enum VMixFunction<InputEnum: VMixSelectionTrait> {
     SetText {
         value: String,
@@ -49,7 +50,12 @@ impl<InputEnum: VMixSelectionTrait> VMixFunction<InputEnum> {
         match self {
             SetText { input, .. } => Some(input.get_selection()),
             SetColor { input, .. } => Some(input.get_selection()),
-            OverlayInput4(mov) => Some(mov.to_string()),
+            OverlayInput4(mov) => {
+
+                let test = format!(r#"C:\livegrafik-flipup\".mov bumps"\{}"#, mov);
+                println!("test: {}", &test);
+                Some(test)
+            },
             OverlayInput4Off | SetPanX { .. } => None,
             SetImage { input, .. } => Some(input.get_selection()),
             SetTextVisibleOn { input } => Some(input.get_selection()),
@@ -119,7 +125,7 @@ impl<InputEnum: VMixSelectionTrait> VMixFunction<InputEnum> {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum VMixProperty {
     Score { hole: usize, player: usize },
     HoleNumber(usize, usize),
@@ -143,14 +149,14 @@ impl VMixSelectionTrait for VMixProperty {
     fn get_selection(&self) -> String {
         self.get_id()
             + &(match self {
-                VMixProperty::Score { hole, player } => {
+                VMixProperty::Score { hole, .. } => {
                     format!("SelectedName=p{}s{}.Text", 1,hole)
                 }
                 VMixProperty::HoleNumber(v1, v2) => {
                     format!("SelectedName=HN{}p{}.Text", v1, v2 + 1)
                 }
-                VMixProperty::ScoreColor { hole, player } => {
-                    format!("SelectedName=p{}h{}.Fill.Color", hole, player + 1)
+                VMixProperty::ScoreColor { hole, .. } => {
+                    format!("SelectedName=p{}h{}.Fill.Color",  1,hole)
                 }
                 VMixProperty::PosRightTriColor(v1) => {
                     format!("SelectedName=rghtri{}.Fill.Color", v1 + 1)

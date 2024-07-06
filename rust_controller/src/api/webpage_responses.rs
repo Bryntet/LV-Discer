@@ -6,7 +6,7 @@ use rocket_dyn_templates::Template;
 use rocket_okapi::openapi;
 use serde_json::json;
 use tokio::sync::broadcast::Sender;
-use crate::api::{Coordinator, mutation, query, GroupSelectionUpdate};
+use crate::api::{Coordinator, mutation, query, GroupSelectionUpdate, GeneralChannel};
 use crate::api::guard::CoordinatorLoader;
 use crate::dto::CoordinatorBuilder;
 use super::super::dto;
@@ -20,7 +20,7 @@ pub async fn focused_players(coordinator: Coordinator) -> Template {
 
 #[openapi(tag = "Config")]
 #[post("/group/<group_id>")]
-pub async fn set_group(coordinator: Coordinator, group_id: &str, updater: &State<Sender<GroupSelectionUpdate>>) -> Result<Template, &'static str> {
+pub async fn set_group(coordinator: Coordinator, group_id: &str, updater: &State<GeneralChannel<GroupSelectionUpdate>>) -> Result<Template, &'static str> {
     mutation::set_group(coordinator.clone(), group_id, updater).await?;
 
     let coordinator = coordinator.lock().await;

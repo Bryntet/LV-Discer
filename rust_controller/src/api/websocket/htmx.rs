@@ -4,7 +4,7 @@ use rocket_ws as ws;
 use rocket_ws::Message;
 use serde::Deserialize;
 use serde_json::json;
-use crate::api::Coordinator;
+use crate::api::{Coordinator, GeneralChannel};
 use crate::dto;
 use rocket::{State, Shutdown};
 use rocket::futures::FutureExt;
@@ -15,7 +15,7 @@ pub use crate::api::websocket::channels::GroupSelectionUpdate;
 use crate::api::websocket::{interpret_message, ChannelAttributes};
 
 #[get("/players/selected/watch")]
-pub fn focused_player_changer<'r>(ws: ws::WebSocket, coordinator: Coordinator, metadata: Metadata<'r>, updater: &'r State<Sender<GroupSelectionUpdate>>) -> ws::Stream!['r] {
+pub fn focused_player_changer<'r>(ws: ws::WebSocket, coordinator: Coordinator, metadata: Metadata<'r>, updater: &'r State<GeneralChannel<GroupSelectionUpdate>>) -> ws::Stream!['r] {
     let ws = ws.config(ws::Config {
         ..Default::default()
     });
@@ -36,7 +36,7 @@ pub fn focused_player_changer<'r>(ws: ws::WebSocket, coordinator: Coordinator, m
 
 
 #[get("/players/selected/set")]
-pub async fn selection_updater<'r>(ws: ws::WebSocket, coordinator: Coordinator, queue: &State<Sender<GroupSelectionUpdate>>, metadata: Metadata<'r>, shutdown: Shutdown) -> ws::Channel<'r> {
+pub async fn selection_updater<'r>(ws: ws::WebSocket, coordinator: Coordinator, queue: &State<GeneralChannel<GroupSelectionUpdate>>, metadata: Metadata<'r>, shutdown: Shutdown) -> ws::Channel<'r> {
     use rocket::futures::SinkExt;
 
     let mut receiver = queue.subscribe();

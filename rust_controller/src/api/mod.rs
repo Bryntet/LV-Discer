@@ -20,10 +20,11 @@ use std::net::IpAddr;
 use std::sync::Arc;
 use rocket::config::LogLevel;
 use tokio::sync::{Mutex, MutexGuard};
-pub use websocket::GroupSelectionUpdate;
+pub use websocket::channels::{GroupSelectionUpdate,HoleUpdate};
 use rocket::tokio::sync::broadcast::channel;
 
 pub use guard::MyError;
+pub use crate::api::websocket::channels::GeneralChannel;
 
 #[derive(Debug, Clone)]
 struct Coordinator(Arc<Mutex<FlipUpVMixCoordinator>>);
@@ -76,7 +77,7 @@ fn get_normal_routes() -> Vec<Route> {
 
 fn get_websocket_routes() -> Vec<Route> {
     use websocket::*;
-    routes![selection_updater]
+    routes![selection_watcher,hole_watcher]
 }
 
 fn get_websocket_htmx_routes() -> Vec<Route> {
@@ -92,7 +93,11 @@ fn get_webpage_routes() -> Vec<Route> {
 
 pub fn launch() -> Rocket<Build> {
     
-    let (sender, _) = channel::<websocket::GroupSelectionUpdate>(1024);
+    let (group_selection_sender, _) = channel::<websocket::GroupSelectionUpdate>(1024);
+    let group_selection_sender = GeneralChannel::from(group_selection_sender);
+    let (hole_update_sender, _) = channel::<HoleUpdate>(1024);
+    let hole_update_sender = GeneralChannel::from(hole_update_sender);
+    
     
     rocket::build()
         .configure(rocket::Config {
@@ -100,7 +105,8 @@ pub fn launch() -> Rocket<Build> {
             ..Default::default()
         })
         .manage(CoordinatorLoader(Mutex::new(None)))
-        .manage(sender)
+        .manage(group_selection_sender)
+        .manage(hole_update_sender)
         .mount(
             "/",
             get_normal_routes(),

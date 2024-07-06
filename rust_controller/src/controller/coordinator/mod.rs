@@ -2,7 +2,7 @@ mod simple_queries;
 mod vmix_calls;
 
 pub use super::*;
-use crate::api::MyError;
+use crate::api::{GeneralChannel, HoleUpdate, MyError};
 use crate::controller::get_data::RustHandler;
 use crate::{api, vmix};
 use crate::{dto, flipup_vmix_controls};
@@ -97,27 +97,26 @@ impl FlipUpVMixCoordinator {
             leaderboard: Leaderboard::default(),
         };
         coordinator.queue_add(&coordinator.focused_player().set_name());
+        coordinator.reset_score();
         coordinator.set_group(&id, None);
         Ok(coordinator)
     }
 
     
     
-    pub fn set_focused_player(&mut self, index: usize, updater: Option<&State<Sender<api::GroupSelectionUpdate>>>) {
+    pub fn set_focused_player(&mut self, index: usize, updater: Option<&State<GeneralChannel<api::GroupSelectionUpdate>>>) {
         if index >= self.card.players(&self.available_players).len() {
             return;
         }
         self.focused_player_index = index;
         self.queue_add(&self.focused_player().set_name());
         if let Some(updater) = updater {
-            match updater.send(api::GroupSelectionUpdate::from(self.deref())) {
-                Ok(_) => (),
-                Err(e) => warn!("{}", e),
-            }
+            updater.send(&self);
+
         }
     }
 
-    pub fn set_group(&mut self, group_id: &str, updater: Option<&State<Sender<api::GroupSelectionUpdate>>>) -> Option<()> {
+    pub fn set_group(&mut self, group_id: &str, updater: Option<&State<GeneralChannel<api::GroupSelectionUpdate>>>) -> Option<()> {
         let groups = self.groups();
         let ids = groups
             .iter()
@@ -125,13 +124,7 @@ impl FlipUpVMixCoordinator {
             .player_ids();
         self.card = Card::new(ids);
         if let Some(updater) = updater {
-            match updater.send(api::GroupSelectionUpdate::from(self.deref())) {
-                Ok(_) => (),
-                Err(e) => { 
-                    warn!("{}", e);
-                    None?
-                },
-            }
+            updater.send(self);
         }
 
         Some(())
@@ -207,10 +200,6 @@ impl FlipUpVMixCoordinator {
 // basically leftover from WASM
 
 impl FlipUpVMixCoordinator {
-    pub fn set_ip(&mut self, ip: String) {
-        self.ip.clone_from(&ip);
-        println!("ip set to {}", &self.ip);
-    }
     pub fn set_div(&mut self, div: &Division) {
         if let Some((idx,_)) = self.all_divs.iter().find_position(|d|d.id==div.id) {
 
@@ -220,13 +209,13 @@ impl FlipUpVMixCoordinator {
         }
     }
 
-    
+
     pub fn find_division(&self, div_id: &str) -> Option<Division> {
         self.handler.get_divisions().iter().find(|div| div.id.inner() == div_id).cloned()
     }
-    
-    
-    // TODO: Use division to set the leaderboard 
+
+
+    // TODO: Use division to set the leaderboard
     pub fn set_leaderboard(&mut self, division: &Division,lb_start_ind: Option<usize>) {
         self.queue_add(&FlipUpVMixCoordinator::clear_lb(10));
         println!("set_leaderboard");
@@ -257,15 +246,12 @@ impl FlipUpVMixCoordinator {
     pub fn set_to_hole(&mut self, hole: usize) {
         let player = self.focused_player_mut();
         let mut actions = vec![];
-        if hole >= 9 {
-            player.hole_shown_up_until = hole - 1;
-            actions.extend(player.shift_scores(true));
-        } else {
-            for x in 1..=hole {
-                player.hole_shown_up_until = x;
-                actions.extend(player.set_hole_score());
-            }
+        // Previously had shift-scores here
+        for x in 1..=hole {
+            player.hole_shown_up_until = x;
+            actions.extend(player.set_hole_score());
         }
+        
         self.queue_add(&actions)
     }
 
@@ -278,21 +264,18 @@ impl FlipUpVMixCoordinator {
 
     pub async fn fetch_event(&mut self) {}
 
-    pub fn increase_score(&mut self) {
-        let hole = self.focused_player_mut().hole_shown_up_until;
-        self.hide_pos();
-        //println!(format!("hole: {}", hole).as_str());
-        if hole <= 17 {
-            let f = {
-                let focused = self.focused_player_mut();
-                if hole <= 7 {
-                    focused.set_hole_score()
-                } else {
-                    focused.shift_scores(false)
-                }
+    pub fn increase_score(&mut self, hole_update: &GeneralChannel<HoleUpdate>) {
+        let player = self.focused_player_mut();
+        if player.hole_shown_up_until <= 17 {
+            let funcs = {
+                // Previously had shift-scores here
+                let mut funcs = player.set_hole_score();
+                funcs.extend(player.hide_pos());
+                funcs
             };
-            self.queue_add(&f);
+            self.queue_add(&funcs);
         }
+        hole_update.send(self);
     }
 
     pub fn hide_pos(&mut self) {

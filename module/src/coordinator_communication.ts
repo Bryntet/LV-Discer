@@ -26,8 +26,12 @@ export class ApiClient {
     }
 
     private async post(endpoint: string, data?: any): Promise<any> {
-        return await fetch(`${this.baseUrl}${endpoint}`, {method:"POST",
-        body: data, headers: {'Content-Type': 'application/json'}});
+        if (data) {
+            return await fetch(`${this.baseUrl}${endpoint}`, {method:"POST",
+                body: data, headers: {'Content-Type': 'application/json'}});
+        } else {
+            return await fetch(`${this.baseUrl}${endpoint}`, {method:"POST"});
+        }
 
     }
 
@@ -97,11 +101,11 @@ export class ApiClient {
     }
 
     async playAnmiation() {
-        await this.post("/vmix/play/animation")
+        await this.post("/vmix/player/focused/animation/play")
     }
 
     async playObAnimation() {
-        await this.post("/vmix/play/animation/ob")
+        await this.post("/vmix/player/focused/animation/play/ob")
     }
 
     async setHoleInfo() {

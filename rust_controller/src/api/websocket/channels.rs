@@ -1,9 +1,38 @@
+use std::fmt::Debug;
 use rocket::serde::Serialize;
 use rocket_dyn_templates::Metadata;
 use rocket_ws::Message;
 use serde_json::json;
+use tokio::sync::broadcast::error::SendError;
 use crate::controller::coordinator::FlipUpVMixCoordinator;
 use crate::dto;
+
+pub struct GeneralChannel<T: for<'a> From<&'a FlipUpVMixCoordinator> + ChannelAttributes + Send + Clone + Debug> {
+    sender: tokio::sync::broadcast::Sender<T>,
+}
+impl<T: for<'a> From<&'a FlipUpVMixCoordinator> + ChannelAttributes + Send + Clone + Debug> GeneralChannel<T> {
+    pub fn send(&self, coordinator: &FlipUpVMixCoordinator) {
+        let t = T::from(coordinator);
+        match self.sender.send(t) {
+            Ok(_) => (),
+            Err(e) => warn!("Error sending message: {:?}", e),
+        
+        }
+    }
+    
+    pub fn subscribe(&self) -> tokio::sync::broadcast::Receiver<T> {
+        self.sender.subscribe()
+    }
+}
+
+impl<T: for<'a> From<&'a FlipUpVMixCoordinator> + ChannelAttributes + Send + Clone + Debug> From<tokio::sync::broadcast::Sender<T>> for GeneralChannel<T> {
+    fn from(sender: tokio::sync::broadcast::Sender<T>) -> Self {
+        Self {
+            sender,
+        }
+    }
+
+}
 
 #[derive(Debug, Clone, Serialize)]
 pub struct GroupSelectionUpdate {
