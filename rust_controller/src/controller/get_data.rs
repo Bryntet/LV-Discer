@@ -1,6 +1,6 @@
+use std::collections::HashSet;
 use super::queries;
-use crate::api::{HoleUpdate, MyError};
-use crate::controller::queries::HoleResult;
+use crate::api::{HoleUpdate, Error};
 use crate::dto;
 use crate::flipup_vmix_controls::LeaderBoardProperty;
 use crate::flipup_vmix_controls::{OverarchingScore, Score};
@@ -9,9 +9,11 @@ use cynic::GraphQlResponse;
 use itertools::Itertools;
 use log::warn;
 use rayon::prelude::*;
-use rocket::futures::StreamExt;
+use rocket::futures::{FutureExt, StreamExt};
 use rocket::State;
 use tokio::sync::broadcast::Sender;
+use crate::controller::queries::layout::hole::Hole;
+use crate::controller::queries::layout::Holes;
 
 pub const DEFAULT_FOREGROUND_COL: &str = "3F334D";
 pub const DEFAULT_FOREGROUND_COL_ALPHA: &str = "3F334D00";
@@ -86,19 +88,91 @@ impl RankUpDown {
 }
 // TODO: Refactor out
 #[derive(Debug, Clone, Default)]
-pub struct PlayerRound {
-    results: Vec<HoleResult>,
+pub struct PlayerRound<'a> {
+    results: Vec<HoleResult<'a>>,
     finished: bool,
     round: usize,
 }
+
+#[derive(Debug, Clone)]
+pub struct HoleResult<'a> {
+    pub hole:usize,
+    pub throws: usize,
+    pub hole_representation: &'a Hole,
+    tjing_result: Option<queries::HoleResult>,
+    ob: HashSet<usize> //
+}
+
+
+
+impl From<&crate::controller::queries::HoleResult> for Score {
+    fn from(res: &crate::controller::queries::HoleResult) -> Self {
+        let par = res.hole.par.unwrap() as usize;
+        Self::new(res.score as usize, par, res.hole.number as usize)
+    }
+}
+
+impl HoleResult {
+    pub fn actual_score(&self) -> f64 {
+        if let Some(par) = self.hole.par {
+            self.score - par
+        } else {
+            //log(&format!("no par for hole {}", self.hole.number));
+            self.score
+        }
+    }
+
+    fn to_score(&self) -> Score {
+        self.into()
+    }
+
+    pub fn get_score_colour(&self, player: usize) -> VMixFunction<VMixProperty> {
+        self.to_score().update_score_colour(player)
+    }
+
+    pub fn get_mov(&self, player: usize) -> [VMixFunction<VMixProperty>; 3] {
+        self.to_score().play_mov_vmix(player, false)
+    }
+}
+
 impl PlayerRound {
-    fn new(results: Vec<queries::HoleResult>, round: usize) -> Self {
+    fn new(results: Vec<HoleResult>, round: usize) -> Self {
         Self {
             results,
             finished: false,
             round,
         }
     }
+    
+  
+    pub fn add_new_hole(&mut self) -> Result<(), Error> {
+        if self.results.len() >= 18 {
+            return Err(Error::TooManyHoles);
+        }
+        self.results.push(HoleResult::default());
+        Ok(())
+    }
+    
+    pub fn current_result_mut(&mut self, hole:usize) -> Option<&mut HoleResult> {
+        
+        for result in self.results.iter_mut() {
+            match result.tjing_result {
+                Some(ref tjing_result) => {
+                    if tjing_result.hole.number as usize == hole {
+                        return Some(result);
+                    }
+                },
+                None => {}
+            }
+        }
+        None
+    }
+    
+    
+    pub fn current_result(&self, hole:usize) -> Option<&HoleResult> {
+        self.results.iter().find(|result|result.hole==hole)
+    }
+    
 
     // Gets score up until hole
     pub fn score_to_hole(&self, hole: usize) -> isize {
@@ -160,18 +234,17 @@ pub fn fix_score(score: isize) -> String {
 }
 
 #[derive(Debug, Clone)]
-pub struct Player {
+pub struct Player<'a> {
     pub player_id: String,
     pub name: String,
     first_name: String,
     surname: String,
     pub rank: RankUpDown,
     pub image_url: Option<String>,
-
     pub total_score: isize,
     pub round_score: isize,
     round_ind: usize,
-    pub results: PlayerRound,
+    pub results: PlayerRound<'a>,
     pub hole_shown_up_until: usize,
     pub ind: usize,
     pub index: usize,
@@ -232,7 +305,7 @@ impl Player {
         Self {
             player_id: player.id.into_inner(),
             image_url: image_id,
-            results: PlayerRound::new(player.results.unwrap_or_default(), round),
+            results: PlayerRound::new(player.results.unwrap_or_default().iter().map(HoleScore::from), round),
             first_name: first_name.clone(),
             surname: surname.clone(),
             rank: Default::default(),
@@ -279,14 +352,22 @@ impl Player {
         self.total_score - self.round_score
     }
 
-    pub fn get_score(&self) -> Score {
+    pub fn get_current_shown_score(&self) -> Result<Score, Error> {
         self.results
             .results
             .iter()
             .find(|result| result.hole.number as usize == (self.hole_shown_up_until + 1))
-            .unwrap()
-            .into()
+            .ok_or(Error::NoScoreFound{player:self.name.clone(),hole:self.hole_shown_up_until+1})
+            .map(Score::from)
     }
+
+    pub fn get_score(&self, hole: usize) -> Result<Score,Error> {
+        self.results.results.iter().find(|result|result.hole.number as usize == hole+1)
+            .ok_or(Error::NoScoreFound {player:self.name.clone(),hole})
+            .map(Score::from)
+    }
+
+
 
     pub fn check_if_allowed_to_visible(&mut self) {
         if self.dnf {
@@ -320,7 +401,28 @@ impl Player {
         OverarchingScore::from(self)
     }
 
-    pub fn set_hole_score(&mut self) -> Vec<VMixFunction<VMixProperty>> {
+    pub fn set_all_values(&self) -> Result<Vec<VMixFunction<VMixProperty>>,Error> {
+        let mut return_vec = vec![];
+        return_vec.extend(self.set_name());
+        if let Some(set_pos) = self.set_pos() {
+            return_vec.push(set_pos);
+        }
+        return_vec.push(self.set_tot_score());
+        if self.hole_shown_up_until != 0 {
+            let funcs: Vec<_> = (0..self.hole_shown_up_until).par_bridge().flat_map(|hole| {
+                self.get_score(hole).unwrap().update_score(1)
+            })
+                .collect();
+            return_vec.extend(funcs);
+        }
+        return_vec.extend(self.delete_all_scores_after_current());
+
+        return_vec.push(self.set_throw());
+        Ok(return_vec)
+    }
+
+
+    pub fn set_hole_score(&mut self) -> Result<Vec<VMixFunction<VMixProperty>>,Error> {
         let mut return_vec: Vec<VMixFunction<VMixProperty>> = vec![];
 
         if !self.first_scored {
@@ -328,7 +430,7 @@ impl Player {
         }
 
         // Update score text, visibility, and colour
-        let score = self.get_score().update_score(1);
+        let score = self.get_current_shown_score()?.update_score(1);
         return_vec.extend(score);
 
         let overarching = self.overarching_score_representation();
@@ -338,7 +440,7 @@ impl Player {
         self.hole_shown_up_until += 1;
         self.throws = 0;
         return_vec.push(self.set_throw());
-        return_vec
+        Ok(return_vec)
     }
     fn add_total_score(&self, outside_instructions: &mut Vec<VMixFunction<VMixProperty>>) {
         outside_instructions.push(self.overarching_score_representation().set_total_score())
@@ -351,7 +453,7 @@ impl Player {
         let mut return_vec = vec![];
         if self.hole_shown_up_until > 0 {
             self.hole_shown_up_until -= 1;
-            return_vec.extend(self.del_score());
+            return_vec.extend(self.del_current_score());
             let result = self.results.hole_score(self.hole_shown_up_until);
             self.round_score -= result;
             self.total_score -= result;
@@ -472,15 +574,16 @@ impl Player {
             vec![]
         }
     }*/
+    
 
-    fn del_score(&self) -> [VMixFunction<VMixProperty>; 4] {
+    fn del_score(&self,hole:usize) -> [VMixFunction<VMixProperty>; 4] {
         let score_prop = VMixProperty::Score {
-            hole: self.hole_shown_up_until + 1,
+            hole,
             player: self.ind,
         };
 
         let col_prop = VMixProperty::ScoreColor {
-            hole: self.hole_shown_up_until + 1,
+            hole,
             player: self.ind,
         };
         let h_num_prop = VMixProperty::HoleNumber(self.hole_shown_up_until + 1, self.ind);
@@ -494,7 +597,7 @@ impl Player {
                 input: col_prop.into(),
             },
             VMixFunction::SetText {
-                value: (self.hole_shown_up_until + 1).to_string(),
+                value: hole.to_string(),
                 input: h_num_prop.into(),
             },
             VMixFunction::SetTextVisibleOff {
@@ -502,13 +605,18 @@ impl Player {
             },
         ]
     }
+    
+    fn del_current_score(&self) -> [VMixFunction<VMixProperty>; 4] {
+        self.del_score(self.hole_shown_up_until+1)
+    }
+    
+    fn delete_all_scores_after_current(&self) -> Vec<VMixFunction<VMixProperty>> {
+        ((self.hole_shown_up_until+1)..=18).par_bridge().flat_map(|hole|self.del_score(hole)).collect() 
+    }
 
     pub fn reset_scores(&mut self) -> Vec<VMixFunction<VMixProperty>> {
         let mut return_vec: Vec<VMixFunction<VMixProperty>> = vec![];
-        for i in 0..=17 {
-            self.hole_shown_up_until = i;
-            return_vec.extend(self.del_score());
-        }
+        return_vec.extend(self.delete_all_scores_after_current());
         self.hole_shown_up_until = 0;
         self.round_score = 0;
         self.total_score = self.score_before_round();
@@ -531,7 +639,6 @@ impl Player {
         self.reset_scores()
     }
 
-    // LB TCP
     fn set_lb_pos(&mut self) -> VMixFunction<LeaderBoardProperty> {
         VMixFunction::SetText {
             value: self.position.to_string(),
@@ -639,13 +746,14 @@ pub struct RustHandler {
     pub chosen_division: cynic::Id,
     round_ids: Vec<String>,
     player_container: PlayerContainer,
+    rounds_holes: Vec<Holes>,
     divisions: Vec<queries::Division>,
     round_ind: usize,
     pub groups: Vec<Vec<dto::Group>>,
 }
 
 #[derive(Clone, Debug)]
-struct PlayerContainer {
+struct PlayerContainer<'a> {
     rounds_with_players: Vec<Vec<Player>>,
     round: usize,
 }
@@ -672,7 +780,7 @@ impl PlayerContainer {
 }
 
 impl RustHandler {
-    pub async fn new(event_id: &str) -> Result<Self, MyError> {
+    pub async fn new(event_id: &str) -> Result<Self, Error> {
         let time = std::time::Instant::now();
         let round_ids = Self::get_rounds(event_id).await?;
         let event = Self::get_event(event_id, round_ids.clone()).await;
@@ -716,12 +824,14 @@ impl RustHandler {
             });
         }
 
+        let rounds_holes = Self::get_hole_layouts(event_id).await?;
         Ok(Self {
             chosen_division: divisions.first().expect("NO DIV CHOSEN").id.clone(),
             round_ids,
             player_container: container,
             divisions,
             groups,
+            rounds_holes,
             round_ind: 0,
         })
     }
@@ -756,19 +866,18 @@ impl RustHandler {
         rounds
     }
 
-    pub async fn get_rounds(event_id: &str) -> Result<Vec<String>, MyError> {
+    pub async fn get_rounds(event_id: &str) -> Result<Vec<String>, Error> {
         use cynic::QueryBuilder;
         use queries::round::{RoundsQuery, RoundsQueryVariables};
         let body = RoundsQuery::build(RoundsQueryVariables {
             event_id: event_id.into(),
         });
-        let parse_error = MyError::UnableToParse("Unable to parse response");
         let response = reqwest::Client::new()
             .post("https://api.tjing.se/graphql")
             .json(&body)
             .send()
             .await
-            .map_err(|_| parse_error)?
+            .map_err(|_| Error::UnableToParse)?
             .json::<GraphQlResponse<RoundsQuery>>()
             .await;
         Ok(response
@@ -833,6 +942,32 @@ impl RustHandler {
             .collect_vec()
     }
 
+    pub async fn get_hole_layouts(event_id: &str) -> Result<Vec<queries::layout::Holes>, Error> {
+        use cynic::QueryBuilder;
+        use queries::layout::{HoleLayoutQuery,HoleLayoutQueryVariables};
+        let body = HoleLayoutQuery::build(HoleLayoutQueryVariables {
+            event_id: event_id.into()
+        });
+        let rounds_with_holes = reqwest::Client::new().post("https://api.tjing.se/graphql").json(&body).send().await.map_err(|_|Error::UnableToParse)?.json::<GraphQlResponse<queries::layout::HoleLayoutQuery>>().await.map_err(|_|Error::UnableToParse)?
+            .data
+            .map(|d|d.event)
+            .flatten()
+            .ok_or(Error::UnableToParse)?
+            .rounds
+            
+            .into_iter()
+            .flatten()
+            .flat_map(|round|round.pools)
+            .map(|pool|pool.layout_version.holes).collect_vec();
+
+        let mut rounds:Vec<Holes> = vec![];
+        
+        for round_holes in rounds_with_holes {
+            rounds.push(round_holes.try_into()?)
+        }
+        Ok(rounds)
+    }
+    
     pub fn amount_of_rounds(&self) -> usize {
         self.player_container.rounds_with_players.len()
     }

@@ -2,7 +2,7 @@ use crate::controller::coordinator::FlipUpVMixCoordinator;
 use rocket::serde::json::Json;
 use serde::Deserialize;
 
-use crate::api::MyError;
+use crate::api::Error;
 use rocket_okapi::okapi::{schemars, schemars::JsonSchema};
 
 #[derive(Default, Deserialize, JsonSchema, FromForm)]
@@ -18,7 +18,7 @@ impl CoordinatorBuilder {
 }
 
 impl CoordinatorBuilder {
-    pub async fn into_coordinator(self) -> Result<FlipUpVMixCoordinator, MyError> {
+    pub async fn into_coordinator(self) -> Result<FlipUpVMixCoordinator, Error> {
         FlipUpVMixCoordinator::new(self.ip, self.event_id, 0).await
     }
 }

@@ -24,12 +24,12 @@ use tokio::sync::{Mutex, MutexGuard};
 pub use websocket::channels::{GroupSelectionUpdate, HoleUpdate};
 
 pub use crate::api::websocket::channels::GeneralChannel;
-pub use guard::MyError;
+pub use guard::Error;
 
 #[derive(Debug, Clone)]
 struct Coordinator(Arc<Mutex<FlipUpVMixCoordinator>>);
 
-impl From<FlipUpVMixCoordinator> for Coordinator {
+impl<'a> From<FlipUpVMixCoordinator> for Coordinator {
     fn from(value: FlipUpVMixCoordinator) -> Self {
         Self(Arc::new(Mutex::new(value)))
     }

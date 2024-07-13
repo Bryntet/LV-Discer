@@ -1,5 +1,5 @@
 use crate::api::guard::CoordinatorLoader;
-use crate::api::{Coordinator, GeneralChannel, GroupSelectionUpdate};
+use crate::api::{Coordinator, Error, GeneralChannel, GroupSelectionUpdate};
 use crate::dto;
 use crate::dto::CoordinatorBuilder;
 use rocket::form::Form;
@@ -17,11 +17,11 @@ pub async fn set_focus(
     focused_player: usize,
     coordinator: Coordinator,
     updater: &State<GeneralChannel<GroupSelectionUpdate>>,
-) -> Json<dto::Player> {
+) -> Result<Json<dto::Player>, Error> {
     let mut coordinator = coordinator.lock().await;
 
-    coordinator.set_focused_player(focused_player, Some(updater));
-    dto::Player::from(coordinator.focused_player()).into()
+    coordinator.set_focused_player(focused_player, Some(updater))?;
+    Ok(dto::Player::from(coordinator.focused_player()).into())
 }
 
 #[openapi(tag = "Config")]
@@ -50,6 +50,35 @@ pub async fn set_group(
         .set_group(group_id, Some(updater))
         .ok_or("Unable to set group")
 }
+
+#[openapi(tag = "Live Update")]
+#[post("/player/<player_id>/throw/set/<throws>")]
+pub async fn set_throws(
+    coordinator: Coordinator,
+    player_id: &str,
+    throws: u8,
+) -> Result<(), Error> {
+    let mut coordinator = coordinator.lock().await;
+    coordinator.find_player_mut(player_id).ok_or(Error::PlayerNotFound(player_id.to_string()))?.throws = throws;
+    Ok(())
+}
+
+#[openapi(tag = "Live Update")]
+#[post("/player/<player_id>/score/ready")]
+pub async fn set_score_ready(
+    coordinator: Coordinator,
+    player_id: &str,
+) -> Result<(), Error> {
+    let mut coordinator = coordinator.lock().await;
+    coordinator.find_player_mut(player_id)
+        .ok_or(Error::PlayerNotFound(player_id.to_string()))?
+        .results
+        .current_result_mut(1);
+    Ok(())
+}
+
+
+
 #[catch(424)]
 pub fn make_coordinator() -> RawHtml<Template> {
     RawHtml(Template::render("new_coordinator", json!({})))

@@ -1,4 +1,4 @@
-use crate::api::MyError;
+use crate::api::Error;
 use crate::controller::get_data;
 use itertools::Itertools;
 use rocket_okapi::okapi::{schemars, schemars::JsonSchema};
@@ -18,7 +18,7 @@ impl SimpleRound {
 #[derive(Serialize, JsonSchema)]
 pub struct Rounds(Vec<SimpleRound>);
 
-pub async fn get_rounds(event_id: String) -> Result<Rounds, MyError> {
+pub async fn get_rounds(event_id: String) -> Result<Rounds, Error> {
     let time = std::time::Instant::now();
     let ids = get_data::RustHandler::get_rounds(&event_id).await?;
     info!("Time to get rounds: {:?}", time.elapsed());

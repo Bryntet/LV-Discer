@@ -119,15 +119,13 @@ export class ApiClient {
 }
 
 export class Player {
-    id: string;
     name: string;
     image_url: string | null;
     focused: boolean;
     holes_finished: number;
     index: number;
 
-    constructor(id: string, name: string, focused: boolean, image_url: string | null = null, holes_finished: number, index: number) {
-        this.id = id;
+    constructor(name: string, focused: boolean, image_url: string | null = null, holes_finished: number, index: number) {
         this.name = name;
         this.focused = focused;
         this.image_url = image_url;
@@ -137,6 +135,6 @@ export class Player {
 
     static fromJSON(jsonObject: any): Player {
 
-        return new Player(jsonObject["id"], jsonObject["name"], jsonObject["focused"], jsonObject["image_url"] || null, jsonObject["holes_finished"], jsonObject["index"]);
+        return new Player(jsonObject["name"], jsonObject["focused"], jsonObject["image_url"] || null, jsonObject["holes_finished"], jsonObject["index"]);
     }
 }

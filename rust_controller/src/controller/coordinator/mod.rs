@@ -2,7 +2,7 @@ mod simple_queries;
 mod vmix_calls;
 
 pub use super::*;
-use crate::api::{GeneralChannel, HoleUpdate, MyError};
+use crate::api::{GeneralChannel, HoleUpdate, Error};
 use crate::controller::get_data::RustHandler;
 use crate::controller::queries::Division;
 use crate::{api, vmix};
@@ -29,7 +29,7 @@ pub struct FlipUpVMixCoordinator {
     focused_player_index: usize,
     ip: String,
     handler: RustHandler,
-    pub available_players: Vec<Player>,
+    pub available_players: Vec<Player<'a>>,
     round_ind: usize,
     lb_div_ind: usize,
     current_through: usize,
@@ -71,7 +71,7 @@ impl Card {
     }
 }
 impl FlipUpVMixCoordinator {
-    pub async fn new(ip: String, event_id: String, focused_player: usize) -> Result<Self, MyError> {
+    pub async fn new(ip: String, event_id: String, focused_player: usize) -> Result<Self, Error> {
         let queue = Queue::new(ip.clone())?;
         let handler = RustHandler::new(&event_id).await?;
 
@@ -109,15 +109,17 @@ impl FlipUpVMixCoordinator {
         &mut self,
         index: usize,
         updater: Option<&State<GeneralChannel<api::GroupSelectionUpdate>>>,
-    ) {
+    ) -> Result<(), Error>{
         if index >= self.card.players(&self.available_players).len() {
-            return;
+            return Err(Error::CardIndexNotFound(index));
         }
         self.focused_player_index = index;
-        self.queue_add(&self.focused_player().set_name());
+        let all_values = self.focused_player().set_all_values()?;
+        self.queue_add(&all_values);
         if let Some(updater) = updater {
-            updater.send(&self);
+            updater.send(self);
         }
+        Ok(())
     }
 
     pub fn set_group(
@@ -221,6 +223,10 @@ impl FlipUpVMixCoordinator {
             .cloned()
     }
 
+    pub fn find_player_mut(&mut self, player_id: &str) -> Option<&mut Player> {
+        self.available_players.iter_mut().find(|player| player.player_id == player_id)
+    }
+
     // TODO: Use division to set the leaderboard
     pub fn set_leaderboard(&mut self, division: &Division, lb_start_ind: Option<usize>) {
         self.queue_add(&FlipUpVMixCoordinator::clear_lb(10));
@@ -249,16 +255,17 @@ impl FlipUpVMixCoordinator {
         }
     }
 
-    pub fn set_to_hole(&mut self, hole: usize) {
+    pub fn set_to_hole(&mut self, hole: usize) -> Result<(), Error> {
         let player = self.focused_player_mut();
         let mut actions = vec![];
         // Previously had shift-scores here
         for x in 1..=hole {
             player.hole_shown_up_until = x;
-            actions.extend(player.set_hole_score());
+            actions.extend(player.set_hole_score()?);
         }
 
-        self.queue_add(&actions)
+        self.queue_add(&actions);
+        Ok(())
     }
 
     pub fn set_round(&mut self, idx: usize) {
@@ -270,18 +277,19 @@ impl FlipUpVMixCoordinator {
 
     pub async fn fetch_event(&mut self) {}
 
-    pub fn increase_score(&mut self, hole_update: &GeneralChannel<HoleUpdate>) {
+    pub fn increase_score(&mut self, hole_update: &GeneralChannel<HoleUpdate>) -> Result<(), Error> {
         let player = self.focused_player_mut();
         if player.hole_shown_up_until <= 17 {
             let funcs = {
                 // Previously had shift-scores here
-                let mut funcs = player.set_hole_score();
+                let mut funcs = player.set_hole_score()?;
                 funcs.extend(player.hide_pos());
                 funcs
             };
             self.queue_add(&funcs);
         }
         hole_update.send(self);
+        Ok(())
     }
 
     pub fn hide_pos(&mut self) {
@@ -294,11 +302,12 @@ impl FlipUpVMixCoordinator {
         self.queue_add(&out);
     }
 
-    pub fn ob_anim(&mut self) {
+    pub fn ob_anim(&mut self) -> Result<(), Error> {
         println!("ob_anim");
         self.focused_player_mut().ob = true;
-        let score = self.focused_player_mut().get_score();
-        self.queue_add(&score.play_mov_vmix(self.focused_player_index, true))
+        let score = self.focused_player_mut().get_current_shown_score()?;
+        self.queue_add(&score.play_mov_vmix(self.focused_player_index, true));
+        Ok(())
     }
     pub fn set_player(&mut self, player: &str) {
         let index = self
@@ -382,7 +391,7 @@ impl FlipUpVMixCoordinator {
 
     /// TODO: Refactor out into api function
 
-    pub fn make_separate_lb(&mut self, div: &Division) {
+    pub fn make_separate_lb(&mut self, div: &Division) -> Result<(), Error> {
         if self.current_through != 0 {
             let mut new = self.clone();
             new.set_div(div);
@@ -403,12 +412,13 @@ impl FlipUpVMixCoordinator {
             new.focused_player_index = 0;
             new.set_round(self.round_ind);
             if self.current_through > 0 {
-                new.set_to_hole(self.current_through - 1);
+                new.set_to_hole(self.current_through - 1)?;
             } else {
-                new.set_to_hole(0);
+                new.set_to_hole(0)?;
             }
             new.set_leaderboard(div, None);
         }
+        Ok(())
     }
 }
 

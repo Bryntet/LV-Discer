@@ -8,8 +8,10 @@ use {
     std::sync::Mutex,
 };
 
-use crate::api::MyError;
+use crate::api::Error;
 use std::sync::Arc;
+use tokio::sync::broadcast::{Sender,Receiver,channel};
+use tokio::sync::broadcast::error::SendError;
 
 #[cfg(target_arch = "wasm32")]
 #[derive(Clone)]
@@ -22,31 +24,33 @@ pub struct Queue {
 #[cfg(not(target_arch = "wasm32"))]
 #[derive(Clone, Debug)]
 pub struct Queue {
-    stream: Arc<Mutex<TcpStream>>,
-    functions: Arc<Mutex<VecDeque<String>>>,
+    functions_sender: tokio::sync::broadcast::Sender<String>,
 }
 
 use crate::vmix::functions::{VMixFunction, VMixSelectionTrait};
 
 impl Queue {
-    pub fn new(ip: String) -> Result<Self, MyError> {
+    pub fn new(ip: String) -> Result<Self, Error> {
+        let (tx, mut rx): (Sender<String>, Receiver<String>) =channel(2048);
+        let mut stream = Self::make_tcp_stream(&ip).ok_or(Error::IpNotFound(ip))?;
+        
         let me = Self {
-            functions: Default::default(),
-            stream: Mutex::new(
-                Self::make_tcp_stream(&ip).ok_or(MyError::IpNotFound("Ip not found"))?,
-            )
-            .into(),
+            functions_sender: tx,
         };
-        let funcs = me.functions.clone();
-        let stream = me.stream.clone();
         // Here is the actual thread that clears the queue:
-        std::thread::spawn(move || loop {
-            if let Ok(mut functions) = funcs.lock() {
-                while let Some(f) = functions.pop_front() {
+        tokio::spawn(async move {
+            loop {
+                if let Ok(f) = rx.recv().await {
                     info!("Sending: {}", &f);
-                    Queue::send(&f.into_bytes(), stream.clone());
+                    match Queue::send(&f.into_bytes(), &mut stream) {
+                        Ok(()) => (),
+                        Err(e) => {
+                            warn!("{}", e);
+                        }
+                    };
                 }
             }
+            
         });
         Ok(me)
     }
@@ -59,13 +63,9 @@ impl Queue {
             .ok()
     }
 
-    fn send(bytes: &[u8], stream: Arc<Mutex<TcpStream>>) -> Result<(), String> {
-        let mut stream = loop {
-            if let Ok(stream) = stream.lock() {
-                break stream;
-            }
-        };
-
+    fn send(bytes: &[u8], stream: &mut TcpStream) -> Result<(), String> {
+        
+        
         match stream.write_all(bytes) {
             Ok(()) => (),
             Err(e) => Err(e.to_string())?,
@@ -95,16 +95,13 @@ impl Queue {
     }
 
     pub fn add<T: VMixSelectionTrait>(&self, functions: &[VMixFunction<T>]) {
-        loop {
-            if let Ok(mut funcs) = self.functions.lock() {
-                funcs.extend(
-                    functions
-                        .iter()
-                        .map(VMixFunction::to_cmd)
-                        .collect::<Vec<_>>(),
-                );
-                break;
-            }
+        for func in functions {
+            match self.functions_sender.send(func.to_cmd()) {
+                Ok(_) => (),
+                Err(e) => {
+                    warn!("Failed to send command to queue: {e}");
+                }
+            };
         }
     }
 }

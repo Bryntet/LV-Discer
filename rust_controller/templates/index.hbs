@@ -83,6 +83,80 @@
             border-radius: 4px;
             margin-left: 10px;
         }
+        .popup-menu {
+            display: none;
+            position: absolute;
+            background-color: #f9f9f9;
+            min-width: 300px;
+            box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+            z-index: 1;
+            border-radius: 4px;
+            padding: 10px;
+        }
+
+        .popup-menu .player-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            padding: 5px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .popup-menu .player-item:last-child {
+            border-bottom: none;
+        }
+
+        .popup-menu .player-name {
+            flex: 1;
+        }
+
+        .popup-menu .player-actions {
+            display: flex;
+            gap: 5px;
+        }
+
+        .popup-menu button {
+            padding: 5px 10px;
+            font-size: 0.8em;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+
+        .popup-menu button:hover {
+            opacity: 0.8;
+        }
+
+        .throw-plus { background-color: #4CAF50; color: white; }
+        .throw-minus { background-color: #f44336; color: white; }
+        .in-basket { background-color: #2196F3; color: white; }
+        .ob { background-color: #FF9800; color: white; }
+
+        .group {
+            position: relative;
+        }
+        .player-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            padding: 5px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .player-info {
+            flex: 1;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-right: 10px;
+        }
+
+        .throw-count {
+            font-weight: bold;
+            margin-left: 10px;
+        }
         .status-OPEN { background-color: #4CAF50; color: white; }
         .status-CLOSED { background-color: #f44336; color: white; }
         .status-DONE { background-color: #2196F3; color: white; }
@@ -158,11 +232,29 @@
                     <button class="select-group" hx-post="/htmx/group/{{group.id}}" hx-trigger="click" hx-target="#selected-players-list">
                         Select Group
                     </button>
+                    <button class="group-menu-btn">Group Actions</button>
+                </div>
+                <div class="popup-menu">
+                    {{#each group.players as |player|}}
+                        <div class="player-item" data-player-id="{{player.id}}">
+                            <div class="player-info">
+                                <span class="player-name">{{player.name}}</span>
+                                <span class="throw-count">Throws: <span class="count">0</span></span>
+                            </div>
+                            <div class="player-actions">
+                                <button class="throw-plus">+</button>
+                                <button class="throw-minus">-</button>
+                                <button class="in-basket">In</button>
+                                <button class="ob">OB</button>
+                            </div>
+                        </div>
+                    {{/each}}
                 </div>
                 <div class="group-content">
                     {{#each group.players as |player|}}
-                        <div class="player">
-                            {{player.name}}
+                        <div class="player" data-player-id="{{player.id}}">
+                            <span class="player-name">{{player.name}}</span>
+                            <span class="throw-count">Throws: <span class="count">0</span></span>
                         </div>
                     {{/each}}
                 </div>
@@ -172,7 +264,48 @@
         <p>No groups available for this round.</p>
     {{/if}}
 </div>
-
 <div id="result"></div>
+
+<script>
+    document.addEventListener('click', function(e) {
+        if (e.target && e.target.classList.contains('group-menu-btn')) {
+            const group = e.target.closest('.group');
+            const menu = group.querySelector('.popup-menu');
+            menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
+        } else if (!e.target.closest('.popup-menu')) {
+            const menus = document.querySelectorAll('.popup-menu');
+            menus.forEach(menu => menu.style.display = 'none');
+        }
+    });
+
+    document.addEventListener('click', function(e) {
+        if (e.target && e.target.closest('.player-actions')) {
+            const action = e.target.classList[0];
+            const playerItem = e.target.closest('.player-item');
+            const playerName = playerItem.querySelector('.player-name').textContent;
+            const groupNumber = e.target.closest('.group').querySelector('.group-header h2').textContent.trim().split(' ')[1];
+            const playerId = playerItem.dataset.playerId;
+
+            console.log(`Group ${groupNumber} - Player: ${playerName}, Action: ${action}`);
+
+            if (action === 'throw-plus' || action === 'throw-minus') {
+                updateThrowCount(playerId, action === 'throw-plus' ? 1 : -1);
+            }
+
+            // Here you can add code to handle other actions, e.g., send to server
+        }
+    });
+
+    function updateThrowCount(playerId, change) {
+        const playerElements = document.querySelectorAll(`[data-player-id="${playerId}"]`);
+        playerElements.forEach(element => {
+            const countElement = element.querySelector('.throw-count .count');
+            let count = parseInt(countElement.textContent);
+            count += change;
+            count = Math.max(0, count); // Ensure count doesn't go below 0
+            countElement.textContent = count;
+        });
+    }
+</script>
 </body>
 </html>

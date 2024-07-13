@@ -29,7 +29,6 @@ query ResultsQuery($eventId: ID = "d8f93dfb-f560-4f6c-b7a8-356164b9e4be", $round
 	}
 }
 
-
 query RoundsQuery($eventId: ID = "d8f93dfb-f560-4f6c-b7a8-356164b9e4be") {
 	event(eventId: $eventId) {
 		rounds {
@@ -37,6 +36,7 @@ query RoundsQuery($eventId: ID = "d8f93dfb-f560-4f6c-b7a8-356164b9e4be") {
 		}
 	}
 }
+
 query GroupsQuery($eventId: ID = "d8f93dfb-f560-4f6c-b7a8-356164b9e4be") {
 	event(eventId: $eventId) {
 		rounds {
@@ -54,6 +54,24 @@ query GroupsQuery($eventId: ID = "d8f93dfb-f560-4f6c-b7a8-356164b9e4be") {
 								}
 							}
 						}
+					}
+				}
+			}
+		}
+	}
+}
+
+query HoleLayoutQuery {
+	event(eventId: "") {
+		rounds {
+			pools {
+				layoutVersion {
+					holes {
+						measureInMeters
+						number
+						name
+						par
+						length
 					}
 				}
 			}

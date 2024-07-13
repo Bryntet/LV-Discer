@@ -76,35 +76,7 @@ pub struct Dnf {
     pub is_dnf: bool,
 }
 
-impl From<&HoleResult> for Score {
-    fn from(res: &HoleResult) -> Self {
-        let par = res.hole.par.unwrap() as usize;
-        Self::new(res.score as usize, par, res.hole.number as usize)
-    }
-}
 
-impl HoleResult {
-    pub fn actual_score(&self) -> f64 {
-        if let Some(par) = self.hole.par {
-            self.score - par
-        } else {
-            //log(&format!("no par for hole {}", self.hole.number));
-            self.score
-        }
-    }
-
-    fn to_score(&self) -> Score {
-        self.into()
-    }
-
-    pub fn get_score_colour(&self, player: usize) -> VMixFunction<VMixProperty> {
-        self.to_score().update_score_colour(player)
-    }
-
-    pub fn get_mov(&self, player: usize) -> [VMixFunction<VMixProperty>; 3] {
-        self.to_score().play_mov_vmix(player, false)
-    }
-}
 
 #[derive(cynic::QueryFragment, Debug, Clone)]
 pub struct Hole {
@@ -150,6 +122,106 @@ pub mod round {
         pub id: cynic::Id,
     }
 }
+
+pub mod layout {
+    use super::schema;
+
+
+   
+    pub mod hole {
+        use itertools::Itertools;
+
+        #[derive(Debug, Clone)]
+        pub struct Holes {
+            holes: Vec<Hole>
+        }
+        impl Holes {
+
+        }
+        
+        #[derive(Debug, Clone)]
+        pub struct Hole {
+            length: u16,
+            par: u8,
+        }
+        
+        impl TryFrom<super::Hole> for Hole {
+            type Error = crate::api::Error;
+            
+            fn try_from(value: crate::controller::queries::layout::Hole) -> Result<Self, Self::Error> {
+                let hole_number = value.number as u8;
+                let length = value.length.ok_or(Self::Error::HoleLengthNotFound(hole_number))? as u16;
+                let par = value.par.ok_or(Self::Error::HoleParNotFound(hole_number))? as u8;
+                Ok(Hole {
+                    length,
+                    par,
+                })
+            }
+        }
+        
+        impl TryFrom<Vec<super::Hole>> for Holes {
+            type Error = crate::api::Error;
+            fn try_from(value: Vec<super::Hole>) -> Result<Self, Self::Error> {
+                let mut holes = vec![];
+                for hole in value {
+                    holes.push(Hole::try_from(hole)?)
+                }
+                Ok(Holes {
+                    holes
+                })
+                
+            }
+        }
+    }
+    
+    pub use hole::*;
+
+
+
+    #[derive(cynic::QueryVariables, Debug)]
+    pub struct HoleLayoutQueryVariables {
+        pub event_id: cynic::Id,
+    }
+
+    #[derive(cynic::QueryFragment, Debug)]
+    #[cynic(graphql_type = "RootQuery", variables = "HoleLayoutQueryVariables")]
+    pub struct HoleLayoutQuery {
+        #[arguments(eventId: $event_id)]
+        pub event: Option<Event>,
+    }
+    #[derive(cynic::QueryFragment, Debug)]
+    pub struct Event {
+        pub rounds: Vec<Option<Round>>,
+    }
+
+    #[derive(cynic::QueryFragment, Debug)]
+    pub struct Round {
+        pub pools: Vec<Pool>,
+    }
+
+    #[derive(cynic::QueryFragment, Debug)]
+    pub struct Pool {
+        pub layout_version: LayoutVersion,
+    }
+
+    #[derive(cynic::QueryFragment, Debug)]
+    pub struct LayoutVersion {
+        pub holes: Vec<Hole>,
+    }
+
+    #[derive(cynic::QueryFragment, Debug)]
+    struct Hole {
+        pub measure_in_meters: Option<bool>,
+        pub number: f64,
+        pub name: Option<String>,
+        pub par: Option<f64>,
+        pub length: Option<f64>,
+    }
+    
+    
+    
+}
+
 
 // Groups
 pub mod group {

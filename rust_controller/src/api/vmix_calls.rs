@@ -1,4 +1,4 @@
-use crate::api::{Coordinator, GeneralChannel, HoleUpdate};
+use crate::api::{Coordinator, Error, GeneralChannel, HoleUpdate};
 use crate::controller::queries::Division;
 use crate::vmix::functions::{VMixFunction, VMixProperty};
 use rocket::State;
@@ -9,7 +9,7 @@ use tokio::sync::broadcast::Sender;
 /// Play the animation that corresponds with the upcoming score of the currently focused player
 #[openapi(tag = "VMix")]
 #[post("/vmix/player/focused/animation/play")]
-pub async fn play_animation(co: Coordinator) {
+pub async fn play_animation(co: Coordinator) -> Result<(), Error> {
     co.lock().await.play_animation()
 }
 
@@ -94,7 +94,7 @@ pub async fn revert_throw(co: Coordinator) {
 /// Play the out-of-bounds animation
 #[openapi(tag = "VMix")]
 #[post("/vmix/player/focused/animation/play/ob")]
-pub async fn play_ob_animation(co: Coordinator) {
+pub async fn play_ob_animation(co: Coordinator) -> Result<(), Error> {
     co.lock().await.ob_anim()
 }
 
