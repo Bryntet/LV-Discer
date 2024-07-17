@@ -58,7 +58,7 @@ impl ChannelAttributes for GroupSelectionUpdate {
     }
 }
 
-impl From<&FlipUpVMixCoordinator<'_>> for GroupSelectionUpdate {
+impl From<&FlipUpVMixCoordinator> for GroupSelectionUpdate {
     fn from(value: &FlipUpVMixCoordinator) -> Self {
         Self {
             players: dto::current_dto_players(value),

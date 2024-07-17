@@ -2,7 +2,7 @@ mod simple_queries;
 mod vmix_calls;
 
 pub use super::*;
-use crate::api::{GeneralChannel, HoleUpdate, Error};
+use crate::api::{Error, GeneralChannel, HoleUpdate};
 use crate::controller::get_data::RustHandler;
 use crate::controller::queries::Division;
 use crate::{api, vmix};
@@ -29,14 +29,13 @@ pub struct FlipUpVMixCoordinator {
     focused_player_index: usize,
     ip: String,
     handler: RustHandler,
-    pub available_players: Vec<Player<'a>>,
     round_ind: usize,
     lb_div_ind: usize,
-    current_through: usize,
+    current_through: u8,
     pub queue: Arc<Queue>,
     card: Card,
 }
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug)]
 struct Card {
     player_ids: Vec<String>,
 }
@@ -44,55 +43,55 @@ impl Card {
     fn new(player_ids: Vec<String>) -> Self {
         Self { player_ids }
     }
+}
 
-    fn player<'a>(&self, all_players: &'a [Player], index: usize) -> Option<&'a Player> {
+impl Card {
+    fn player<'a>(&self, index: usize, players: Vec<&'a Player>) -> Option<&'a Player> {
         let player_id = self.player_ids.get(index)?;
-        all_players
-            .iter()
+        players
+            .into_iter()
             .find(|player| &player.player_id == player_id)
     }
 
-    fn players<'a>(&self, all_players: &'a [Player]) -> Vec<&'a Player> {
-        self.player_ids
-            .iter()
-            .filter_map(|id| all_players.iter().find(|player| &player.player_id == id))
-            .collect()
+    fn focused_id(&self, index: usize) -> &str {
+        self.player_ids.get(index).unwrap()
+    }
+
+    fn players<'a>(&self, players: Vec<&'a Player>) -> Vec<&'a Player> {
+        players
+            .into_iter()
+            .filter(|player| self.player_ids.contains(&player.player_id))
+            .collect_vec()
     }
 
     fn player_mut<'a>(
-        &self,
-        all_players: &'a mut [Player],
+        &'a self,
+        all_players: Vec<&'a mut Player>,
         index: usize,
     ) -> Option<&'a mut Player> {
         let player_id = self.player_ids.get(index)?;
         all_players
-            .iter_mut()
+            .into_iter()
             .find(|player| &player.player_id == player_id)
     }
 }
+
 impl FlipUpVMixCoordinator {
     pub async fn new(ip: String, event_id: String, focused_player: usize) -> Result<Self, Error> {
         let queue = Queue::new(ip.clone())?;
         let handler = RustHandler::new(&event_id).await?;
 
-        let id = handler.groups.first().unwrap().first().unwrap().id.clone();
-        let available_players = handler.clone().get_players();
+        let available_players = handler.get_players();
+
+        let first_group = handler.groups.first().unwrap().first().unwrap();
+        let group_id = first_group.id.to_owned();
         let mut coordinator = FlipUpVMixCoordinator {
             all_divs: vec![],
             selected_div_index: 0,
             focused_player_index: focused_player,
             ip,
-            card: Card::new(
-                handler
-                    .groups
-                    .first()
-                    .unwrap()
-                    .first()
-                    .unwrap()
-                    .player_ids(),
-            ),
+            card: Card::new(first_group.player_ids()),
             handler,
-            available_players,
             round_ind: 0,
             lb_div_ind: 0,
             current_through: 0,
@@ -101,16 +100,25 @@ impl FlipUpVMixCoordinator {
         };
         coordinator.queue_add(&coordinator.focused_player().set_name());
         coordinator.reset_score();
-        coordinator.set_group(&id, None);
+        coordinator.set_group(&group_id, None);
         Ok(coordinator)
+    }
+}
+impl FlipUpVMixCoordinator {
+    pub fn available_players(&self) -> Vec<&Player> {
+        self.handler.get_players()
+    }
+
+    pub fn available_players_mut<'a>(&'a mut self) -> Vec<&'a mut Player> {
+        self.handler.get_players_mut()
     }
 
     pub fn set_focused_player(
         &mut self,
         index: usize,
-        updater: Option<&State<GeneralChannel<api::GroupSelectionUpdate>>>,
-    ) -> Result<(), Error>{
-        if index >= self.card.players(&self.available_players).len() {
+        updater: Option<&GeneralChannel<api::GroupSelectionUpdate>>,
+    ) -> Result<(), Error> {
+        if index >= self.card.players(self.available_players()).len() {
             return Err(Error::CardIndexNotFound(index));
         }
         self.focused_player_index = index;
@@ -140,20 +148,14 @@ impl FlipUpVMixCoordinator {
         Some(())
     }
 
-    pub fn focused_player(&self) -> &Player {
-        self.card
-            .player(&self.available_players, self.focused_player_index)
-            .unwrap()
-    }
-
     pub fn amount_of_rounds(&self) -> usize {
         self.handler.amount_of_rounds()
     }
 
-    pub fn focused_player_mut(&mut self) -> &mut Player {
-        self.card
-            .player_mut(&mut self.available_players, self.focused_player_index)
-            .unwrap()
+    pub fn focused_player_mut<'a>(&'a mut self) -> &'a mut Player {
+        let index = self.focused_player_index;
+        let id = self.card.focused_id(index).to_owned();
+        self.handler.find_player_mut(id).unwrap()
     }
 
     pub fn groups(&self) -> Vec<&dto::Group> {
@@ -161,7 +163,7 @@ impl FlipUpVMixCoordinator {
     }
 
     pub fn current_players(&self) -> Vec<&Player> {
-        self.card.players(&self.available_players)
+        self.card.players(self.available_players())
     }
 }
 
@@ -201,6 +203,14 @@ impl FlipUpVMixCoordinator {
         let f = self.focused_player_mut().toggle_pos();
         self.queue_add(&f)
     }
+    pub fn find_player_mut(&mut self, player_id: String) -> Option<&mut Player> {
+        self.handler.find_player_mut(player_id)
+    }
+    pub fn focused_player(&self) -> &Player {
+        self.card
+            .player(self.focused_player_index, self.available_players())
+            .unwrap()
+    }
 }
 
 // API Funcs
@@ -211,7 +221,6 @@ impl FlipUpVMixCoordinator {
         if let Some((idx, _)) = self.all_divs.iter().find_position(|d| d.id == div.id) {
             self.selected_div_index = idx;
             self.handler.set_chosen_by_ind(idx);
-            self.fetch_players(false);
         }
     }
 
@@ -223,10 +232,7 @@ impl FlipUpVMixCoordinator {
             .cloned()
     }
 
-    pub fn find_player_mut(&mut self, player_id: &str) -> Option<&mut Player> {
-        self.available_players.iter_mut().find(|player| player.player_id == player_id)
-    }
-
+    /*
     // TODO: Use division to set the leaderboard
     pub fn set_leaderboard(&mut self, division: &Division, lb_start_ind: Option<usize>) {
         self.queue_add(&FlipUpVMixCoordinator::clear_lb(10));
@@ -237,23 +243,21 @@ impl FlipUpVMixCoordinator {
         if self.current_hole() <= 19 {
             println!("hole <= 19");
             self.lb_div_ind = self.selected_div_index;
-            self.fetch_players(true);
             if let Some(pop) = lb_start_ind {
-                self.available_players.drain(0..pop);
-                for player in &mut self.available_players {
+                for player in self.available_players_mut() {
                     player.position -= pop;
                 }
             }
 
             self.leaderboard.update_players(LeaderboardState::new(
                 self.round_ind,
-                self.available_players.clone(),
+                self.available_players().into_iter().cloned().collect_vec(),
             ));
             self.queue_add(&self.leaderboard.to_vmix_instructions());
         } else {
             println!("PANIC, hole > 18");
         }
-    }
+    }*/
 
     pub fn set_to_hole(&mut self, hole: usize) -> Result<(), Error> {
         let player = self.focused_player_mut();
@@ -277,7 +281,10 @@ impl FlipUpVMixCoordinator {
 
     pub async fn fetch_event(&mut self) {}
 
-    pub fn increase_score(&mut self, hole_update: &GeneralChannel<HoleUpdate>) -> Result<(), Error> {
+    pub fn increase_score(
+        &mut self,
+        hole_update: &GeneralChannel<HoleUpdate>,
+    ) -> Result<(), Error> {
         let player = self.focused_player_mut();
         if player.hole_shown_up_until <= 17 {
             let funcs = {
@@ -311,8 +318,8 @@ impl FlipUpVMixCoordinator {
     }
     pub fn set_player(&mut self, player: &str) {
         let index = self
-            .available_players
-            .iter()
+            .available_players()
+            .into_iter()
             .enumerate()
             .find(|(_, p)| p.player_id == player)
             .map(|(i, _)| i)
@@ -356,18 +363,15 @@ impl FlipUpVMixCoordinator {
         return_vec
     }
 
-    pub fn fetch_players(&mut self, lb: bool) {
-        self.available_players = self.handler.clone().get_players();
-    }
     pub fn get_player_names(&self) -> Vec<String> {
-        self.available_players
-            .iter()
+        self.available_players()
+            .into_iter()
             .map(|player| player.name.clone())
             .collect()
     }
 
     pub fn get_player_ids(&self) -> Vec<String> {
-        self.available_players
+        self.available_players()
             .iter()
             .map(|player| player.player_id.to_owned())
             .collect()
@@ -389,14 +393,13 @@ impl FlipUpVMixCoordinator {
         &self.focused_player().name
     }
 
-    /// TODO: Refactor out into api function
+    // TODO: Refactor out into api function
 
-    pub fn make_separate_lb(&mut self, div: &Division) -> Result<(), Error> {
+    /*pub fn make_separate_lb(&mut self, div: &Division) -> Result<(), Error> {
         if self.current_through != 0 {
             let mut new = self.clone();
             new.set_div(div);
-            new.fetch_players(false);
-            new.available_players
+            new.available_players_mut()
                 .iter_mut()
                 .for_each(|player| player.visible_player = false);
             let players = new.get_player_ids();
@@ -412,14 +415,14 @@ impl FlipUpVMixCoordinator {
             new.focused_player_index = 0;
             new.set_round(self.round_ind);
             if self.current_through > 0 {
-                new.set_to_hole(self.current_through - 1)?;
+                new.set_to_hole((self.current_through - 1).into())?;
             } else {
                 new.set_to_hole(0)?;
             }
             new.set_leaderboard(div, None);
         }
         Ok(())
-    }
+    }*/
 }
 
 #[cfg(test)]

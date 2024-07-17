@@ -11,7 +11,7 @@ pub struct RoundResultsQueryVariables {
     pub round_id: cynic::Id,
 }
 
-#[derive(cynic::QueryFragment, Debug)]
+#[derive(cynic::QueryFragment, Debug, Clone)]
 #[cynic(graphql_type = "RootQuery", variables = "RoundResultsQueryVariables")]
 pub struct RoundResultsQuery {
     #[arguments(eventId: $event_id)]
@@ -76,8 +76,6 @@ pub struct Dnf {
     pub is_dnf: bool,
 }
 
-
-
 #[derive(cynic::QueryFragment, Debug, Clone)]
 pub struct Hole {
     pub par: Option<f64>,
@@ -126,57 +124,74 @@ pub mod round {
 pub mod layout {
     use super::schema;
 
-
-   
     pub mod hole {
-        use itertools::Itertools;
+        use std::sync::Arc;
 
         #[derive(Debug, Clone)]
         pub struct Holes {
-            holes: Vec<Hole>
+            holes: Vec<Arc<Hole>>,
         }
         impl Holes {
-
+            pub fn find_hole(&self, hole_number: u8) -> Option<Arc<Hole>> {
+                self.holes
+                    .iter()
+                    .find(|h| h.hole == hole_number)
+                    .map(Arc::clone)
+            }
         }
-        
+
         #[derive(Debug, Clone)]
         pub struct Hole {
-            length: u16,
-            par: u8,
+            pub length: u16,
+            pub par: u8,
+            pub hole: u8,
         }
-        
+
         impl TryFrom<super::Hole> for Hole {
             type Error = crate::api::Error;
-            
-            fn try_from(value: crate::controller::queries::layout::Hole) -> Result<Self, Self::Error> {
+
+            fn try_from(
+                value: crate::controller::queries::layout::Hole,
+            ) -> Result<Self, Self::Error> {
                 let hole_number = value.number as u8;
-                let length = value.length.ok_or(Self::Error::HoleLengthNotFound(hole_number))? as u16;
+
+                let length = if value.measure_in_meters.is_none() {
+                    value.length
+                } else if value.measure_in_meters.is_some_and(|s| s) {
+                    value.length
+                } else {
+                    value.length.map(|l| l * 0.9144)
+                };
+                let length = length.ok_or(Self::Error::HoleLengthNotFound(hole_number))? as u16;
                 let par = value.par.ok_or(Self::Error::HoleParNotFound(hole_number))? as u8;
                 Ok(Hole {
                     length,
                     par,
+                    hole: hole_number,
                 })
             }
         }
-        
+
         impl TryFrom<Vec<super::Hole>> for Holes {
             type Error = crate::api::Error;
             fn try_from(value: Vec<super::Hole>) -> Result<Self, Self::Error> {
                 let mut holes = vec![];
                 for hole in value {
-                    holes.push(Hole::try_from(hole)?)
+                    holes.push(Arc::new(Hole::try_from(hole)?))
                 }
-                Ok(Holes {
-                    holes
-                })
-                
+                Ok(Holes { holes })
+            }
+        }
+
+        impl From<Vec<Hole>> for Holes {
+            fn from(value: Vec<Hole>) -> Self {
+                let holes = value.into_iter().map(Arc::new).collect();
+                Holes { holes }
             }
         }
     }
-    
+
     pub use hole::*;
-
-
 
     #[derive(cynic::QueryVariables, Debug)]
     pub struct HoleLayoutQueryVariables {
@@ -210,18 +225,14 @@ pub mod layout {
     }
 
     #[derive(cynic::QueryFragment, Debug)]
-    struct Hole {
+    pub(crate) struct Hole {
         pub measure_in_meters: Option<bool>,
         pub number: f64,
         pub name: Option<String>,
         pub par: Option<f64>,
         pub length: Option<f64>,
     }
-    
-    
-    
 }
-
 
 // Groups
 pub mod group {

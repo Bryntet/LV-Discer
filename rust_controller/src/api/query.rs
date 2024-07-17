@@ -40,8 +40,8 @@ pub async fn get_players(coordinator: Coordinator) -> Json<Vec<dto::Player>> {
     coordinator
         .lock()
         .await
-        .available_players
-        .iter()
+        .available_players()
+        .into_iter()
         .map(dto::Player::from)
         .collect_vec()
         .into()

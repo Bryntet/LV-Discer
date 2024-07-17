@@ -32,6 +32,17 @@ impl Player {
             index,
         }
     }
+
+    pub fn from_normal_player(player: controller::Player) -> Self {
+        Player {
+            id: player.player_id.clone(),
+            name: player.name.clone(),
+            image_url: player.image_url.clone(),
+            focused: false,
+            holes_finished: player.amount_of_holes_finished(),
+            index: player.ind,
+        }
+    }
 }
 impl From<&controller::Player> for self::Player {
     fn from(value: &controller::Player) -> self::Player {

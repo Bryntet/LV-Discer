@@ -79,8 +79,8 @@ pub enum ReadableScore {
     Ace,
 }
 impl ReadableScore {
-    const fn new(throws: usize, par: usize) -> Self {
-        let score = throws as i8 - par as i8;
+    const fn new(throws: i8, par: i8) -> Self {
+        let score = throws - par;
         match score {
             0 => Self::Par,
             -1 => Self::Birdie,
@@ -125,13 +125,13 @@ impl ReadableScore {
     }
 }
 pub struct Score {
-    throws: usize,
+    throws: i8,
     readable_score: ReadableScore,
-    par: usize,
-    hole: usize,
+    par: i8,
+    hole: u8,
 }
 impl Score {
-    pub(crate) const fn new(throws: usize, par: usize, hole: usize) -> Self {
+    pub(crate) const fn new(throws: i8, par: i8, hole: u8) -> Self {
         Self {
             throws,
             par,
@@ -144,7 +144,7 @@ impl Score {
         VMixFunction::SetColor {
             color: self.readable_score.to_colour(),
             input: VMixSelection(VMixProperty::ScoreColor {
-                hole: self.hole,
+                hole: self.hole as usize,
                 player,
             }),
         }
@@ -161,7 +161,7 @@ impl Score {
         match self.readable_score {
             ReadableScore::Par => "E".to_string(),
             _ => {
-                let score = self.throws as i32 - self.par as i32;
+                let score = self.throws as i8 - self.par as i8;
                 String::from(if score > 0 { "+" } else { "" }) + score.to_string().as_str()
             }
         }
@@ -171,7 +171,7 @@ impl Score {
         VMixFunction::SetText {
             value: self.get_score_text(),
             input: VMixSelection(VMixProperty::Score {
-                hole: self.hole, // TODO remove
+                hole: self.hole as usize, // TODO remove
                 player,
             }),
         }
@@ -180,7 +180,7 @@ impl Score {
     fn show_score(&self, player: usize) -> VMixFunction<VMixProperty> {
         VMixFunction::SetTextVisibleOn {
             input: VMixSelection(VMixProperty::Score {
-                hole: self.hole,
+                hole: self.hole as usize,
                 player,
             }),
         }

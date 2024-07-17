@@ -10,8 +10,8 @@ use {
 
 use crate::api::Error;
 use std::sync::Arc;
-use tokio::sync::broadcast::{Sender,Receiver,channel};
 use tokio::sync::broadcast::error::SendError;
+use tokio::sync::broadcast::{channel, Receiver, Sender};
 
 #[cfg(target_arch = "wasm32")]
 #[derive(Clone)]
@@ -31,9 +31,9 @@ use crate::vmix::functions::{VMixFunction, VMixSelectionTrait};
 
 impl Queue {
     pub fn new(ip: String) -> Result<Self, Error> {
-        let (tx, mut rx): (Sender<String>, Receiver<String>) =channel(2048);
+        let (tx, mut rx): (Sender<String>, Receiver<String>) = channel(2048);
         let mut stream = Self::make_tcp_stream(&ip).ok_or(Error::IpNotFound(ip))?;
-        
+
         let me = Self {
             functions_sender: tx,
         };
@@ -50,7 +50,6 @@ impl Queue {
                     };
                 }
             }
-            
         });
         Ok(me)
     }
@@ -64,8 +63,6 @@ impl Queue {
     }
 
     fn send(bytes: &[u8], stream: &mut TcpStream) -> Result<(), String> {
-        
-        
         match stream.write_all(bytes) {
             Ok(()) => (),
             Err(e) => Err(e.to_string())?,

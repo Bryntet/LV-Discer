@@ -115,7 +115,7 @@ pub async fn update_other_leaderboard(co: Coordinator, division: &str) -> Result
     let division = coordinator
         .find_division(division)
         .ok_or("Unable to find division")?;
-    coordinator.set_leaderboard(&division, None);
-    coordinator.make_separate_lb(&division);
+    //coordinator.set_leaderboard(&division, None);
+    //coordinator.make_separate_lb(&division);
     Ok(())
 }

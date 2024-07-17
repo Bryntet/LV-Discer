@@ -29,7 +29,7 @@ pub use guard::Error;
 #[derive(Debug, Clone)]
 struct Coordinator(Arc<Mutex<FlipUpVMixCoordinator>>);
 
-impl<'a> From<FlipUpVMixCoordinator> for Coordinator {
+impl From<FlipUpVMixCoordinator> for Coordinator {
     fn from(value: FlipUpVMixCoordinator) -> Self {
         Self(Arc::new(Mutex::new(value)))
     }
@@ -97,7 +97,7 @@ pub fn launch() -> Rocket<Build> {
 
     rocket::build()
         .configure(rocket::Config {
-            address: IpAddr::V4("10.169.122.114".parse().unwrap()),
+            address: IpAddr::V4("192.168.1.206".parse().unwrap()),
             ..Default::default()
         })
         .manage(CoordinatorLoader(Mutex::new(None)))

@@ -22,7 +22,8 @@ impl Group {
     pub fn player_ids(&self) -> Vec<String> {
         self.players
             .iter()
-            .map(|player| player.id.clone())
+            .cloned()
+            .map(|player| player.id)
             .collect()
     }
 }

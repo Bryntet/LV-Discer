@@ -16,12 +16,15 @@ use serde_json::json;
 pub async fn set_focus(
     focused_player: usize,
     coordinator: Coordinator,
-    updater: &State<GeneralChannel<GroupSelectionUpdate>>,
+    updater: &GeneralChannel<GroupSelectionUpdate>,
 ) -> Result<Json<dto::Player>, Error> {
     let mut coordinator = coordinator.lock().await;
 
     coordinator.set_focused_player(focused_player, Some(updater))?;
-    Ok(dto::Player::from(coordinator.focused_player()).into())
+
+    let player = coordinator.focused_player().clone();
+
+    Ok(dto::Player::from_normal_player(player).into())
 }
 
 #[openapi(tag = "Config")]
@@ -51,33 +54,35 @@ pub async fn set_group(
         .ok_or("Unable to set group")
 }
 
-#[openapi(tag = "Live Update")]
+//#[openapi(tag = "Live Update")]
 #[post("/player/<player_id>/throw/set/<throws>")]
 pub async fn set_throws(
     coordinator: Coordinator,
     player_id: &str,
     throws: u8,
 ) -> Result<(), Error> {
+    let player_id = player_id.to_string();
     let mut coordinator = coordinator.lock().await;
-    coordinator.find_player_mut(player_id).ok_or(Error::PlayerNotFound(player_id.to_string()))?.throws = throws;
+    let player = coordinator
+        .find_player_mut(player_id.clone())
+        .ok_or(Error::PlayerNotFound(player_id))?;
+    player.throws = throws;
+    std::mem::drop(player);
+    std::mem::drop(coordinator);
     Ok(())
 }
 
 #[openapi(tag = "Live Update")]
 #[post("/player/<player_id>/score/ready")]
-pub async fn set_score_ready(
-    coordinator: Coordinator,
-    player_id: &str,
-) -> Result<(), Error> {
+pub async fn set_score_ready(coordinator: Coordinator, player_id: String) -> Result<(), Error> {
     let mut coordinator = coordinator.lock().await;
-    coordinator.find_player_mut(player_id)
+    coordinator
+        .find_player_mut(player_id.to_string())
         .ok_or(Error::PlayerNotFound(player_id.to_string()))?
         .results
         .current_result_mut(1);
     Ok(())
 }
-
-
 
 #[catch(424)]
 pub fn make_coordinator() -> RawHtml<Template> {

@@ -12,13 +12,15 @@ pub struct LeaderboardState {
     players: Vec<Player>,
 }
 
-impl Leaderboard {
+impl<'a> Leaderboard {
     pub fn new(state: LeaderboardState) -> Self {
         Self {
             states: vec![state],
         }
     }
+}
 
+impl Leaderboard {
     fn current_state(&self) -> &LeaderboardState {
         self.states
             .last()
@@ -64,7 +66,10 @@ impl LeaderboardState {
             players,
         }
     }
-    fn sort_players(players: &mut [Player]) {
+}
+
+impl LeaderboardState {
+    fn sort_players(players: &mut Vec<Player>) {
         players.sort_by(|player_a, player_b| player_a.total_score.cmp(&player_b.total_score))
     }
 
@@ -125,7 +130,7 @@ struct LeaderboardPlayer {
     name: String,
     round_score: isize,
     total_score: isize,
-    thru: usize,
+    thru: u8,
 }
 
 impl LeaderboardPlayer {

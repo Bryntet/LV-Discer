@@ -20,10 +20,11 @@ use crate::api::websocket::channels::{GeneralChannel, HoleUpdate};
 use crate::controller::coordinator::FlipUpVMixCoordinator;
 pub use channels::{ChannelAttributes, GroupSelectionUpdate};
 
-async fn interpret_message<'r>(
+#[inline(always)]
+async fn interpret_message(
     message: Message,
     coordinator: &Coordinator,
-    updater: &State<GeneralChannel<GroupSelectionUpdate>>,
+    updater: &GeneralChannel<GroupSelectionUpdate>,
 ) -> Result<Interpreter, serde_json::Error> {
     let interpreter: Interpreter = serde_json::from_str(&message.to_string())?;
     if let Ok(num) = interpreter.message.parse::<usize>() {

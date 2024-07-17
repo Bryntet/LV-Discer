@@ -1,14 +1,18 @@
-use crate::api::Coordinator;
+use crate::api::websocket::ChannelAttributes;
+use crate::api::Error::UnableToParse;
+use crate::api::{Coordinator, GeneralChannel, GroupSelectionUpdate};
+use crate::controller::coordinator::FlipUpVMixCoordinator;
 use rocket::http::Status;
 use rocket::request::{FromRequest, Outcome};
 use rocket::response::Responder;
-use rocket::{Request, response};
+use rocket::{response, Request};
 use rocket_okapi::gen::OpenApiGenerator;
 use rocket_okapi::okapi::openapi3::{MediaType, Responses};
 use rocket_okapi::request::{OpenApiFromRequest, RequestHeaderInput};
 use rocket_okapi::response::{OpenApiResponder, OpenApiResponderInner};
+use std::fmt::Debug;
+use std::ops::{Deref, DerefMut};
 use tokio::sync::Mutex;
-use crate::api::Error::UnableToParse;
 
 pub struct CoordinatorLoader(pub Mutex<Option<Coordinator>>);
 
@@ -25,16 +29,66 @@ impl<'r> FromRequest<'r> for Coordinator {
             .lock()
             .await
         {
-            None => Outcome::Error((
-                Status::FailedDependency,
-                Error::UnloadedDependency,
-            )),
+            None => Outcome::Error((Status::FailedDependency, Error::UnloadedDependency)),
             Some(a) => Outcome::Success(a.clone()),
         }
     }
 }
 
+#[rocket::async_trait]
+impl<
+        'r,
+        T: for<'a> From<&'a FlipUpVMixCoordinator>
+            + ChannelAttributes
+            + Send
+            + Clone
+            + Debug
+            + 'static,
+    > FromRequest<'r> for &'r GeneralChannel<T>
+{
+    type Error = ();
 
+    async fn from_request(request: &'r Request<'_>) -> Outcome<Self, Self::Error> {
+        Outcome::Success(
+            request
+                .rocket()
+                .state::<GeneralChannel<T>>()
+                .unwrap()
+                .clone(),
+        )
+    }
+}
+
+impl<
+        'r,
+        T: for<'a> From<&'a FlipUpVMixCoordinator>
+            + ChannelAttributes
+            + Send
+            + Clone
+            + Debug
+            + 'static,
+    > OpenApiFromRequest<'r> for &'r GeneralChannel<T>
+{
+    fn from_request_input(
+        gen: &mut OpenApiGenerator,
+        name: String,
+        required: bool,
+    ) -> rocket_okapi::Result<RequestHeaderInput> {
+        Ok(rocket_okapi::request::RequestHeaderInput::None)
+    }
+    fn get_responses(gen: &mut OpenApiGenerator) -> rocket_okapi::Result<Responses> {
+        use rocket_okapi::{okapi, okapi::openapi3::RefOr};
+
+        Ok(Responses {
+            // Recommended and most strait forward.
+            // And easy to add or remove new responses.
+            responses: okapi::map! {
+                "424".to_owned() => RefOr::Object(failed_dependency(gen)),
+            },
+            ..Default::default()
+        })
+    }
+}
 
 #[derive(thiserror::Error, Debug, Clone)]
 pub enum Error {
@@ -47,10 +101,7 @@ pub enum Error {
     #[error("Unable to parse")]
     UnableToParse,
     #[error("No score found on player: `{player}` at hole `{hole}`")]
-    NoScoreFound{
-        player: String,
-        hole: usize
-    },
+    NoScoreFound { player: String, hole: usize },
     #[error("Index `{0}` does not exist in current card")]
     CardIndexNotFound(usize),
     #[error("Too many holes")]
@@ -58,7 +109,7 @@ pub enum Error {
     #[error("Length not found on the hole: {0}")]
     HoleLengthNotFound(u8),
     #[error("Par not found on the hole: {0}")]
-    HoleParNotFound(u8)
+    HoleParNotFound(u8),
 }
 
 impl<'r, 'o: 'r> Responder<'r, 'o> for Error {
@@ -66,17 +117,20 @@ impl<'r, 'o: 'r> Responder<'r, 'o> for Error {
         // log `self` to your favored error tracker, e.g.
         // sentry::capture_error(&self);
         warn!("{}", self);
-        
+
         use Error::*;
         match self {
-            NoScoreFound { .. } | PlayerNotFound(_) | IpNotFound(_) | UnableToParse => Err(Status::InternalServerError),
+            NoScoreFound { .. }
+            | PlayerNotFound(_)
+            | IpNotFound(_)
+            | UnableToParse
+            | HoleLengthNotFound(_)
+            | HoleParNotFound(_) => Err(Status::InternalServerError),
             UnloadedDependency => Err(Status::FailedDependency),
-            CardIndexNotFound(_) => Err(Status::BadRequest)
-            
+            CardIndexNotFound(_) | TooManyHoles => Err(Status::BadRequest),
         }
     }
 }
-
 
 impl OpenApiResponderInner for self::Error {
     fn responses(gen: &mut OpenApiGenerator) -> rocket_okapi::Result<Responses> {
@@ -92,7 +146,6 @@ impl OpenApiResponderInner for self::Error {
         })
     }
 }
-
 
 impl<'a> OpenApiFromRequest<'a> for Coordinator {
     fn from_request_input(
@@ -115,7 +168,6 @@ impl<'a> OpenApiFromRequest<'a> for Coordinator {
         })
     }
 }
-
 
 pub fn failed_dependency(gen: &mut OpenApiGenerator) -> rocket_okapi::okapi::openapi3::Response {
     use rocket_okapi::okapi;
