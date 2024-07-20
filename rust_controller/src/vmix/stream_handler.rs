@@ -41,7 +41,7 @@ impl Queue {
         tokio::spawn(async move {
             loop {
                 if let Ok(f) = rx.recv().await {
-                    info!("Sending: {}", &f);
+                    //info!("Sending: {}", &f);
                     match Queue::send(&f.into_bytes(), &mut stream) {
                         Ok(()) => (),
                         Err(e) => {

@@ -110,17 +110,17 @@ impl From<&HoleResult> for Score {
         Self::new(
             res.throws(),
             res.hole_representation.par as i8,
-            res.hole.into(),
+            res.hole,
         )
     }
 }
 
 impl HoleResult {
-    pub fn new(hole: u8, holes: &Holes) -> Option<Self> {
-        Some(Self {
+    pub fn new(hole: u8, holes: &Holes) -> Result<Self,Error> {
+        Ok(Self {
             hole,
             throws: 0,
-            hole_representation: holes.find_hole(hole)?,
+            hole_representation: holes.find_hole(hole).ok_or(Error::UnableToParse)?,
             tjing_result: None,
             ob: HashSet::new(),
             finished: false,
@@ -183,21 +183,17 @@ impl PlayerRound {
             return Err(Error::TooManyHoles);
         }
         self.results.push(
-            HoleResult::new(self.results.len() as u8, all_holes)
-                .ok_or(Error::HoleLengthNotFound(self.results.len() as u8))?,
+            HoleResult::new(self.results.len() as u8, all_holes)?,
         );
         Ok(())
     }
 
     pub fn current_result_mut(&mut self, hole: usize) -> Option<&mut HoleResult> {
         for result in self.results.iter_mut() {
-            match result.tjing_result {
-                Some(ref tjing_result) => {
-                    if tjing_result.hole.number as usize == hole {
-                        return Some(result);
-                    }
+            if let Some(ref tjing_result) = result.tjing_result {
+                if tjing_result.hole.number as usize == hole {
+                    return Some(result);
                 }
-                None => {}
             }
         }
         None
@@ -304,7 +300,7 @@ impl Player {
                 .unwrap_or_default()
                 .into_iter()
                 .map(|r: controller::queries::HoleResult| {
-                    HoleResult::from_tjing(r.hole.number as u8, &holes, r)
+                    HoleResult::from_tjing(r.hole.number as u8, holes, r)
                         .expect("Could not create HoleResult")
                 })
                 .collect_vec(),
@@ -466,15 +462,38 @@ impl Player {
         Ok(return_vec)
     }
 
-    pub fn set_hole_score(&mut self) -> Result<Vec<VMixFunction<VMixProperty>>, Error> {
+    pub fn increase_score(&mut self) -> Result<Vec<VMixFunction<VMixProperty>>, Error> {
         let mut return_vec: Vec<VMixFunction<VMixProperty>> = vec![];
 
         if !self.first_scored {
             self.first_scored = true;
         }
 
+
+        let s = match self.get_score(self.hole_shown_up_until) {
+            Ok(s) => s,
+            Err(Error::NoScoreFound {..}) => {
+                let Some(t) = self.results.current_result_mut(self.hole_shown_up_until) else {
+                    return Err(Error::NoScoreFound {
+                        player: self.name.clone(),
+                        hole: self.hole_shown_up_until,
+                    })
+                };
+                t.throws = self.throws;
+                t.finished = true;
+                t.to_score()
+            }
+            Err(e) => return Err(e),
+        };
         // Update score text, visibility, and colour
+        
         let score = self.get_current_shown_score()?.update_score(1);
+
+
+        self.round_score += s.par_score() as isize;
+        self.total_score += dbg!(s.par_score()) as isize;
+
+
         return_vec.extend(score);
 
         let overarching = self.overarching_score_representation();
@@ -837,7 +856,7 @@ impl RustHandler {
         warn!("Time taken to get event: {:?}", time.elapsed());
         let mut divisions: Vec<queries::Division> = vec![];
 
-        let holes = Self::get_holes(event_id).await?;
+        let holes = dbg!(Self::get_holes(event_id).await?);
         event
             .iter()
             .flat_map(|round| &round.event)
@@ -959,25 +978,27 @@ impl RustHandler {
             .json::<GraphQlResponse<HoleLayoutQuery>>()
             .await
             .unwrap();
-        let holes = holes
-            .data
-            .ok_or(Error::UnableToParse)?
-            .event
-            .ok_or(Error::UnableToParse)?
-            .rounds
-            .into_iter()
-            .flatten()
-            .map(|round| {
-                round
-                    .pools
-                    .into_iter()
-                    .flat_map(|pool| pool.layout_version.holes)
-                    .dedup_by(|a, b| a.number == b.number)
-                    .flat_map(|hole| controller::queries::layout::hole::Hole::try_from(hole).ok())
-                    .collect_vec()
-            })
-            .map(controller::queries::layout::hole::Holes::from)
-            .collect_vec();
+        let holes = {
+            let Some(data) = holes.data else {
+                return Err(Error::UnableToParse)
+            };
+            let Some(event) = data.event else {
+                return Err(Error::UnableToParse)
+            };
+            let mut rounds_holes = vec![];
+            for round in event.rounds {
+                let Some(round) = round else {
+                    return Err(Error::UnableToParse)
+                };
+                let holes = round.pools.into_iter().flat_map(|pool| pool.layout_version.holes).dedup_by(|a,b| a.number == b.number).collect_vec();
+                match Holes::try_from(holes) {
+                    Err(e) => return Err(e),
+                    Ok(holes) => rounds_holes.push(holes)
+                }
+            }
+            rounds_holes
+        };
+        
         Ok(holes)
     }
 

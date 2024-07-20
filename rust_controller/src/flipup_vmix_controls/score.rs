@@ -139,6 +139,10 @@ impl Score {
             hole,
         }
     }
+    
+    pub const fn par_score(&self) -> i8 {
+        self.throws - self.par
+    }
 
     pub const fn update_score_colour(&self, player: usize) -> VMixFunction<VMixProperty> {
         VMixFunction::SetColor {
@@ -158,12 +162,11 @@ impl Score {
     }
 
     fn get_score_text(&self) -> String {
-        match self.readable_score {
-            ReadableScore::Par => "E".to_string(),
-            _ => {
-                let score = self.throws as i8 - self.par as i8;
-                String::from(if score > 0 { "+" } else { "" }) + score.to_string().as_str()
-            }
+        let score = self.par_score();
+        match score {
+            (1..) => format!("%2B{}",score), // URL encoding for plus
+            0 => "E".to_string(),
+            _ => score.to_string(), // No need for minus as that's already a part of the score
         }
     }
 

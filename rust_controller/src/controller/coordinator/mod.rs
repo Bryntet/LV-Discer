@@ -265,7 +265,7 @@ impl FlipUpVMixCoordinator {
         // Previously had shift-scores here
         for x in 1..=hole {
             player.hole_shown_up_until = x;
-            actions.extend(player.set_hole_score()?);
+            actions.extend(player.increase_score()?);
         }
 
         self.queue_add(&actions);
@@ -289,7 +289,7 @@ impl FlipUpVMixCoordinator {
         if player.hole_shown_up_until <= 17 {
             let funcs = {
                 // Previously had shift-scores here
-                let mut funcs = player.set_hole_score()?;
+                let mut funcs = player.increase_score()?;
                 funcs.extend(player.hide_pos());
                 funcs
             };

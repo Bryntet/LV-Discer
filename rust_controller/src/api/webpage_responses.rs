@@ -1,6 +1,6 @@
 use super::super::dto;
 use crate::api::guard::CoordinatorLoader;
-use crate::api::{mutation, query, Coordinator, GeneralChannel, GroupSelectionUpdate};
+use crate::api::{mutation, query, Coordinator, GeneralChannel, GroupSelectionUpdate, Error};
 use crate::dto::CoordinatorBuilder;
 use itertools::Itertools;
 use rocket::form::Form;
@@ -39,12 +39,12 @@ pub async fn set_group(
 pub async fn load(
     loader: &State<CoordinatorLoader>,
     builder: Form<CoordinatorBuilder>,
-) -> Template {
-    let coordinator = builder.into_inner().into_coordinator().await.unwrap();
+) -> Result<Template, Error> {
+    let coordinator = builder.into_inner().into_coordinator().await?;
     let mut groups = coordinator.groups().into_iter().cloned().collect_vec();
     groups.reverse();
     *loader.0.lock().await = Some(coordinator.into());
-    Template::render("index", json!({"groups": groups}))
+    Ok(Template::render("index", json!({"groups": groups})))
 }
 
 #[openapi(tag = "HTMX")]

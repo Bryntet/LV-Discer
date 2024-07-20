@@ -179,7 +179,12 @@ pub mod layout {
                 for hole in value {
                     holes.push(Arc::new(Hole::try_from(hole)?))
                 }
-                Ok(Holes { holes })
+                let holes = Holes {holes};
+                dbg!(&holes);
+                if holes.holes.len() < 18 {
+                    return Err(Self::Error::NotEnoughHoles{holes: holes.holes.len()});
+                }
+                Ok(holes)
             }
         }
 

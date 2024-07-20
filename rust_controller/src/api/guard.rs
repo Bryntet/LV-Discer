@@ -110,6 +110,10 @@ pub enum Error {
     HoleLengthNotFound(u8),
     #[error("Par not found on the hole: {0}")]
     HoleParNotFound(u8),
+    #[error("Not enough holes. Only {holes} found. Expected 18.")]
+    NotEnoughHoles {
+        holes: usize,
+    },
 }
 
 impl<'r, 'o: 'r> Responder<'r, 'o> for Error {
@@ -125,7 +129,7 @@ impl<'r, 'o: 'r> Responder<'r, 'o> for Error {
             | IpNotFound(_)
             | UnableToParse
             | HoleLengthNotFound(_)
-            | HoleParNotFound(_) => Err(Status::InternalServerError),
+            | HoleParNotFound(_) | NotEnoughHoles {..}=> Err(Status::InternalServerError),
             UnloadedDependency => Err(Status::FailedDependency),
             CardIndexNotFound(_) | TooManyHoles => Err(Status::BadRequest),
         }
