@@ -186,10 +186,10 @@ impl Score {
         }
     }
 
-    pub fn play_mov_vmix(&self, player: usize, ob: bool) -> [VMixFunction<VMixProperty>; 3] {
+    pub fn play_mov_vmix(&self, player: usize, ob: bool) -> [VMixFunction<VMixProperty>; 2] {
         [
             Self::stop_previous_mov(),
-            self.set_input_pan(0),
+            //self.set_input_pan(0),
             self.to_vmix_mov(ob),
         ]
     }

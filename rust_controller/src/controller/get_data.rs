@@ -164,7 +164,7 @@ impl HoleResult {
         self.to_score().update_score_colour(player)
     }
 
-    pub fn get_mov(&self, player: usize) -> [VMixFunction<VMixProperty>; 3] {
+    pub fn get_mov(&self, player: usize) -> [VMixFunction<VMixProperty>; 2] {
         self.to_score().play_mov_vmix(player, false)
     }
 }
