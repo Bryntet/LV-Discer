@@ -51,9 +51,7 @@ impl<InputEnum: VMixSelectionTrait> VMixFunction<InputEnum> {
             SetText { input, .. } => Some(input.get_selection()),
             SetColor { input, .. } => Some(input.get_selection()),
             OverlayInput4(mov) => {
-                let test = format!(r#"C:\livegrafik-flipup\".mov bumps"\{}"#, mov);
-                println!("test: {}", &test);
-                Some(test)
+                Some(format!("Input={}",mov))
             }
             OverlayInput4Off | SetPanX { .. } => None,
             SetImage { input, .. } => Some(input.get_selection()),
