@@ -5,6 +5,7 @@ mod query;
 mod vmix_calls;
 mod webpage_responses;
 mod websocket;
+mod update_loop;
 
 use crate::controller::coordinator::FlipUpVMixCoordinator;
 use guard::*;
@@ -31,7 +32,12 @@ struct Coordinator(Arc<Mutex<FlipUpVMixCoordinator>>);
 
 impl From<FlipUpVMixCoordinator> for Coordinator {
     fn from(value: FlipUpVMixCoordinator) -> Self {
-        Self(Arc::new(Mutex::new(value)))
+        let coordinator = Arc::new(Mutex::new(value));
+        let s = Self(coordinator.clone());
+        tokio::spawn( async move{
+            update_loop::update_loop(coordinator).await;
+        });
+        s
     }
 }
 impl Coordinator {
@@ -97,7 +103,7 @@ pub fn launch() -> Rocket<Build> {
 
     rocket::build()
         .configure(rocket::Config {
-            address: IpAddr::V4("192.168.1.206".parse().unwrap()),
+            address: IpAddr::V4("10.170.122.114".parse().unwrap()),
             ..Default::default()
         })
         .manage(CoordinatorLoader(Mutex::new(None)))

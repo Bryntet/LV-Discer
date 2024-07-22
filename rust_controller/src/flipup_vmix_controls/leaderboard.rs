@@ -114,7 +114,7 @@ impl LeaderboardState {
         &self,
         other: Option<&Self>,
     ) -> Vec<VMixFunction<LeaderBoardProperty>> {
-        let players = self.leaderboard_players(other);
+        let players = dbg!(self.leaderboard_players(other));
         players
             .iter()
             .flat_map(LeaderboardPlayer::combine)
@@ -122,6 +122,7 @@ impl LeaderboardState {
     }
 }
 
+#[derive(Debug)]
 struct LeaderboardPlayer {
     position: usize,
     index: usize,
@@ -264,6 +265,7 @@ impl LeaderboardPlayer {
         ]
     }
 }
+#[derive(Debug)]
 enum LeaderboardMovement {
     Up(usize),
     Down(usize),

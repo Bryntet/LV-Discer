@@ -8,14 +8,14 @@ import { ApiClient } from './coordinator_communication';
 
 
 export class LevandeVideoInstance extends InstanceBase<Config> {
-	public coordinator = new ApiClient("http://10.169.122.114:8000");
+	public coordinator = new ApiClient("http://10.170.122.114:8000");
 	private webSocketSubscriptions: WebSocketSubscription[] = [{
-		url: 'ws://10.169.122.114:8000/ws/players/selected/watch',
+		url: 'ws://10.170.122.114:8000/ws/players/selected/watch',
 		debug_messages: true,
 		variableName: 'selected_players',
 		subpath: 'players',
 	},{
-		url: 'ws://10.169.122.114:8000/ws/hole/watch',
+		url: 'ws://10.170.122.114:8000/ws/hole/watch',
 		debug_messages: true,
 		variableName: 'current_hole',
 		subpath: 'hole',

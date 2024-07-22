@@ -34,6 +34,7 @@ pub struct FlipUpVMixCoordinator {
     current_through: u8,
     pub queue: Arc<Queue>,
     card: Card,
+    pub event_id: String
 }
 #[derive(Clone, Debug)]
 struct Card {
@@ -86,7 +87,7 @@ impl FlipUpVMixCoordinator {
         let first_group = handler.groups.first().unwrap().first().unwrap();
         let group_id = first_group.id.to_owned();
         let mut coordinator = FlipUpVMixCoordinator {
-            all_divs: vec![],
+            all_divs: handler.get_divisions(),
             selected_div_index: 0,
             focused_player_index: focused_player,
             ip,
@@ -97,6 +98,7 @@ impl FlipUpVMixCoordinator {
             current_through: 0,
             queue: Arc::new(queue),
             leaderboard: Leaderboard::default(),
+            event_id
         };
         coordinator.queue_add(&coordinator.focused_player().set_name());
         coordinator.reset_score();
@@ -109,7 +111,7 @@ impl FlipUpVMixCoordinator {
         self.handler.get_players()
     }
 
-    pub fn available_players_mut<'a>(&'a mut self) -> Vec<&'a mut Player> {
+    pub fn available_players_mut(&mut self) -> Vec<&mut Player> {
         self.handler.get_players_mut()
     }
 
@@ -129,6 +131,12 @@ impl FlipUpVMixCoordinator {
         }
         Ok(())
     }
+    
+    pub fn round_id(&self) -> &str {
+        self.handler.round_id()
+    }
+    
+   
 
     pub fn set_group(
         &mut self,
@@ -232,8 +240,7 @@ impl FlipUpVMixCoordinator {
             .cloned()
     }
 
-    /*
-    // TODO: Use division to set the leaderboard
+    
     pub fn set_leaderboard(&mut self, division: &Division, lb_start_ind: Option<usize>) {
         self.queue_add(&FlipUpVMixCoordinator::clear_lb(10));
         println!("set_leaderboard");
@@ -242,13 +249,7 @@ impl FlipUpVMixCoordinator {
         println!("past set_lb_thru");
         if self.current_hole() <= 19 {
             println!("hole <= 19");
-            self.lb_div_ind = self.selected_div_index;
-            if let Some(pop) = lb_start_ind {
-                for player in self.available_players_mut() {
-                    player.position -= pop;
-                }
-            }
-
+            
             self.leaderboard.update_players(LeaderboardState::new(
                 self.round_ind,
                 self.available_players().into_iter().cloned().collect_vec(),
@@ -257,7 +258,7 @@ impl FlipUpVMixCoordinator {
         } else {
             println!("PANIC, hole > 18");
         }
-    }*/
+    }
 
     pub fn set_to_hole(&mut self, hole: usize) -> Result<(), Error> {
         let player = self.focused_player_mut();

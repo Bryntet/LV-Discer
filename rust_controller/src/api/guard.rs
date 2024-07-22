@@ -114,6 +114,8 @@ pub enum Error {
     NotEnoughHoles {
         holes: usize,
     },
+    #[error("Invalid division: \"{0}\"")]
+    InvalidDivision(String),
 }
 
 impl<'r, 'o: 'r> Responder<'r, 'o> for Error {
@@ -131,7 +133,7 @@ impl<'r, 'o: 'r> Responder<'r, 'o> for Error {
             | HoleLengthNotFound(_)
             | HoleParNotFound(_) | NotEnoughHoles {..}=> Err(Status::InternalServerError),
             UnloadedDependency => Err(Status::FailedDependency),
-            CardIndexNotFound(_) | TooManyHoles => Err(Status::BadRequest),
+            CardIndexNotFound(_) | TooManyHoles | InvalidDivision(_) => Err(Status::BadRequest),
         }
     }
 }

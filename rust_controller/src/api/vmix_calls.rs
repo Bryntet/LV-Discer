@@ -52,18 +52,23 @@ pub async fn clear_all(co: Coordinator) {
 /// # Update leaderboard
 /// Set the leaderboard to the current state
 #[openapi(tag = "VMix")]
-#[post("/vmix/update/leaderboard")]
-pub async fn update_leaderboard(co: Coordinator) {
-    todo!();
+#[post("/vmix/update/leaderboard/<division>")]
+pub async fn update_leaderboard(co: Coordinator, division: &str) -> Result<(), Error> {
+    let mut co = co.lock().await;
+
+    let div = co.all_divs.iter().find(|div|div.name==division).ok_or(Error::InvalidDivision(division.to_string()))?.to_owned();
+    co.set_leaderboard(&div, Some(18));
+    Ok(())
 }
 
 /// # Increase score
 /// Increase the score of the currently focused player
 #[openapi(tag = "VMix")]
 #[post("/vmix/player/focused/score/increase")]
-pub async fn increase_score(co: Coordinator, hole_update: &State<GeneralChannel<HoleUpdate>>) {
+pub async fn increase_score(co: Coordinator, hole_update: &State<GeneralChannel<HoleUpdate>>) -> Result<(), Error> {
     let mut coordinator = co.lock().await;
-    coordinator.increase_score(hole_update);
+    coordinator.increase_score(hole_update)?;
+    Ok(())
 }
 
 /// # Revert score

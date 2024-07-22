@@ -15,6 +15,7 @@ use rocket::State;
 use std::collections::HashSet;
 use std::sync::Arc;
 use tokio::sync::broadcast::Sender;
+use tokio::sync::RwLock;
 
 pub const DEFAULT_FOREGROUND_COL: &str = "3F334D";
 pub const DEFAULT_FOREGROUND_COL_ALPHA: &str = "3F334D00";
@@ -141,9 +142,15 @@ impl HoleResult {
             finished: false,
         })
     }
-}
+    
+    pub fn tjing_result(self) -> Option<queries::HoleResult> {
+        self.tjing_result
+    }
+    
 
-impl HoleResult {
+    
+    
+    
     pub fn actual_score(&self) -> i8 {
         self.throws() - self.hole_representation.par as i8
     }
@@ -197,6 +204,18 @@ impl PlayerRound {
             }
         }
         None
+    }
+    
+    pub fn tjing_results(self) -> Vec<Option<queries::HoleResult>> {
+        self.results.into_iter().map(|res| res.tjing_result).collect()
+    }
+    
+    pub fn update_tjing(&mut self, results: &[Option<queries::HoleResult>]) {
+        for result in &mut self.results {
+            if let Some(Some(tjing_result)) = results.get(result.hole as usize) {
+                result.tjing_result = Some(tjing_result.to_owned());
+            }
+        }
     }
 }
 
@@ -486,7 +505,7 @@ impl Player {
             Err(e) => return Err(e),
         };
         // Update score text, visibility, and colour
-        
+
         let score = self.get_current_shown_score()?.update_score(1);
 
 
@@ -998,7 +1017,7 @@ impl RustHandler {
             }
             rounds_holes
         };
-        
+
         Ok(holes)
     }
 
@@ -1049,6 +1068,10 @@ impl RustHandler {
                     .collect_vec()
             })
             .collect_vec()
+    }
+    
+    pub fn round_id(&self) -> &str {
+        &self.round_ids[self.round_ind]
     }
 
     pub fn amount_of_rounds(&self) -> usize {
