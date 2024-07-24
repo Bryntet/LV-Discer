@@ -2,19 +2,13 @@ pub mod channels;
 pub mod htmx;
 
 use crate::api::Coordinator;
-use crate::dto;
 use rocket::futures::FutureExt;
-use rocket::serde::json::Json;
 use rocket::tokio::select;
-use rocket::tokio::sync::broadcast::Sender;
 use rocket::{Shutdown, State};
-use rocket_dyn_templates::Metadata;
 use rocket_ws as ws;
 use rocket_ws::Message;
 use serde::Deserialize;
-use serde_json::json;
 use std::fmt::Debug;
-use std::ops::Deref;
 
 use crate::api::websocket::channels::{GeneralChannel, HoleUpdate};
 use crate::controller::coordinator::FlipUpVMixCoordinator;

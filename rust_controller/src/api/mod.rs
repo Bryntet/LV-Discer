@@ -2,16 +2,15 @@ mod coordinator_wrapper;
 mod guard;
 mod mutation;
 mod query;
+mod update_loop;
 mod vmix_calls;
 mod webpage_responses;
 mod websocket;
-mod update_loop;
 
 use crate::controller::coordinator::FlipUpVMixCoordinator;
 use guard::*;
 use mutation::*;
 
-use rocket::config::LogLevel;
 use rocket::tokio::sync::broadcast::channel;
 use rocket::{Build, Rocket, Route};
 use rocket_dyn_templates::Template;
@@ -34,7 +33,7 @@ impl From<FlipUpVMixCoordinator> for Coordinator {
     fn from(value: FlipUpVMixCoordinator) -> Self {
         let coordinator = Arc::new(Mutex::new(value));
         let s = Self(coordinator.clone());
-        tokio::spawn( async move{
+        tokio::spawn(async move {
             update_loop::update_loop(coordinator).await;
         });
         s

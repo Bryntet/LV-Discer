@@ -139,7 +139,7 @@ impl Score {
             hole,
         }
     }
-    
+
     pub const fn par_score(&self) -> i8 {
         self.throws - self.par
     }
@@ -164,7 +164,7 @@ impl Score {
     fn get_score_text(&self) -> String {
         let score = self.par_score();
         match score {
-            (1..) => format!("%2B{}",score), // URL encoding for plus
+            (1..) => format!("%2B{}", score), // URL encoding for plus
             0 => "E".to_string(),
             _ => score.to_string(), // No need for minus as that's already a part of the score
         }

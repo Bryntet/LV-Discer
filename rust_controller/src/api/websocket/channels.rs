@@ -5,7 +5,6 @@ use rocket_dyn_templates::Metadata;
 use rocket_ws::Message;
 use serde_json::json;
 use std::fmt::Debug;
-use tokio::sync::broadcast::error::SendError;
 
 pub struct GeneralChannel<
     T: for<'a> From<&'a FlipUpVMixCoordinator> + ChannelAttributes + Send + Clone + Debug,

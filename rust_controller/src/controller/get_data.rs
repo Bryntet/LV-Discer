@@ -1,5 +1,5 @@
 use super::queries;
-use crate::api::{Error, HoleUpdate};
+use crate::api::Error;
 use crate::controller::queries::layout::hole::Hole;
 use crate::controller::queries::layout::Holes;
 use crate::flipup_vmix_controls::LeaderBoardProperty;
@@ -11,11 +11,8 @@ use itertools::Itertools;
 use log::warn;
 use rayon::prelude::*;
 use rocket::futures::{FutureExt, StreamExt};
-use rocket::State;
 use std::collections::HashSet;
 use std::sync::Arc;
-use tokio::sync::broadcast::Sender;
-use tokio::sync::RwLock;
 
 pub const DEFAULT_FOREGROUND_COL: &str = "3F334D";
 pub const DEFAULT_FOREGROUND_COL_ALPHA: &str = "3F334D00";
@@ -108,16 +105,12 @@ pub struct HoleResult {
 
 impl From<&HoleResult> for Score {
     fn from(res: &HoleResult) -> Self {
-        Self::new(
-            res.throws(),
-            res.hole_representation.par as i8,
-            res.hole,
-        )
+        Self::new(res.throws(), res.hole_representation.par as i8, res.hole)
     }
 }
 
 impl HoleResult {
-    pub fn new(hole: u8, holes: &Holes) -> Result<Self,Error> {
+    pub fn new(hole: u8, holes: &Holes) -> Result<Self, Error> {
         Ok(Self {
             hole,
             throws: 0,
@@ -142,15 +135,11 @@ impl HoleResult {
             finished: false,
         })
     }
-    
+
     pub fn tjing_result(self) -> Option<queries::HoleResult> {
         self.tjing_result
     }
-    
 
-    
-    
-    
     pub fn actual_score(&self) -> i8 {
         self.throws() - self.hole_representation.par as i8
     }
@@ -189,9 +178,8 @@ impl PlayerRound {
         if self.results.len() >= 18 {
             return Err(Error::TooManyHoles);
         }
-        self.results.push(
-            HoleResult::new(self.results.len() as u8, all_holes)?,
-        );
+        self.results
+            .push(HoleResult::new(self.results.len() as u8, all_holes)?);
         Ok(())
     }
 
@@ -205,11 +193,14 @@ impl PlayerRound {
         }
         None
     }
-    
+
     pub fn tjing_results(self) -> Vec<Option<queries::HoleResult>> {
-        self.results.into_iter().map(|res| res.tjing_result).collect()
+        self.results
+            .into_iter()
+            .map(|res| res.tjing_result)
+            .collect()
     }
-    
+
     pub fn update_tjing(&mut self, results: &[Option<queries::HoleResult>]) {
         for result in &mut self.results {
             if let Some(Some(tjing_result)) = results.get(result.hole as usize) {
@@ -488,15 +479,14 @@ impl Player {
             self.first_scored = true;
         }
 
-
         let s = match self.get_score(self.hole_shown_up_until) {
             Ok(s) => s,
-            Err(Error::NoScoreFound {..}) => {
+            Err(Error::NoScoreFound { .. }) => {
                 let Some(t) = self.results.current_result_mut(self.hole_shown_up_until) else {
                     return Err(Error::NoScoreFound {
                         player: self.name.clone(),
                         hole: self.hole_shown_up_until,
-                    })
+                    });
                 };
                 t.throws = self.throws;
                 t.finished = true;
@@ -508,10 +498,8 @@ impl Player {
 
         let score = self.get_current_shown_score()?.update_score(1);
 
-
         self.round_score += s.par_score() as isize;
         self.total_score += dbg!(s.par_score()) as isize;
-
 
         return_vec.extend(score);
 
@@ -860,7 +848,7 @@ impl PlayerContainer {
     pub fn players(&self) -> &Vec<Player> {
         self.rounds_with_players.get(self.round).unwrap()
     }
-    
+
     pub fn players_mut(&mut self) -> &mut Vec<Player> {
         self.rounds_with_players.get_mut(self.round).unwrap()
     }
@@ -894,7 +882,7 @@ impl RustHandler {
                     event
                         .players
                         .into_iter()
-                        .map(|player| Player::from_query(player, round_num,holes))
+                        .map(|player| Player::from_query(player, round_num, holes))
                         .collect_vec()
                 })
                 .collect_vec(),
@@ -999,20 +987,25 @@ impl RustHandler {
             .unwrap();
         let holes = {
             let Some(data) = holes.data else {
-                return Err(Error::UnableToParse)
+                return Err(Error::UnableToParse);
             };
             let Some(event) = data.event else {
-                return Err(Error::UnableToParse)
+                return Err(Error::UnableToParse);
             };
             let mut rounds_holes = vec![];
             for round in event.rounds {
                 let Some(round) = round else {
-                    return Err(Error::UnableToParse)
+                    return Err(Error::UnableToParse);
                 };
-                let holes = round.pools.into_iter().flat_map(|pool| pool.layout_version.holes).dedup_by(|a,b| a.number == b.number).collect_vec();
+                let holes = round
+                    .pools
+                    .into_iter()
+                    .flat_map(|pool| pool.layout_version.holes)
+                    .dedup_by(|a, b| a.number == b.number)
+                    .collect_vec();
                 match Holes::try_from(holes) {
                     Err(e) => return Err(e),
-                    Ok(holes) => rounds_holes.push(holes)
+                    Ok(holes) => rounds_holes.push(holes),
                 }
             }
             rounds_holes
@@ -1069,7 +1062,7 @@ impl RustHandler {
             })
             .collect_vec()
     }
-    
+
     pub fn round_id(&self) -> &str {
         &self.round_ids[self.round_ind]
     }
@@ -1085,7 +1078,7 @@ impl RustHandler {
     pub fn find_player_mut(&mut self, player_id: String) -> Option<&mut Player> {
         self.player_container
             .players_mut()
-            .into_iter()
+            .iter_mut()
             .find(|player| player.player_id == player_id)
     }
 
@@ -1094,9 +1087,6 @@ impl RustHandler {
     }
 
     pub fn get_players_mut(&mut self) -> Vec<&mut Player> {
-        self.player_container
-            .players_mut()
-            .into_iter()
-            .collect_vec()
+        self.player_container.players_mut().iter_mut().collect_vec()
     }
 }

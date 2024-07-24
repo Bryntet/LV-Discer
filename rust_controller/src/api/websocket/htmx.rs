@@ -4,15 +4,11 @@ use crate::api::{Coordinator, GeneralChannel};
 use crate::dto;
 use rocket::futures::FutureExt;
 use rocket::tokio::select;
-use rocket::tokio::sync::broadcast::Sender;
 use rocket::{Shutdown, State};
-use rocket_dyn_templates::{context, Metadata};
+use rocket_dyn_templates::Metadata;
 use rocket_ws as ws;
 use rocket_ws::Message;
-use serde::Deserialize;
 use serde_json::json;
-use std::fmt::Debug;
-
 
 #[get("/players/selected/watch")]
 pub fn focused_player_changer<'r>(

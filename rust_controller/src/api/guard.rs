@@ -1,6 +1,5 @@
 use crate::api::websocket::ChannelAttributes;
-use crate::api::Error::UnableToParse;
-use crate::api::{Coordinator, GeneralChannel, GroupSelectionUpdate};
+use crate::api::{Coordinator, GeneralChannel};
 use crate::controller::coordinator::FlipUpVMixCoordinator;
 use rocket::http::Status;
 use rocket::request::{FromRequest, Outcome};
@@ -9,9 +8,8 @@ use rocket::{response, Request};
 use rocket_okapi::gen::OpenApiGenerator;
 use rocket_okapi::okapi::openapi3::{MediaType, Responses};
 use rocket_okapi::request::{OpenApiFromRequest, RequestHeaderInput};
-use rocket_okapi::response::{OpenApiResponder, OpenApiResponderInner};
+use rocket_okapi::response::OpenApiResponderInner;
 use std::fmt::Debug;
-use std::ops::{Deref, DerefMut};
 use tokio::sync::Mutex;
 
 pub struct CoordinatorLoader(pub Mutex<Option<Coordinator>>);
@@ -49,13 +47,7 @@ impl<
     type Error = ();
 
     async fn from_request(request: &'r Request<'_>) -> Outcome<Self, Self::Error> {
-        Outcome::Success(
-            request
-                .rocket()
-                .state::<GeneralChannel<T>>()
-                .unwrap()
-                .clone(),
-        )
+        Outcome::Success(request.rocket().state::<GeneralChannel<T>>().unwrap())
     }
 }
 
@@ -111,9 +103,7 @@ pub enum Error {
     #[error("Par not found on the hole: {0}")]
     HoleParNotFound(u8),
     #[error("Not enough holes. Only {holes} found. Expected 18.")]
-    NotEnoughHoles {
-        holes: usize,
-    },
+    NotEnoughHoles { holes: usize },
     #[error("Invalid division: \"{0}\"")]
     InvalidDivision(String),
 }
@@ -131,7 +121,8 @@ impl<'r, 'o: 'r> Responder<'r, 'o> for Error {
             | IpNotFound(_)
             | UnableToParse
             | HoleLengthNotFound(_)
-            | HoleParNotFound(_) | NotEnoughHoles {..}=> Err(Status::InternalServerError),
+            | HoleParNotFound(_)
+            | NotEnoughHoles { .. } => Err(Status::InternalServerError),
             UnloadedDependency => Err(Status::FailedDependency),
             CardIndexNotFound(_) | TooManyHoles | InvalidDivision(_) => Err(Status::BadRequest),
         }

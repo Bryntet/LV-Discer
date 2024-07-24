@@ -1,6 +1,6 @@
 use super::super::dto;
 use crate::api::guard::CoordinatorLoader;
-use crate::api::{mutation, query, Coordinator, GeneralChannel, GroupSelectionUpdate, Error};
+use crate::api::{mutation, query, Coordinator, Error, GeneralChannel, GroupSelectionUpdate};
 use crate::dto::CoordinatorBuilder;
 use itertools::Itertools;
 use rocket::form::Form;
@@ -9,7 +9,6 @@ use rocket::State;
 use rocket_dyn_templates::Template;
 use rocket_okapi::openapi;
 use serde_json::json;
-use tokio::sync::broadcast::Sender;
 
 #[openapi(tag = "HTMX")]
 #[get("/focused-players")]

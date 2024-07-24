@@ -11,11 +11,8 @@ use flipup_vmix_controls::LeaderBoardProperty;
 use flipup_vmix_controls::{Leaderboard, LeaderboardState};
 use get_data::Player;
 use itertools::Itertools;
-use log::warn;
 use rocket::http::hyper::body::HttpBody;
-use rocket::tokio::sync::broadcast::Sender;
 use rocket::State;
-use std::ops::Deref;
 use std::sync::Arc;
 use vmix::functions::VMixFunction;
 use vmix::functions::{VMixProperty, VMixSelectionTrait};
@@ -34,7 +31,7 @@ pub struct FlipUpVMixCoordinator {
     current_through: u8,
     pub queue: Arc<Queue>,
     card: Card,
-    pub event_id: String
+    pub event_id: String,
 }
 #[derive(Clone, Debug)]
 struct Card {
@@ -98,7 +95,7 @@ impl FlipUpVMixCoordinator {
             current_through: 0,
             queue: Arc::new(queue),
             leaderboard: Leaderboard::default(),
-            event_id
+            event_id,
         };
         coordinator.queue_add(&coordinator.focused_player().set_name());
         coordinator.reset_score();
@@ -131,12 +128,10 @@ impl FlipUpVMixCoordinator {
         }
         Ok(())
     }
-    
+
     pub fn round_id(&self) -> &str {
         self.handler.round_id()
     }
-    
-   
 
     pub fn set_group(
         &mut self,
@@ -160,7 +155,7 @@ impl FlipUpVMixCoordinator {
         self.handler.amount_of_rounds()
     }
 
-    pub fn focused_player_mut<'a>(&'a mut self) -> &'a mut Player {
+    pub fn focused_player_mut(&mut self) -> &mut Player {
         let index = self.focused_player_index;
         let id = self.card.focused_id(index).to_owned();
         self.handler.find_player_mut(id).unwrap()
@@ -240,7 +235,6 @@ impl FlipUpVMixCoordinator {
             .cloned()
     }
 
-    
     pub fn set_leaderboard(&mut self, division: &Division, lb_start_ind: Option<usize>) {
         self.queue_add(&FlipUpVMixCoordinator::clear_lb(10));
         println!("set_leaderboard");
@@ -249,7 +243,7 @@ impl FlipUpVMixCoordinator {
         println!("past set_lb_thru");
         if self.current_hole() <= 19 {
             println!("hole <= 19");
-            
+
             self.leaderboard.update_players(LeaderboardState::new(
                 self.round_ind,
                 self.available_players().into_iter().cloned().collect_vec(),

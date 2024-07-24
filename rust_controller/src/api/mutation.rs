@@ -2,10 +2,8 @@ use crate::api::guard::CoordinatorLoader;
 use crate::api::{Coordinator, Error, GeneralChannel, GroupSelectionUpdate};
 use crate::dto;
 use crate::dto::CoordinatorBuilder;
-use rocket::form::Form;
 use rocket::response::content::RawHtml;
 use rocket::serde::json::Json;
-use rocket::tokio::sync::broadcast::Sender;
 use rocket::State;
 use rocket_dyn_templates::Template;
 use rocket_okapi::openapi;
@@ -67,7 +65,6 @@ pub async fn set_throws(
         .find_player_mut(player_id.clone())
         .ok_or(Error::PlayerNotFound(player_id))?;
     player.throws = throws;
-    std::mem::drop(player);
     std::mem::drop(coordinator);
     Ok(())
 }

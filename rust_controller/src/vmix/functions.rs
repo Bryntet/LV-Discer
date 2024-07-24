@@ -50,9 +50,7 @@ impl<InputEnum: VMixSelectionTrait> VMixFunction<InputEnum> {
         match self {
             SetText { input, .. } => Some(input.get_selection()),
             SetColor { input, .. } => Some(input.get_selection()),
-            OverlayInput4(mov) => {
-                Some(format!("Input={}",mov))
-            }
+            OverlayInput4(mov) => Some(format!("Input={}", mov)),
             OverlayInput4Off | SetPanX { .. } => None,
             SetImage { input, .. } => Some(input.get_selection()),
             SetTextVisibleOn { input } => Some(input.get_selection()),

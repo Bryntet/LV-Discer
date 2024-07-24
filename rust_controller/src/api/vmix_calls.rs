@@ -1,9 +1,7 @@
 use crate::api::{Coordinator, Error, GeneralChannel, HoleUpdate};
-use crate::controller::queries::Division;
 use crate::vmix::functions::{VMixFunction, VMixProperty};
 use rocket::State;
 use rocket_okapi::openapi;
-use tokio::sync::broadcast::Sender;
 
 /// # Play animation
 /// Play the animation that corresponds with the upcoming score of the currently focused player
@@ -56,7 +54,12 @@ pub async fn clear_all(co: Coordinator) {
 pub async fn update_leaderboard(co: Coordinator, division: &str) -> Result<(), Error> {
     let mut co = co.lock().await;
 
-    let div = co.all_divs.iter().find(|div|div.name==division).ok_or(Error::InvalidDivision(division.to_string()))?.to_owned();
+    let div = co
+        .all_divs
+        .iter()
+        .find(|div| div.name == division)
+        .ok_or(Error::InvalidDivision(division.to_string()))?
+        .to_owned();
     co.set_leaderboard(&div, Some(18));
     Ok(())
 }
@@ -65,7 +68,10 @@ pub async fn update_leaderboard(co: Coordinator, division: &str) -> Result<(), E
 /// Increase the score of the currently focused player
 #[openapi(tag = "VMix")]
 #[post("/vmix/player/focused/score/increase")]
-pub async fn increase_score(co: Coordinator, hole_update: &State<GeneralChannel<HoleUpdate>>) -> Result<(), Error> {
+pub async fn increase_score(
+    co: Coordinator,
+    hole_update: &State<GeneralChannel<HoleUpdate>>,
+) -> Result<(), Error> {
     let mut coordinator = co.lock().await;
     coordinator.increase_score(hole_update)?;
     Ok(())
@@ -116,7 +122,7 @@ pub async fn set_hole_info(co: Coordinator) {
 #[openapi(tag = "VMix")]
 #[post("/vmix/leaderboard/<division>/update")]
 pub async fn update_other_leaderboard(co: Coordinator, division: &str) -> Result<(), &'static str> {
-    let mut coordinator = co.lock().await;
+    let coordinator = co.lock().await;
     let division = coordinator
         .find_division(division)
         .ok_or("Unable to find division")?;

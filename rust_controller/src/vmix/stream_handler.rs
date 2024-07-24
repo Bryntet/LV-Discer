@@ -1,16 +1,11 @@
-use std::collections::VecDeque;
-
 #[cfg(not(target_arch = "wasm32"))]
 use {
     std::io::{Read, Write},
     std::net::{IpAddr, SocketAddr, TcpStream},
     std::str::FromStr,
-    std::sync::Mutex,
 };
 
 use crate::api::Error;
-use std::sync::Arc;
-use tokio::sync::broadcast::error::SendError;
 use tokio::sync::broadcast::{channel, Receiver, Sender};
 
 #[cfg(target_arch = "wasm32")]

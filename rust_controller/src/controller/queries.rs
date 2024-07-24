@@ -1,9 +1,5 @@
-use crate::flipup_vmix_controls::Score;
-use crate::vmix::functions::{VMixFunction, VMixProperty};
 pub use group::Group;
 use rocket_okapi::okapi::schemars;
-use schemars::JsonSchema;
-use serde::Deserialize;
 
 #[derive(cynic::QueryVariables, Debug)]
 pub struct RoundResultsQueryVariables {
@@ -179,10 +175,12 @@ pub mod layout {
                 for hole in value {
                     holes.push(Arc::new(Hole::try_from(hole)?))
                 }
-                let holes = Holes {holes};
+                let holes = Holes { holes };
                 dbg!(&holes);
                 if holes.holes.len() < 18 {
-                    return Err(Self::Error::NotEnoughHoles{holes: holes.holes.len()});
+                    return Err(Self::Error::NotEnoughHoles {
+                        holes: holes.holes.len(),
+                    });
                 }
                 Ok(holes)
             }
