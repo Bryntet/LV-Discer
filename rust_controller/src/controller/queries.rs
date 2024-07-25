@@ -1,5 +1,4 @@
 pub use group::Group;
-use rocket_okapi::okapi::schemars;
 
 #[derive(cynic::QueryVariables, Debug)]
 pub struct RoundResultsQueryVariables {

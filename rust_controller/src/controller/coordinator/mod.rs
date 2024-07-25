@@ -15,7 +15,7 @@ use rocket::http::hyper::body::HttpBody;
 use rocket::State;
 use std::sync::Arc;
 use vmix::functions::VMixFunction;
-use vmix::functions::{VMixProperty, VMixSelectionTrait};
+use vmix::functions::{VMixPlayerInfo, VMixSelectionTrait};
 use vmix::Queue;
 
 #[derive(Clone, Debug)]
@@ -187,7 +187,7 @@ impl FlipUpVMixCoordinator {
     }
 
     fn set_current_through(&mut self) {
-        self.current_through = self.focused_player().thru
+        self.current_through = self.focused_player().hole_shown_up_until as u8
     }
 
     fn make_checkin_text(&self) -> VMixFunction<LeaderBoardProperty> {
@@ -342,7 +342,7 @@ impl FlipUpVMixCoordinator {
     }
 
     pub fn reset_scores(&mut self) {
-        let return_vec: Vec<VMixFunction<VMixProperty>> = vec![];
+        let return_vec: Vec<VMixFunction<VMixPlayerInfo>> = vec![];
         let actions = self.focused_player_mut().reset_scores();
         self.queue_add(&actions);
         self.queue_add(&FlipUpVMixCoordinator::clear_lb(10));
@@ -435,8 +435,8 @@ mod tests {
         .into_coordinator()
         .await
         .unwrap();
-        app.set_div(0);
-        app.fetch_players(false);
+
+        app.set_div(&app.all_divs[0].clone());
         let players = app.get_player_ids();
         players
             .iter()

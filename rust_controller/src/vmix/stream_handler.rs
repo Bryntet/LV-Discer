@@ -36,7 +36,7 @@ impl Queue {
         tokio::spawn(async move {
             loop {
                 if let Ok(f) = rx.recv().await {
-                    //info!("Sending: {}", &f);
+                    dbg!(&f);
                     match Queue::send(&f.into_bytes(), &mut stream) {
                         Ok(()) => (),
                         Err(e) => {
@@ -106,7 +106,7 @@ mod test {
 
     use rand::Rng;
 
-    fn random_score_type(hole: usize) -> Score {
+    fn random_score_type(hole: u8) -> Score {
         let mut rng = rand::thread_rng();
         let throws = rng.gen_range(1..=6);
         Score::new(throws, 5, hole)

@@ -1,5 +1,5 @@
 use crate::api::{Coordinator, Error, GeneralChannel, HoleUpdate};
-use crate::vmix::functions::{VMixFunction, VMixProperty};
+use crate::vmix::functions::{VMixFunction, VMixPlayerInfo};
 use rocket::State;
 use rocket_okapi::openapi;
 
@@ -25,22 +25,22 @@ pub async fn clear_all(co: Coordinator) {
             actions.extend([
                 VMixFunction::SetText {
                     value: "".to_string(),
-                    input: VMixProperty::Score { hole, player }.into(),
+                    input: VMixPlayerInfo::Score { hole, player }.into(),
                 },
                 VMixFunction::SetColor {
                     color: "3F334D00",
-                    input: VMixProperty::ScoreColor { hole, player }.into(),
+                    input: VMixPlayerInfo::ScoreColor { hole, player }.into(),
                 },
             ])
         }
         actions.extend([
             VMixFunction::SetText {
                 value: "0".to_string(),
-                input: VMixProperty::TotalScore(player).into(),
+                input: VMixPlayerInfo::TotalScore(player).into(),
             },
             VMixFunction::SetText {
                 value: "0".to_string(),
-                input: VMixProperty::RoundScore(player).into(),
+                input: VMixPlayerInfo::RoundScore(player).into(),
             },
         ])
     }

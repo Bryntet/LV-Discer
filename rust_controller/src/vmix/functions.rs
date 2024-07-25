@@ -1,6 +1,29 @@
+use std::sync::Arc;
+
 pub trait VMixSelectionTrait {
-    fn get_selection(&self) -> String;
-    fn get_id(&self) -> String;
+    fn get_selection(&self) -> String {
+        let name = self.get_selection_name();
+        let extension = self.data_extension();
+
+        if let Some(value) = self
+            .value()
+            .and_then(|val| if val.is_empty() { None } else { Some(val) })
+        {
+            format!(
+                "Input={}&SelectedName={name}.{extension}&Value={value}",
+                Self::INPUT_ID
+            )
+        } else {
+            format!("Input={}&SelectedName={name}.{extension}", Self::INPUT_ID)
+        }
+    }
+    fn get_selection_name(&self) -> String;
+
+    fn data_extension(&self) -> &'static str;
+
+    fn value(&self) -> Option<String>;
+
+    const INPUT_ID: &'static str;
 }
 #[derive(Clone, Debug)]
 pub struct VMixSelection<T: VMixSelectionTrait>(pub T);
@@ -11,11 +34,12 @@ impl<T: VMixSelectionTrait> VMixSelection<T> {
     }
 }
 
-impl From<VMixProperty> for VMixSelection<VMixProperty> {
-    fn from(prop: VMixProperty) -> Self {
-        VMixSelection(prop)
+impl<T: VMixSelectionTrait> From<T> for VMixSelection<T> {
+    fn from(value: T) -> Self {
+        Self(value)
     }
 }
+
 
 #[derive(Clone, Debug)]
 pub enum VMixFunction<InputEnum: VMixSelectionTrait> {
@@ -60,7 +84,13 @@ impl<InputEnum: VMixSelectionTrait> VMixFunction<InputEnum> {
 
     fn get_value(&self) -> Option<String> {
         match self {
-            Self::SetText { value, .. } => Some(value.clone()),
+            Self::SetText { value, .. } => {
+                if !value.is_empty() {
+                    Some(value.clone())
+                } else {
+                    None
+                }
+            }
             #[cfg(not(target_arch = "wasm32"))]
             Self::SetColor { color, .. } => Some("#".to_string() + color),
             #[cfg(target_arch = "wasm32")]
@@ -121,9 +151,8 @@ impl<InputEnum: VMixSelectionTrait> VMixFunction<InputEnum> {
 }
 
 #[derive(Clone, Debug)]
-pub enum VMixProperty {
+pub enum VMixPlayerInfo {
     Score { hole: usize, player: usize },
-    HoleNumber(usize, usize),
     ScoreColor { hole: usize, player: usize },
     PosRightTriColor(usize),
     PosSquareColor(usize),
@@ -132,49 +161,121 @@ pub enum VMixProperty {
     TotalScore(usize),
     RoundScore(usize),
     Throw(usize),
-    Mov(String),
     PlayerPosition(u16),
-    HoleMeters,
-    HoleFeet,
-    HolePar,
-    Hole,
 }
 
-impl VMixSelectionTrait for VMixProperty {
-    fn get_selection(&self) -> String {
-        self.get_id()
-            + &(match self {
-                VMixProperty::Score { hole, .. } => {
-                    format!("SelectedName=p{}s{}.Text", 1, hole)
-                }
-                VMixProperty::HoleNumber(v1, v2) => {
-                    format!("SelectedName=HN{}p{}.Text", v1, v2 + 1)
-                }
-                VMixProperty::ScoreColor { hole, .. } => {
-                    format!("SelectedName=p{}h{}.Fill.Color", 1, hole)
-                }
-                VMixProperty::PosRightTriColor(v1) => {
-                    format!("SelectedName=rghtri{}.Fill.Color", v1 + 1)
-                }
-                VMixProperty::PosSquareColor(v1) => {
-                    format!("SelectedName=rekt{}.Fill.Color", v1 + 1)
-                }
-                VMixProperty::Name(ind) => format!("SelectedName=p{}name.Text", ind + 1),
-                VMixProperty::Surname(ind) => format!("SelectedName=p{}surname.Text", ind + 1),
-                VMixProperty::TotalScore(ind) => format!("SelectedName=p{}scoretot.Text", ind + 1),
-                VMixProperty::RoundScore(ind) => format!("SelectedName=p{}scorernd.Text", ind + 1),
-                VMixProperty::Throw(ind) => format!("SelectedName=p{}throw.Text", ind + 1),
-                VMixProperty::Mov(id) => format!("SelectedName={}", id),
-                VMixProperty::PlayerPosition(pos) => format!("SelectedName=p{}pos.Text", pos + 1),
+impl VMixSelectionTrait for VMixPlayerInfo {
+    fn get_selection_name(&self) -> String {
+        match self {
+            VMixPlayerInfo::Score { hole, .. } => {
+                format!("p{}s{}.Text", 1, hole)
+            }
 
-                VMixProperty::HoleMeters => "SelectedName=meternr.Text".to_string(),
-                VMixProperty::HoleFeet => "SelectedName=feetnr.Text".to_string(),
-                VMixProperty::HolePar => "SelectedName=parnr.Text".to_string(),
-                VMixProperty::Hole => "SelectedName=hole.Text".to_string(),
-            })
+            VMixPlayerInfo::ScoreColor { hole, .. } => {
+                format!("p{}h{}", 1, hole)
+            }
+            VMixPlayerInfo::PosRightTriColor(v1) => {
+                format!("RightTriangle{}", v1 + 1)
+            }
+            VMixPlayerInfo::PosSquareColor(v1) => {
+                format!("Rectangle{}", v1 + 1)
+            }
+            VMixPlayerInfo::Name(ind) => format!("p{}name.Text", ind + 1),
+            VMixPlayerInfo::Surname(ind) => format!("p{}surname.Text", ind + 1),
+            VMixPlayerInfo::TotalScore(ind) => format!("p{}scoretot.Text", ind + 1),
+            VMixPlayerInfo::RoundScore(ind) => format!("p{}scorernd.Text", ind + 1),
+            VMixPlayerInfo::Throw(ind) => format!("p{}throw.Text", ind + 1),
+            VMixPlayerInfo::PlayerPosition(pos) => format!("p{}pos.Text", pos + 1),
+        }
     }
 
-    fn get_id(&self) -> String {
-        "Input=8db7c455-e05c-4e65-821b-048cd7057cb1&".to_string()
+    fn data_extension(&self) -> &'static str {
+        use VMixPlayerInfo::*;
+        match self {
+            Name(_)
+            | Throw(_)
+            | PlayerPosition(_)
+            | RoundScore(_)
+            | Surname(_)
+            | Score { .. }
+            | TotalScore(_) => "Text",
+            PosSquareColor(_) | PosRightTriColor(_) | ScoreColor { .. } => "Fill.Color",
+        }
     }
+    fn value(&self) -> Option<String> {
+        None
+    }
+
+    const INPUT_ID: &'static str = "8db7c455-e05c-4e65-821b-048cd7057cb1";
+}
+#[derive(Clone, Debug)]
+pub enum VMixHoleInfo {
+    Hole(u8),
+    HolePar(u8),
+    HoleMeters(u16),
+    HoleFeet(u16),
+    AverageResult(f64),
+    Difficulty {
+        hole: usize,
+        difficulty: Arc<HoleDifficulty>,
+    },
+    Elevation(i16),
+}
+#[derive(Clone, Debug)]
+pub struct HoleDifficulty {
+    holes: [usize; 18],
+}
+
+impl HoleDifficulty {
+    fn hole_difficulty_text(&self, hole: usize) -> Option<String> {
+        let difficulty = self.holes.get(hole)?;
+        Some(match difficulty {
+            1 => "EASIEST".to_string(),
+            2 => "2nd easiest".to_string(),
+            3 => "3d easiest".to_string(),
+            4..=9 => format!("{difficulty}th easiest"),
+            10..=15 => format!("{}th hardest", difficulty - 9),
+            16 => "3d hardest".to_string(),
+            17 => "2nd hardest".to_string(),
+            18 => "HARDEST".to_string(),
+            _ => None?,
+        })
+    }
+}
+
+impl VMixSelectionTrait for VMixHoleInfo {
+    fn get_selection_name(&self) -> String {
+        use VMixHoleInfo::*;
+        match self {
+            Hole(_) => "hole",
+            HolePar(_) => "parnr",
+            HoleMeters(_) => "meternr",
+            HoleFeet(_) => "feetnr",
+            AverageResult(_) => "avgresult",
+            Difficulty { .. } => "difficulty",
+            Elevation(_) => "elevation",
+        }
+        .to_string()
+    }
+
+    fn data_extension(&self) -> &'static str {
+        "Text"
+    }
+
+    fn value(&self) -> Option<String> {
+        use VMixHoleInfo::*;
+
+        Some(match self {
+            Hole(number) | HolePar(number) => number.to_string(),
+            HoleMeters(meters) => format!("{meters}M"),
+            HoleFeet(feet) => format!("{feet}FT"),
+            AverageResult(number) => number.to_string(),
+            Difficulty { difficulty, hole } => difficulty.hole_difficulty_text(*hole).unwrap(),
+            Elevation(elevation) => {
+                let sign = if elevation.is_positive() { "+" } else { "" };
+                format!("{sign}{elevation}")
+            }
+        })
+    }
+    const INPUT_ID: &'static str = "d9806a48-8766-40e0-b7fe-b217f9b1ef5b";
 }
