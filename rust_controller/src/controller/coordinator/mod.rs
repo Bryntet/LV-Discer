@@ -55,11 +55,15 @@ impl Card {
         self.player_ids.get(index).unwrap()
     }
 
-    fn players<'a>(&self, players: Vec<&'a Player>) -> Vec<&'a Player> {
-        players
-            .into_iter()
-            .filter(|player| self.player_ids.contains(&player.player_id))
-            .collect_vec()
+    fn players<'a>(&self, players: Vec<&'a Player>) -> Vec<&'a Player> { 
+        // This list has to be done like this to make sure it's sorted correctly.
+        let mut out_players = vec![];
+        for id in &self.player_ids {
+            if let Some(player) = players.iter().find(|player|player.player_id==*id) {
+                out_players.push(*player);
+            }
+        }
+        out_players
     }
 
     fn player_mut<'a>(
