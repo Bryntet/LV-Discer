@@ -106,6 +106,8 @@ pub enum Error {
     NotEnoughHoles { holes: usize },
     #[error("Invalid division: \"{0}\"")]
     InvalidDivision(String),
+    #[error("Player index {0} not found in focused card")]
+    PlayerInCardNotFound(usize)
 }
 
 impl<'r, 'o: 'r> Responder<'r, 'o> for Error {
@@ -124,7 +126,7 @@ impl<'r, 'o: 'r> Responder<'r, 'o> for Error {
             | HoleParNotFound(_)
             | NotEnoughHoles { .. } => Err(Status::InternalServerError),
             UnloadedDependency => Err(Status::FailedDependency),
-            CardIndexNotFound(_) | TooManyHoles | InvalidDivision(_) => Err(Status::BadRequest),
+            CardIndexNotFound(_) | TooManyHoles | InvalidDivision(_) | PlayerInCardNotFound(_) => Err(Status::BadRequest),
         }
     }
 }

@@ -1,8 +1,9 @@
 mod simple_queries;
 mod vmix_calls;
+mod player_queue_system;
 
 pub use super::*;
-use crate::api::{Error, GeneralChannel, HoleUpdate};
+use crate::api::{Error, GeneralChannel, HoleUpdate, PlayerManagerUpdate};
 use crate::controller::get_data::RustHandler;
 use crate::controller::queries::Division;
 use crate::{api, vmix};
@@ -16,6 +17,7 @@ use std::sync::Arc;
 use vmix::functions::VMixFunction;
 use vmix::functions::{VMixPlayerInfo, VMixSelectionTrait};
 use vmix::VMixQueue;
+use player_queue_system::PlayerManager;
 
 #[derive(Clone, Debug)]
 pub struct FlipUpVMixCoordinator {
@@ -28,53 +30,9 @@ pub struct FlipUpVMixCoordinator {
     round_ind: usize,
     lb_div_ind: usize,
     current_through: u8,
-    pub queue: Arc<VMixQueue>,
-    card: Card,
+    pub vmix_queue: Arc<VMixQueue>,
+    player_manager: PlayerManager,
     pub event_id: String,
-}
-#[derive(Clone, Debug)]
-struct Card {
-    player_ids: Vec<String>,
-}
-impl Card {
-    fn new(player_ids: Vec<String>) -> Self {
-        Self { player_ids }
-    }
-}
-
-impl Card {
-    fn player<'a>(&self, index: usize, players: Vec<&'a Player>) -> Option<&'a Player> {
-        let player_id = self.player_ids.get(index)?;
-        players
-            .into_iter()
-            .find(|player| &player.player_id == player_id)
-    }
-
-    fn focused_id(&self, index: usize) -> &str {
-        self.player_ids.get(index).unwrap()
-    }
-
-    fn players<'a>(&self, players: Vec<&'a Player>) -> Vec<&'a Player> {
-        // This list has to be done like this to make sure it's sorted correctly.
-        let mut out_players = vec![];
-        for id in &self.player_ids {
-            if let Some(player) = players.iter().find(|player|player.player_id==*id) {
-                out_players.push(*player);
-            }
-        }
-        out_players
-    }
-
-    fn player_mut<'a>(
-        &'a self,
-        all_players: Vec<&'a mut Player>,
-        index: usize,
-    ) -> Option<&'a mut Player> {
-        let player_id = self.player_ids.get(index)?;
-        all_players
-            .into_iter()
-            .find(|player| &player.player_id == player_id)
-    }
 }
 
 impl FlipUpVMixCoordinator {
@@ -84,24 +42,22 @@ impl FlipUpVMixCoordinator {
 
 
         let first_group = handler.groups.first().unwrap().first().unwrap();
-        let group_id = first_group.id.to_owned();
         let mut coordinator = FlipUpVMixCoordinator {
             all_divs: handler.get_divisions(),
             selected_div_index: 0,
             focused_player_index: focused_player,
             ip,
-            card: Card::new(first_group.player_ids()),
+            player_manager: PlayerManager::new(first_group.player_ids()),
             handler,
             round_ind: 0,
             lb_div_ind: 0,
             current_through: 0,
-            queue: Arc::new(queue),
+            vmix_queue: Arc::new(queue),
             leaderboard: Leaderboard::default(),
             event_id,
         };
         coordinator.queue_add(&coordinator.focused_player().set_name());
         coordinator.reset_score();
-        coordinator.set_group(&group_id, None);
         Ok(coordinator)
     }
 }
@@ -117,12 +73,12 @@ impl FlipUpVMixCoordinator {
     pub fn set_focused_player(
         &mut self,
         index: usize,
-        updater: Option<&GeneralChannel<api::GroupSelectionUpdate>>,
+        updater: Option<&GeneralChannel<api::PlayerManagerUpdate>>,
     ) -> Result<(), Error> {
-        if index >= self.card.players(self.available_players()).len() {
+        if index >= self.player_manager.players(self.available_players()).len() {
             return Err(Error::CardIndexNotFound(index));
         }
-        self.focused_player_index = index;
+        self.player_manager.set_focused_by_card_index(index)?;
         let all_values = self.focused_player().set_all_values()?;
         self.queue_add(&all_values);
         if let Some(updater) = updater {
@@ -131,6 +87,20 @@ impl FlipUpVMixCoordinator {
         Ok(())
     }
 
+    pub fn add_to_queue(&mut self, player_id: String, channel: &GeneralChannel<PlayerManagerUpdate>) {
+        self.player_manager.add_to_queue(player_id);
+        channel.send(self);
+    }
+    
+    pub fn next_queued(&mut self, channel: &GeneralChannel<PlayerManagerUpdate>) {
+        self.player_manager.next_queued();
+        channel.send(self);
+    }
+    
+    pub fn dto_players(&self) -> Vec<dto::Player> {
+        self.player_manager.dto_players(self.available_players())
+    }
+    
     pub fn round_id(&self) -> &str {
         self.handler.round_id()
     }
@@ -138,28 +108,29 @@ impl FlipUpVMixCoordinator {
     pub fn set_group(
         &mut self,
         group_id: &str,
-        updater: Option<&State<GeneralChannel<api::GroupSelectionUpdate>>>,
+        updater: Option<&State<GeneralChannel<api::PlayerManagerUpdate>>>,
     ) -> Option<()> {
         let groups = self.groups();
         let ids = groups
             .iter()
             .find(|group| group.id == group_id)?
             .player_ids();
-        self.card = Card::new(ids);
+        self.player_manager.replace(ids);
         if let Some(updater) = updater {
             updater.send(self);
         }
-
         Some(())
     }
 
+    
+    
     pub fn amount_of_rounds(&self) -> usize {
         self.handler.amount_of_rounds()
     }
 
     pub fn focused_player_mut(&mut self) -> &mut Player {
         let index = self.focused_player_index;
-        let id = self.card.focused_id(index).to_owned();
+        let id = self.player_manager.focused_id(index).to_owned().unwrap();
         self.handler.find_player_mut(id).unwrap()
     }
 
@@ -168,7 +139,7 @@ impl FlipUpVMixCoordinator {
     }
 
     pub fn current_players(&self) -> Vec<&Player> {
-        self.card.players(self.available_players())
+        self.player_manager.players(self.available_players())
     }
 }
 
@@ -185,7 +156,7 @@ impl FlipUpVMixCoordinator {
     }
 
     fn queue_add<T: VMixSelectionTrait>(&self, funcs: &[VMixFunction<T>]) {
-        self.queue.add(funcs)
+        self.vmix_queue.add(funcs)
     }
 
     fn set_current_through(&mut self) {
@@ -208,12 +179,12 @@ impl FlipUpVMixCoordinator {
         let f = self.focused_player_mut().toggle_pos();
         self.queue_add(&f)
     }
-    pub fn find_player_mut(&mut self, player_id: String) -> Option<&mut Player> {
+    pub fn find_player_mut(&mut self, player_id: &str) -> Option<&mut Player> {
         self.handler.find_player_mut(player_id)
     }
     pub fn focused_player(&self) -> &Player {
-        self.card
-            .player(self.focused_player_index, self.available_players())
+        self.player_manager
+            .player(self.available_players())
             .unwrap()
     }
 }

@@ -18,7 +18,7 @@ pub async fn play_animation(co: Coordinator) -> Result<(), Error> {
 #[openapi(tag = "VMix")]
 #[post("/vmix/clear/all")]
 pub async fn clear_all(co: Coordinator) {
-    let queue = co.lock().await.queue.clone();
+    let queue = co.lock().await.vmix_queue.clone();
     let mut actions = vec![];
     for player in 0..=3 {
         for hole in 1..=9 {

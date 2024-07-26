@@ -1047,7 +1047,7 @@ impl RustHandler {
         self.chosen_division = self.divisions[ind].id.clone();
     }
 
-    pub fn find_player_mut(&mut self, player_id: String) -> Option<&mut Player> {
+    pub fn find_player_mut(&mut self, player_id: &str) -> Option<&mut Player> {
         self.player_container
             .players_mut()
             .iter_mut()

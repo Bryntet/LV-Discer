@@ -13,6 +13,7 @@ pub struct Player {
     pub focused: bool,
     pub holes_finished: usize,
     pub index: usize,
+    pub queue: Option<usize>
 }
 
 impl Player {
@@ -22,6 +23,7 @@ impl Player {
         image_url: Option<String>,
         holes_finished: usize,
         index: usize,
+        queue: Option<usize>
     ) -> Self {
         Self {
             id,
@@ -30,10 +32,11 @@ impl Player {
             focused: false,
             holes_finished,
             index,
+            queue,
         }
     }
 
-    pub fn from_normal_player(player: controller::Player) -> Self {
+    pub fn from_normal_player(player: controller::Player, queue: Option<usize>) -> Self {
         Player {
             id: player.player_id.clone(),
             name: player.name.clone(),
@@ -41,6 +44,8 @@ impl Player {
             focused: false,
             holes_finished: player.amount_of_holes_finished(),
             index: player.ind,
+            queue
+            
         }
     }
 }
@@ -53,21 +58,9 @@ impl From<&controller::Player> for self::Player {
             focused: false,
             holes_finished: value.amount_of_holes_finished(),
             index: value.ind,
+            queue: None
         }
     }
 }
 
-pub fn current_dto_players(coordinator: &FlipUpVMixCoordinator) -> Vec<dto::Player> {
-    let mut players: Vec<dto::Player> = coordinator
-        .current_players()
-        .into_iter()
-        .map(dto::Player::from)
-        .collect_vec();
-    for (ind, player) in &mut players.iter_mut().enumerate() {
-        player.index = ind;
-        if player.id == coordinator.focused_player().player_id {
-            player.focused = true;
-        }
-    }
-    players
-}
+

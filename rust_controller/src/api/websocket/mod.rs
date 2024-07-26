@@ -12,13 +12,13 @@ use std::fmt::Debug;
 
 use crate::api::websocket::channels::{GeneralChannel, HoleUpdate};
 use crate::controller::coordinator::FlipUpVMixCoordinator;
-pub use channels::{ChannelAttributes, GroupSelectionUpdate};
+pub use channels::{ChannelAttributes, PlayerManagerUpdate};
 
 #[inline(always)]
 async fn interpret_message(
     message: Message,
     coordinator: &Coordinator,
-    updater: &GeneralChannel<GroupSelectionUpdate>,
+    updater: &GeneralChannel<PlayerManagerUpdate>,
 ) -> Result<Interpreter, serde_json::Error> {
     let interpreter: Interpreter = serde_json::from_str(&message.to_string())?;
     if let Ok(num) = interpreter.message.parse::<usize>() {
@@ -31,7 +31,7 @@ async fn interpret_message(
 #[get("/players/selected/watch")]
 pub async fn selection_watcher<'r>(
     ws: ws::WebSocket,
-    queue: &'r State<GeneralChannel<GroupSelectionUpdate>>,
+    queue: &'r State<GeneralChannel<PlayerManagerUpdate>>,
     shutdown: Shutdown,
 ) -> ws::Channel<'r> {
     make_watcher_websocket(ws, queue, shutdown).await

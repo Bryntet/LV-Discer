@@ -21,7 +21,7 @@ use rocket_okapi::swagger_ui::{make_swagger_ui, SwaggerUIConfig};
 use std::net::IpAddr;
 use std::sync::Arc;
 use tokio::sync::{Mutex, MutexGuard};
-pub use websocket::channels::{GroupSelectionUpdate, HoleUpdate};
+pub use websocket::channels::{PlayerManagerUpdate, HoleUpdate};
 
 pub use crate::api::websocket::channels::GeneralChannel;
 pub use guard::Error;
@@ -75,6 +75,8 @@ fn get_normal_routes() -> Vec<Route> {
         play_ob_animation,
         set_hole_info,
         update_other_leaderboard,
+        next_queue,
+        add_to_queue
     ]
 }
 
@@ -95,7 +97,7 @@ fn get_webpage_routes() -> Vec<Route> {
 }
 
 pub fn launch() -> Rocket<Build> {
-    let (group_selection_sender, _) = channel::<websocket::GroupSelectionUpdate>(1024);
+    let (group_selection_sender, _) = channel::<websocket::PlayerManagerUpdate>(1024);
     let group_selection_sender = GeneralChannel::from(group_selection_sender);
     let (hole_update_sender, _) = channel::<HoleUpdate>(1024);
     let hole_update_sender = GeneralChannel::from(hole_update_sender);

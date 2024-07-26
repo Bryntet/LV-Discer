@@ -36,7 +36,7 @@ impl<T: for<'a> From<&'a FlipUpVMixCoordinator> + ChannelAttributes + Send + Clo
 }
 
 #[derive(Debug, Clone, Serialize)]
-pub struct GroupSelectionUpdate {
+pub struct PlayerManagerUpdate {
     players: Vec<dto::Player>,
 }
 
@@ -45,7 +45,7 @@ pub trait ChannelAttributes {
     fn make_html(self, metadata: &Metadata) -> Option<Message>;
 }
 
-impl ChannelAttributes for GroupSelectionUpdate {
+impl ChannelAttributes for PlayerManagerUpdate {
     fn try_into_message(self) -> Option<Message> {
         Some(Message::from(serde_json::to_string(&self.players).ok()?))
     }
@@ -57,10 +57,10 @@ impl ChannelAttributes for GroupSelectionUpdate {
     }
 }
 
-impl From<&FlipUpVMixCoordinator> for GroupSelectionUpdate {
-    fn from(value: &FlipUpVMixCoordinator) -> Self {
+impl From<&FlipUpVMixCoordinator> for PlayerManagerUpdate {
+    fn from(coordinator: &FlipUpVMixCoordinator) -> Self {
         Self {
-            players: dto::current_dto_players(value),
+            players: coordinator.dto_players(),
         }
     }
 }

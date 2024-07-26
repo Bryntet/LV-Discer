@@ -1,4 +1,4 @@
-pub use crate::api::websocket::channels::GroupSelectionUpdate;
+pub use crate::api::websocket::channels::PlayerManagerUpdate;
 use crate::api::websocket::{interpret_message, ChannelAttributes};
 use crate::api::{Coordinator, GeneralChannel};
 use crate::dto;
@@ -15,7 +15,7 @@ pub fn focused_player_changer<'r>(
     ws: ws::WebSocket,
     coordinator: Coordinator,
     metadata: Metadata<'r>,
-    updater: &'r State<GeneralChannel<GroupSelectionUpdate>>,
+    updater: &'r State<GeneralChannel<PlayerManagerUpdate>>,
 ) -> ws::Stream!['r] {
     let ws = ws.config(ws::Config {
         ..Default::default()
@@ -38,7 +38,7 @@ pub fn focused_player_changer<'r>(
 pub async fn selection_updater<'r>(
     ws: ws::WebSocket,
     coordinator: Coordinator,
-    queue: &State<GeneralChannel<GroupSelectionUpdate>>,
+    queue: &State<GeneralChannel<PlayerManagerUpdate>>,
     metadata: Metadata<'r>,
     shutdown: Shutdown,
 ) -> ws::Channel<'r> {
@@ -66,11 +66,11 @@ async fn make_html_response<'r>(
     coordinator: &Coordinator,
     metadata: &Metadata<'r>,
 ) -> Option<String> {
-    let c = coordinator.lock().await;
+    let players = coordinator.lock().await.dto_players();
     metadata
         .render(
             "current_selected",
-            json!({"players": dto::current_dto_players(&c)}),
+            json!({"players": players}),
         )
         .map(|(_, b)| b)
 }

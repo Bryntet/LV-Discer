@@ -1,5 +1,5 @@
 use crate::api::guard::CoordinatorLoader;
-use crate::api::{Coordinator, Error, GeneralChannel, GroupSelectionUpdate};
+use crate::api::{Coordinator, Error, GeneralChannel, PlayerManagerUpdate};
 use crate::dto;
 use crate::dto::CoordinatorBuilder;
 use rocket::response::content::RawHtml;
@@ -14,7 +14,7 @@ use serde_json::json;
 pub async fn set_focus(
     focused_player: usize,
     coordinator: Coordinator,
-    updater: &GeneralChannel<GroupSelectionUpdate>,
+    updater: &GeneralChannel<PlayerManagerUpdate>,
 ) -> Result<Json<dto::Player>, Error> {
     let mut coordinator = coordinator.lock().await;
 
@@ -22,7 +22,7 @@ pub async fn set_focus(
 
     let player = coordinator.focused_player().clone();
 
-    Ok(dto::Player::from_normal_player(player).into())
+    Ok(dto::Player::from_normal_player(player, None).into())
 }
 
 #[openapi(tag = "Config")]
@@ -44,7 +44,7 @@ pub async fn set_round(coordinator: Coordinator, round_number: usize) {
 pub async fn set_group(
     coordinator: Coordinator,
     group_id: &str,
-    updater: &State<GeneralChannel<GroupSelectionUpdate>>,
+    updater: &State<GeneralChannel<PlayerManagerUpdate>>,
 ) -> Result<(), &'static str> {
     let mut coordinator = coordinator.lock().await;
     coordinator
@@ -52,7 +52,7 @@ pub async fn set_group(
         .ok_or("Unable to set group")
 }
 
-//#[openapi(tag = "Live Update")]
+#[openapi(tag = "Live Update")]
 #[post("/player/<player_id>/throw/set/<throws>")]
 pub async fn set_throws(
     coordinator: Coordinator,
@@ -62,7 +62,7 @@ pub async fn set_throws(
     let player_id = player_id.to_string();
     let mut coordinator = coordinator.lock().await;
     let player = coordinator
-        .find_player_mut(player_id.clone())
+        .find_player_mut(&player_id)
         .ok_or(Error::PlayerNotFound(player_id))?;
     player.throws = throws;
     std::mem::drop(coordinator);
@@ -71,15 +71,29 @@ pub async fn set_throws(
 
 #[openapi(tag = "Live Update")]
 #[post("/player/<player_id>/score/ready")]
-pub async fn set_score_ready(coordinator: Coordinator, player_id: String) -> Result<(), Error> {
+pub async fn set_score_ready(coordinator: Coordinator, player_id: &str) -> Result<(), Error> {
     let mut coordinator = coordinator.lock().await;
     coordinator
-        .find_player_mut(player_id.to_string())
+        .find_player_mut(player_id)
         .ok_or(Error::PlayerNotFound(player_id.to_string()))?
         .results
         .current_result_mut(1);
     Ok(())
 }
+
+#[openapi(tag = "Queue")]
+#[post("/player/<player_id>/add-to-queue")]
+pub async fn add_to_queue(coordinator: Coordinator, channel: &GeneralChannel<PlayerManagerUpdate>, player_id: &str) -> Result<(), Error> {
+    coordinator.lock().await.add_to_queue(player_id.to_string(),channel);
+    Ok(())
+}
+
+#[openapi(tag = "Queue")]
+#[post("/players/queue/next")]
+pub async fn next_queue(coordinator: Coordinator, channel: &GeneralChannel<PlayerManagerUpdate>) {
+    coordinator.lock().await.next_queued(channel)
+}
+
 
 #[catch(424)]
 pub fn make_coordinator() -> RawHtml<Template> {
