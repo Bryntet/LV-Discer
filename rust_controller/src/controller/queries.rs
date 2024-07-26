@@ -26,12 +26,22 @@ pub struct Division {
     pub id: cynic::Id,
 }
 
+impl Default for Division {
+    fn default() -> Self {
+        Division {
+            name: "".to_string(),
+            id: cynic::Id::new("")
+        }
+    }
+}
+
 #[derive(cynic::QueryFragment, Debug, Clone)]
 #[cynic(variables = "RoundResultsQueryVariables")]
 pub struct Player {
     pub user: User,
     pub dnf: Dnf,
     pub dns: Dns,
+    pub division: Division,
     #[arguments(roundId: $round_id)]
     pub results: Option<Vec<HoleResult>>,
     pub id: cynic::Id,

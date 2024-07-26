@@ -38,11 +38,11 @@ pub async fn selection_watcher<'r>(
 }
 
 #[get("/hole/watch")]
-pub async fn hole_watcher<'r>(
+pub async fn hole_watcher(
     ws: ws::WebSocket,
-    hole_watcher: &'r State<GeneralChannel<HoleUpdate>>,
+    hole_watcher: &State<GeneralChannel<HoleUpdate>>,
     shutdown: Shutdown,
-) -> ws::Channel<'r> {
+) -> ws::Channel {
     make_watcher_websocket(ws, hole_watcher, shutdown).await
 }
 

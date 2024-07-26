@@ -11,7 +11,6 @@ use flipup_vmix_controls::LeaderBoardProperty;
 use flipup_vmix_controls::{Leaderboard, LeaderboardState};
 use get_data::Player;
 use itertools::Itertools;
-use rocket::http::hyper::body::HttpBody;
 use rocket::State;
 use std::sync::Arc;
 use vmix::functions::VMixFunction;
@@ -20,7 +19,7 @@ use vmix::Queue;
 
 #[derive(Clone, Debug)]
 pub struct FlipUpVMixCoordinator {
-    pub all_divs: Vec<queries::Division>,
+    pub all_divs: Vec<Arc<queries::Division>>,
     selected_div_index: usize,
     leaderboard: Leaderboard,
     focused_player_index: usize,
@@ -83,7 +82,6 @@ impl FlipUpVMixCoordinator {
         let queue = Queue::new(ip.clone())?;
         let handler = RustHandler::new(&event_id).await?;
 
-        let available_players = handler.get_players();
 
         let first_group = handler.groups.first().unwrap().first().unwrap();
         let group_id = first_group.id.to_owned();
@@ -231,12 +229,12 @@ impl FlipUpVMixCoordinator {
         }
     }
 
-    pub fn find_division(&self, div_id: &str) -> Option<Division> {
+    pub fn find_division(&self, div_id: &str) -> Option<Arc<Division>> {
         self.handler
             .get_divisions()
             .iter()
-            .find(|div| div.id.inner() == div_id)
-            .cloned()
+            .find(|div| div.id.inner() == div_id).map(Arc::clone)
+        
     }
 
     pub fn set_leaderboard(&mut self, division: &Division, lb_start_ind: Option<usize>) {
@@ -250,7 +248,7 @@ impl FlipUpVMixCoordinator {
 
             self.leaderboard.update_players(LeaderboardState::new(
                 self.round_ind,
-                self.available_players().into_iter().cloned().collect_vec(),
+                self.available_players().into_iter().filter(|player|player.division.id==division.id).cloned().collect_vec(),
             ));
             self.queue_add(&self.leaderboard.to_vmix_instructions());
         } else {

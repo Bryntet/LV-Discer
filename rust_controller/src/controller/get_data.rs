@@ -13,6 +13,7 @@ use rayon::prelude::*;
 use rocket::futures::{FutureExt, StreamExt};
 use std::collections::HashSet;
 use std::sync::Arc;
+use crate::controller::queries::Division;
 
 pub const DEFAULT_FOREGROUND_COL: &str = "3F334D";
 pub const DEFAULT_FOREGROUND_COL_ALPHA: &str = "3F334D00";
@@ -73,9 +74,9 @@ impl RankUpDown {
 
     fn make_arrow(&self, pos: usize) -> VMixFunction<LeaderBoardProperty> {
         let img = match self {
-            RankUpDown::Up(_) => r"x:\FLIPUP\grafik\greentri.png",
-            RankUpDown::Down(_) => r"x:\FLIPUP\grafik\redtri.png",
-            RankUpDown::Same => r"x:\FLIPUP\grafik\alpha.png",
+            RankUpDown::Up(_) => r"C:\livegrafik-flipup\greentri.png",
+            RankUpDown::Down(_) => r"C:\livegrafik-flipup\redtri.png",
+            RankUpDown::Same => r"C:\livegrafik-flipup\alpha.png",
         }
         .to_string();
 
@@ -292,16 +293,18 @@ pub struct Player {
     pub dnf: bool,
     pub first_scored: bool,
     pub visible_player: bool,
+    pub division: Arc<Division>
 }
 
 impl Player {
-    fn from_query(player: queries::Player, round: usize, holes: &Holes) -> Self {
+    fn from_query(player: queries::Player, round: usize, holes: &Holes, divisions: Vec<Arc<Division>>) -> Result<Self,Error> {
         let first_name = player.user.first_name.unwrap();
         let surname = player.user.last_name.unwrap();
         let image_id: Option<String> = player
             .user
             .profile
             .and_then(|profile| profile.profile_image_url);
+        let division = divisions.into_iter().find(|div| div.id==player.division.id).ok_or(Error::UnableToParse)?;
         let results = PlayerRound::new(
             player
                 .results
@@ -314,33 +317,18 @@ impl Player {
                 .collect_vec(),
             round,
         );
-        Self {
+        Ok(Self {
             player_id: player.id.into_inner(),
             image_url: image_id,
             results,
             first_name: first_name.clone(),
             surname: surname.clone(),
-            rank: Default::default(),
-            total_score: 0,
             name: format!("{} {}", first_name, surname),
             dnf: player.dnf.is_dnf || player.dns.is_dns,
-            first_scored: false,
             round_ind: round,
-            index: 0,
-            hot_round: false,
-            hole_shown_up_until: 0,
-            ind: 0,
-            throws: 0,
-            ob: false,
-            position: 0,
-            lb_pos: 0,
-            old_pos: 0,
-            pos_visible: false,
-            round_score: 0,
-            lb_even: false,
-            lb_shown: false,
-            visible_player: false,
-        }
+            division,
+            ..Default::default()
+        })
     }
 
     pub fn null_player() -> Self {
@@ -370,6 +358,7 @@ impl Player {
             dnf: false,
             first_scored: false,
             visible_player: false,
+            ..Default::default()
         }
     }
 }
@@ -805,7 +794,7 @@ pub struct RustHandler {
     pub chosen_division: cynic::Id,
     round_ids: Vec<String>,
     player_container: PlayerContainer,
-    divisions: Vec<queries::Division>,
+    divisions: Vec<Arc<queries::Division>>,
     round_ind: usize,
     pub groups: Vec<Vec<dto::Group>>,
 }
@@ -848,7 +837,7 @@ impl RustHandler {
         let event = Self::get_event(event_id, round_ids.clone()).await;
         let groups = Self::get_groups(event_id).await;
         warn!("Time taken to get event: {:?}", time.elapsed());
-        let mut divisions: Vec<queries::Division> = vec![];
+        let mut divisions: Vec<Arc<queries::Division>> = vec![];
 
         let holes = dbg!(Self::get_holes(event_id).await?);
         event
@@ -857,7 +846,7 @@ impl RustHandler {
             .flat_map(|event| event.divisions.clone())
             .flatten()
             .unique_by(|division| division.id.clone())
-            .for_each(|division| divisions.push(division));
+            .for_each(|division| divisions.push(Arc::new(division)));
 
         let mut container = PlayerContainer::new(
             event
@@ -869,7 +858,7 @@ impl RustHandler {
                     event
                         .players
                         .into_iter()
-                        .map(|player| Player::from_query(player, round_num, holes))
+                        .flat_map(|player| Player::from_query(player, round_num, holes,divisions.clone()))
                         .collect_vec()
                 })
                 .collect_vec(),
@@ -1005,12 +994,8 @@ impl RustHandler {
         self.groups.get(self.round_ind).unwrap()
     }
 
-    pub fn get_divisions(&self) -> Vec<queries::Division> {
-        let mut divs: Vec<queries::Division> = vec![];
-        for div in &self.divisions {
-            divs.push(div.clone());
-        }
-        divs
+    pub fn get_divisions(&self) -> Vec<Arc<queries::Division>> {
+        self.divisions.clone()
     }
 
     async fn get_groups(event_id: &str) -> Vec<Vec<dto::Group>> {

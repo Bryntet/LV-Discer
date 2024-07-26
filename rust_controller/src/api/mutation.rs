@@ -18,7 +18,7 @@ pub async fn set_focus(
 ) -> Result<Json<dto::Player>, Error> {
     let mut coordinator = coordinator.lock().await;
 
-    coordinator.set_focused_player(focused_player, Some(updater))?;
+    coordinator.set_focused_player(dbg!(focused_player), Some(updater))?;
 
     let player = coordinator.focused_player().clone();
 

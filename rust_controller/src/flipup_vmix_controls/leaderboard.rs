@@ -56,6 +56,7 @@ impl Leaderboard {
 }
 impl LeaderboardState {
     pub fn new(round: usize, mut players: Vec<Player>) -> Self {
+        
         players
             .iter_mut()
             .for_each(|player| player.fix_round_score(None));
@@ -385,6 +386,7 @@ mod prop {
 }
 use crate::flipup_vmix_controls::Image;
 pub use prop::LeaderBoardProperty;
+use crate::controller::queries::Division;
 
 #[cfg(test)]
 mod test {
