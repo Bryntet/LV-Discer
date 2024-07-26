@@ -839,7 +839,7 @@ impl RustHandler {
         warn!("Time taken to get event: {:?}", time.elapsed());
         let mut divisions: Vec<Arc<queries::Division>> = vec![];
 
-        let holes = dbg!(Self::get_holes(event_id).await?);
+        let holes = Self::get_holes(event_id).await?;
         event
             .iter()
             .flat_map(|round| &round.event)

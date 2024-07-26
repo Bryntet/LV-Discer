@@ -30,23 +30,32 @@ impl PlayerManager {
         Self { managed_players: new_card(card), focused: 0}
     }
     pub fn replace(&mut self, new_card_ids: Vec<String>) {
-        let new_card = new_card(new_card_ids);
+        let mut new_card = new_card(new_card_ids).into_iter().map(|player|if let Some(current) = self.managed_players.iter().find(|p|p.player_id==player.player_id) {
+            let mut player = current.to_owned();
+            player.inside_card = true;
+            player
+        } else {
+            player
+        }).collect_vec();
+        
         let mut new_whole_list = self.managed_players.iter().filter(|player|{
-
-            if player.inside_card {
+            if new_card.iter().map(|p|&p.player_id).contains(&player.player_id) {
                 false
-            } else if player.queue_position.is_some() {
-                true
-            } else {
-                false
+            } else { 
+                player.queue_position.is_some() 
             }
         }).cloned().map(|mut player|{
             player.inside_card=false;
             player
-        })
+        }).rev()
             .collect_vec();
+        new_card.reverse();
         new_whole_list.extend(new_card);
+        new_whole_list.reverse();
         self.managed_players = new_whole_list;
+        if self.focused >= self.managed_players.len() {
+            self.focused = self.managed_players.len() - 1;
+        }
     }
     pub fn player<'a>(&self, players: Vec<&'a Player>) -> Option<&'a Player> {
         let queue = &self.managed_players[self.focused];
@@ -142,7 +151,7 @@ impl PlayerManager {
         }
         out_players
     }
-    
+
     pub fn dto_players(&self, players: Vec<&Player>) -> Vec<dto::Player> {
         let mut dto_players = vec![];
         for (i,player) in self.managed_players.iter().enumerate() {

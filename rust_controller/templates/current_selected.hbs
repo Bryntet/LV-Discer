@@ -1,8 +1,12 @@
 <div id="selected-players-container" hx-swap-oob="true">
     <h2>Selected Players</h2>
     <ul id="selected-players-list">
-    {{#each players as |player|}}
-        {{#if player.focused}}<li class="focused">{{else}}<li>{{/if}}
+        {{#each players as |player|}}
+            {{#if player.focused}}
+            <li class="focused">
+            {{else}}
+            <li{{#if player.queue}} class="queued"{{/if}}>
+            {{/if}}
             <div class="selected-player">
                 {{#if player.image_url}}
                     <img src="{{player.image_url}}" alt="">
@@ -10,8 +14,36 @@
                     <img src="https://picsum.photos/320" alt="">
                 {{/if}}
                 <h3>{{player.name}}</h3>
+                {{#if player.queue}}
+                    <span class="queue-number">{{player.queue}}</span>
+                {{/if}}
             </div>
         </li>
-    {{/each}}
+        {{/each}}
+    </ul>
+</div>
+
+<div id="selected-players-container" hx-swap-oob="true">
+    <h2>Selected Players</h2>
+    <ul id="selected-players-list">
+        {{#each players as |player|}}
+            <li {{#if player.queue}}
+            class="queued" style="--queue-position: {{player.queue}}"
+            {{else if player.focused}}
+                class="focused"
+            {{/if}}>
+                <div class="selected-player">
+                    {{#if player.image_url}}
+                        <img src="{{player.image_url}}" alt="">
+                    {{else}}
+                        <img src="https://picsum.photos/320" alt="">
+                    {{/if}}
+                    <h3>{{player.name}}</h3>
+                    {{#if player.queue}}
+                        <span class="queue-number">{{player.queue}}</span>
+                    {{/if}}
+                </div>
+            </li>
+        {{/each}}
     </ul>
 </div>

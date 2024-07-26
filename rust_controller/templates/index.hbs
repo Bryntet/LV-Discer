@@ -180,6 +180,10 @@
             max-width: fit-content;
             margin-left: auto;
             margin-right: auto;
+
+        }
+        #selected-players-container li {
+
         }
         #selected-players-container li.focused {
             background-color: #007BFF;
@@ -195,6 +199,27 @@
             font-size: 1em;
             color: #333;
         }
+
+
+        #selected-players-container li.queued {
+            --base-hue: 39; /* Orange hue */
+            --saturation: 100%;
+            --lightness: calc(50% - (var(--queue-position) - 1) * 15%);
+            background-color: hsl(var(--base-hue), var(--saturation), var(--lightness));
+            transition: background-color 0.3s ease;
+        }
+
+        #selected-players-container li.queued .queue-number {
+            font-weight: bold;
+            margin-left: 10px;
+            color: hsl(var(--base-hue), 100%, 20%); /* Darker orange for contrast */
+        }
+
+
+        
+
+
+
     </style>
 </head>
 <body>
