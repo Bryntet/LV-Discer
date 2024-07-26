@@ -397,7 +397,7 @@ mod test {
     use crate::controller::get_data::{HoleResult, PlayerRound};
     use crate::controller::queries::layout::hole::Hole;
     use crate::controller::queries::layout::Holes;
-    use crate::vmix::Queue;
+    use crate::vmix::VMixQueue;
     use fake::faker::name::en::{FirstName, LastName};
     use fake::utils::AlwaysTrueRng;
     use fake::uuid::UUIDv4;
@@ -526,7 +526,7 @@ mod test {
         let p = LeaderboardState::new(1, make_many_players(holes));
         let a = Leaderboard::new(p.clone());
         let funcs = a.to_vmix_instructions();
-        let q = Queue::new("10.170.120.134".to_string()).unwrap();
+        let q = VMixQueue::new("10.170.120.134".to_string()).unwrap();
         q.add(&funcs);
         tokio::time::sleep(tokio::time::Duration::new(1, 0)).await;
     }

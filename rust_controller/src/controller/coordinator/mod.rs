@@ -15,7 +15,7 @@ use rocket::State;
 use std::sync::Arc;
 use vmix::functions::VMixFunction;
 use vmix::functions::{VMixPlayerInfo, VMixSelectionTrait};
-use vmix::Queue;
+use vmix::VMixQueue;
 
 #[derive(Clone, Debug)]
 pub struct FlipUpVMixCoordinator {
@@ -28,7 +28,7 @@ pub struct FlipUpVMixCoordinator {
     round_ind: usize,
     lb_div_ind: usize,
     current_through: u8,
-    pub queue: Arc<Queue>,
+    pub queue: Arc<VMixQueue>,
     card: Card,
     pub event_id: String,
 }
@@ -54,7 +54,7 @@ impl Card {
         self.player_ids.get(index).unwrap()
     }
 
-    fn players<'a>(&self, players: Vec<&'a Player>) -> Vec<&'a Player> { 
+    fn players<'a>(&self, players: Vec<&'a Player>) -> Vec<&'a Player> {
         // This list has to be done like this to make sure it's sorted correctly.
         let mut out_players = vec![];
         for id in &self.player_ids {
@@ -79,7 +79,7 @@ impl Card {
 
 impl FlipUpVMixCoordinator {
     pub async fn new(ip: String, event_id: String, focused_player: usize) -> Result<Self, Error> {
-        let queue = Queue::new(ip.clone())?;
+        let queue = VMixQueue::new(ip.clone())?;
         let handler = RustHandler::new(&event_id).await?;
 
 

@@ -18,13 +18,13 @@ pub struct Queue {
 
 #[cfg(not(target_arch = "wasm32"))]
 #[derive(Clone, Debug)]
-pub struct Queue {
+pub struct VMixQueue {
     functions_sender: tokio::sync::broadcast::Sender<String>,
 }
 
 use crate::vmix::functions::{VMixFunction, VMixSelectionTrait};
 
-impl Queue {
+impl VMixQueue {
     pub fn new(ip: String) -> Result<Self, Error> {
         let (tx, mut rx): (Sender<String>, Receiver<String>) = channel(2048);
         let mut stream = Self::make_tcp_stream(&ip).ok_or(Error::IpNotFound(ip))?;
@@ -36,7 +36,7 @@ impl Queue {
         tokio::spawn(async move {
             loop {
                 if let Ok(f) = rx.recv().await {
-                    match Queue::send(&f.into_bytes(), &mut stream) {
+                    match VMixQueue::send(&f.into_bytes(), &mut stream) {
                         Ok(()) => (),
                         Err(e) => {
                             warn!("{}", e);
@@ -111,8 +111,8 @@ mod test {
         Score::new(throws, 5, hole)
     }
 
-    fn connect() -> Queue {
-        Queue::new("10.170.120.134".to_string()).unwrap()
+    fn connect() -> VMixQueue {
+        VMixQueue::new("10.170.120.134".to_string()).unwrap()
     }
 
     #[cfg(target_arch = "wasm32")]
