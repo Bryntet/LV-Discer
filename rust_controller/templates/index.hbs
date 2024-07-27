@@ -279,7 +279,7 @@
                     {{#each group.players as |player|}}
                         <div class="player" data-player-id="{{player.id}}">
                             <span class="player-name">{{player.name}}</span>
-                            <button class="queue-player" hx-post="/player/{{player.id}}/add-to-queue">Queue player</button>
+                            <button class="queue-player">Queue player</button>
                         </div>
                     {{/each}}
                 </div>
@@ -331,6 +331,28 @@
             countElement.textContent = count;
         });
     }
+
+    document.addEventListener('click', function(e) {
+        if (e.target && e.target.classList.contains('queue-player')) {
+            const playerId = e.target.closest('.player').dataset.playerId;
+            queuePlayer(playerId);
+        }
+    });
+
+    function queuePlayer(playerId) {
+        fetch(`/player/${playerId}/add-to-queue`, {
+            method: 'POST',
+        })
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Player queued successfully:', data);
+                    // Update the UI as needed
+                })
+                .catch((error) => {
+                    console.error('Error queuing player:', error);
+                });
+    }
+
 </script>
 </body>
 </html>

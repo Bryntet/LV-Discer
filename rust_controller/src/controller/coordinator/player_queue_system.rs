@@ -101,6 +101,12 @@ impl PlayerManager {
             })
         }
     }
+    
+    fn clear_all_empty(&mut self) {
+        let current_focused = self.focused_player().player_id.clone();
+        self.managed_players = self.managed_players.iter().filter(|player|player.inside_card || player.queue_position.is_some() || player.player_id == current_focused).cloned().collect_vec();
+        self.set_focused(&current_focused);
+    }
 
     // Remember to send channel update when using this func
     pub fn next_queued(&mut self) {
@@ -117,7 +123,7 @@ impl PlayerManager {
         if let Some(id) = focused_player_id {
             self.set_focused(&id)
         }
-
+        self.clear_all_empty();
     }
 
     fn set_focused(&mut self, id: &str) {

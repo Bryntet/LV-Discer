@@ -20,6 +20,7 @@ use rocket_okapi::settings::UrlObject;
 use rocket_okapi::swagger_ui::{make_swagger_ui, SwaggerUIConfig};
 use std::net::IpAddr;
 use std::sync::Arc;
+use rocket::log::LogLevel;
 use tokio::sync::{Mutex, MutexGuard};
 pub use websocket::channels::{PlayerManagerUpdate, HoleUpdate};
 
@@ -102,11 +103,23 @@ pub fn launch() -> Rocket<Build> {
     let (hole_update_sender, _) = channel::<HoleUpdate>(1024);
     let hole_update_sender = GeneralChannel::from(hole_update_sender);
 
-    rocket::build()
-        .configure(rocket::Config {
-            address: IpAddr::V4("10.170.122.114".parse().unwrap()),
+    let conf = {
+        
+        #[cfg(windows)]
+        let ip = IpAddr::V4("10.170.120.134".parse().unwrap());
+        #[cfg(not(windows))]
+        let ip = IpAddr::V4("10.170.122.114".parse().unwrap());
+        rocket::Config {
+            address:ip, 
+            cli_colors: true,
+            log_level: LogLevel::Normal,
             ..Default::default()
-        })
+        }
+        
+    };
+    
+    rocket::build()
+        .configure(conf)
         .manage(CoordinatorLoader(Mutex::new(None)))
         .manage(group_selection_sender)
         .manage(hole_update_sender)

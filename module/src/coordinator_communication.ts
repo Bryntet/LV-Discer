@@ -116,6 +116,10 @@ export class ApiClient {
         await this.post(`/vmix/leaderboard/${division}/update`)
     }
 
+    async doNextQueued() {
+        await this.post(`/players/queue/next`)
+    }
+
 }
 
 export class Player {

@@ -1,5 +1,5 @@
 import { InstanceBase, InstanceStatus, runEntrypoint, SomeCompanionConfigField, DropdownChoice, CompanionStaticUpgradeScript, CompanionVariableValues} from '@companion-module/base';
-import {Config, WebSocketSubscription,} from "./config";
+import {Config, WebSocketSubscription, getConfigFields} from "./config";
 import { setActionDefinitions } from "./actions";
 import { setFeedbackDefinitions } from './feedbacks';
 import { ApiClient } from './coordinator_communication';
@@ -8,30 +8,21 @@ import { ApiClient } from './coordinator_communication';
 
 
 export class LevandeVideoInstance extends InstanceBase<Config> {
-	public coordinator = new ApiClient("http://10.170.122.114:8000");
+	public config: Config = {
+		coordinator_ip: '10.170.120.134',
+	};
+	public coordinator = new ApiClient(`http://${this.config.coordinator_ip}:8000`);
 	private webSocketSubscriptions: WebSocketSubscription[] = [{
-		url: 'ws://10.170.122.114:8000/ws/players/selected/watch',
+		url: `ws://${this.config.coordinator_ip}:8000/ws/players/selected/watch`,
 		debug_messages: true,
 		variableName: 'selected_players',
 		subpath: 'players',
 	},{
-		url: 'ws://10.170.122.114:8000/ws/hole/watch',
+		url: `ws://${this.config.coordinator_ip}:8000/ws/hole/watch`,
 		debug_messages: true,
 		variableName: 'current_hole',
 		subpath: 'hole',
 	}];
-	public config: Config = {
-		vmix_ip: '10.170.120.134',
-		event_id: 'd8f93dfb-f560-4f6c-b7a8-356164b9e4be',
-		vmix_input_id: '506fbd14-52fc-495b-8d17-5b924fba64f3',
-		round: 1,
-		hole: 0,
-		div: 'none',
-		p1: 'none',
-		p2: 'none',
-		p3: 'none',
-		p4: 'none',
-	};
 	public websockets: WebSocketManager[] = [];
 	private players: DropdownChoice[] = [{ id: 'none', label: 'None' }];
 	private div_names: DropdownChoice[] = [{ id: "none", label: 'None' }];
@@ -154,8 +145,8 @@ export class LevandeVideoInstance extends InstanceBase<Config> {
 
 	
 	public getConfigFields(): SomeCompanionConfigField[] {
-        return [];
-    }
+		return getConfigFields()
+	}
 
 	async destroy() {
 		this.log("warn", 'destroy')

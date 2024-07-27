@@ -21,6 +21,7 @@ export enum ActionId {
     SetHoleInfo = 'set_hole_info',
     DoOtherLeaderboard = 'do_other_leaderboard',
     ReloadWebSockets = 'reload_websockets',
+    NextQueuedPlayed = 'next_queued'
 }
 
 async function parseAuto(context: CompanionCommonCallbackContext): Promise<number> {
@@ -201,6 +202,14 @@ export const setActionDefinitions = (instance: LevandeVideoInstance): CompanionA
             for (const subscription of instance.websockets) {
                 subscription.reload();
             }
+        }
+    }
+
+    actions[ActionId.NextQueuedPlayed] = {
+        name: 'Move one in the queue',
+        options: [],
+        callback: async () => {
+            await instance.coordinator.doNextQueued()
         }
     }
 
