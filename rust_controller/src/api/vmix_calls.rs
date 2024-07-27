@@ -60,9 +60,12 @@ pub async fn update_leaderboard(co: Coordinator, division: &str) -> Result<(), E
         .find(|div| div.name == division)
         .ok_or(Error::InvalidDivision(division.to_string()))?
         .to_owned();
-    co.set_leaderboard(&div, Some(18));
+    co.set_leaderboard(&div, None);
     Ok(())
 }
+
+
+
 
 /// # Increase score
 /// Increase the score of the currently focused player

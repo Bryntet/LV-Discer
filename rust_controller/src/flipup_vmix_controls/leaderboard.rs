@@ -1,6 +1,8 @@
-use crate::controller::Player;
+use crate::controller::{fix_score, Player};
 use crate::vmix::functions::VMixFunction;
 use itertools::Itertools;
+use rayon::prelude::*;
+
 #[derive(Debug, Clone, Default)]
 pub struct Leaderboard {
     states: Vec<LeaderboardState>,
@@ -23,15 +25,13 @@ impl Leaderboard {
             states: vec![state],
         }
     }
-    fn current_state(&self) -> &LeaderboardState {
-        self.states
-            .last()
-            .expect("Leaderboard has to have state when initiated")
+    fn current_state(&self) -> Option<&LeaderboardState> {
+        self.states.last()
     }
 
     /// Returns the previous state of the leaderboard if it exists
     fn previous_state(&self) -> Option<&LeaderboardState> {
-        if self.states.len() < 2 {
+        if self.states.is_empty() {
             return None;
         }
         self.states.get(self.states.len() - 2)
@@ -50,21 +50,37 @@ impl Leaderboard {
     }
 
     pub fn to_vmix_instructions(&self) -> Vec<VMixFunction<LeaderBoardProperty>> {
-        self.current_state()
-            .to_vmix_instructions(self.previous_state())
+        self.current_state().map(|state|state.to_vmix_instructions(self.previous_state())).expect("Should work")
+    }
+    
+    pub fn add_state(&mut self, state: LeaderboardState) {
+        if self.current_state().is_some_and(|current_state|current_state.round==state.round){
+            self.states.pop();
+        } 
+        self.states.push(state)
+        
     }
 }
 impl LeaderboardState {
-    pub fn new(round: usize, mut players: Vec<Player>) -> Self {
-        
-        players
+    pub fn new(round: usize, mut current_round_players: Vec<Player>, mut all_previous_rounds_players: Vec<Player>) -> Self {
+        current_round_players
             .iter_mut()
-            .for_each(|player| player.fix_round_score(None));
-        Self::sort_players(&mut players);
+            .for_each(|player| {
+                let previous_instances = all_previous_rounds_players.iter_mut()
+                    .filter(|previous_round_player|previous_round_player.player_id==player.player_id).collect_vec();
+                let total = previous_instances.into_iter().map(|player|{
+                    player.fix_round_score(None);
+                    player.round_score
+                }).sum::<isize>();
+                player.fix_round_score(None);
+                player.total_score += total;
+                
+            });
+        Self::sort_players(&mut current_round_players);
         Self {
             where_to_start: LeaderboardStart::Latest,
             round,
-            players,
+            players: current_round_players,
         }
     }
 }
@@ -75,22 +91,24 @@ impl LeaderboardState {
     }
 
     fn leaderboard_players(&self, other: Option<&Self>) -> Vec<LeaderboardPlayer> {
-        let max_score = self
+        let min_score = self
             .players
             .iter()
             .map(|p| p.round_score)
-            .max()
+            .min()
             .unwrap_or_default();
-        let other = other.map(|lb| lb.players.iter().collect_vec());
+        let other = other.map(|state|state.leaderboard_players(None));
         let players_with_pos = Self::players_with_positions(self.players.iter().collect_vec());
+        
         players_with_pos
             .into_iter()
             .enumerate()
-            .map(|(real_pos, (index, player))| {
+            .map(|(real_pos, (index,player))| {
                 LeaderboardPlayer::new(
                     player,
+                    index,
                     real_pos + 1,
-                    max_score,
+                    min_score,
                     other.as_ref(),
                     self.round,
                     &self.players,
@@ -98,22 +116,22 @@ impl LeaderboardState {
             })
             .collect_vec()
     }
+    
 
     fn players_with_positions(players: Vec<&Player>) -> Vec<(usize, &Player)> {
         let mut pos = 1;
-        let mut skipped = 0;
+        let mut same_score_count = 0;
         let mut last_score = players.first().map(|p| p.total_score).unwrap_or_default();
 
         players
             .into_iter()
             .map(|player| {
                 if player.total_score != last_score {
-                    pos += skipped + 1;
-                    skipped = 0;
-                } else {
-                    dbg!("hi");
-                    skipped += 1;
+                    pos += same_score_count;
+                    same_score_count = 0;
                 }
+                same_score_count += 1;
+                
                 last_score = player.total_score;
                 (pos, player)
             })
@@ -134,6 +152,7 @@ impl LeaderboardState {
 
 #[derive(Debug)]
 struct LeaderboardPlayer {
+    id: String,
     index: usize,
     position: usize,
     movement: LeaderboardMovement,
@@ -159,27 +178,25 @@ impl LeaderboardPlayer {
     /// * `other_board` - The other leaderboard to compare the movement to
     pub fn new(
         player: &Player,
+        pos: usize,
         index: usize,
-        max_score_reached: isize,
-        other_board: Option<&Vec<&Player>>,
+        min_score_reached: isize,
+        other_board: Option<&Vec<LeaderboardPlayer>>,
         round: usize,
         all_other_players: &[Player],
     ) -> Self {
-        let pos = all_other_players
-            .iter()
-            .filter(|other_player| other_player.total_score < player.total_score)
-            .count()
-            + 1;
+
         let other_pos = other_board
             .and_then(|players| {
                 players
                     .iter()
-                    .enumerate()
-                    .find(|(_, other_player)| other_player.player_id == player.player_id)
+                    .find(|other_player| other_player.id == player.player_id)
             })
-            .map(|(pos, _)| pos);
+            .map(|player| {
+                player.position
+            });
         let movement = match other_pos {
-            Some(other_pos) => LeaderboardMovement::new(index, other_pos),
+            Some(other_pos) => LeaderboardMovement::new(pos, other_pos),
             None => LeaderboardMovement::Same,
         };
         let tie = {
@@ -198,12 +215,13 @@ impl LeaderboardPlayer {
             index,
             position: pos,
             movement,
-            hot_round: player.round_score == max_score_reached && round != 1,
+            hot_round: player.round_score == min_score_reached && round != 0,
             name: player.name.clone(),
             round_score: player.round_score,
             total_score: player.total_score,
-            thru: player.hole_shown_up_until as u8,
+            thru: player.results.amount_of_holes_finished(),
             tied: tie,
+            id: player.player_id.clone()
         }
     }
 
@@ -221,14 +239,14 @@ impl LeaderboardPlayer {
 
     fn set_round_score(&self) -> VMixFunction<LeaderBoardProperty> {
         VMixFunction::SetText {
-            value: self.round_score.to_string(),
+            value: fix_score(self.round_score),
             input: LeaderBoardProperty::RoundScore(self.index).into(),
         }
     }
 
     fn set_total_score(&self) -> VMixFunction<LeaderBoardProperty> {
         VMixFunction::SetText {
-            value: self.total_score.to_string(),
+            value: fix_score(self.total_score),
             input: LeaderBoardProperty::TotalScore { pos: self.index }.into(),
         }
     }
@@ -260,8 +278,8 @@ impl LeaderboardPlayer {
     fn set_movement_text(&self) -> VMixFunction<LeaderBoardProperty> {
         VMixFunction::SetText {
             value: match self.movement {
-                LeaderboardMovement::Up(n) => format!("+{}", n),
-                LeaderboardMovement::Down(n) => format!("-{}", n),
+                LeaderboardMovement::Up(n) |
+                LeaderboardMovement::Down(n) => n.to_string(),
                 LeaderboardMovement::Same => " ".to_string(),
             },
             input: LeaderBoardProperty::Move { pos: self.index }.into(),
@@ -369,7 +387,7 @@ mod prop {
 
         fn value(&self) -> Option<String> {
             match self {
-                LeaderBoardProperty::Position { tied, lb_pos, .. } => {
+                LeaderBoardProperty::Position { tied, lb_pos,.. } => {
                     if tied.is_some() {
                         Some(format!("T{}", lb_pos))
                     } else {

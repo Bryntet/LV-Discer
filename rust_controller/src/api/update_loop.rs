@@ -1,6 +1,6 @@
 use crate::controller;
 use crate::controller::coordinator::FlipUpVMixCoordinator;
-use crate::controller::queries::{HoleResult, RoundResultsQuery, RoundResultsQueryVariables};
+use crate::controller::queries::{Division, HoleResult, RoundResultsQuery, RoundResultsQueryVariables};
 use crate::controller::Player;
 use cynic::{GraphQlResponse, QueryBuilder};
 use itertools::Itertools;
@@ -76,9 +76,8 @@ impl TjingResultMap {
     }
 
     pub fn update_mut_player(&self, player: &mut controller::Player) {
-        if let Some(hash_player_result) = self.results.get(&player.player_id) {
-            player.results.update_tjing(hash_player_result);
-        };
+        let hash_player_result = self.results.get(&player.player_id).into_iter().flat_map(|list|list.into_iter()).flatten().cloned().collect_vec();
+        player.results.update_tjing(&hash_player_result);
     }
 }
 
@@ -119,6 +118,9 @@ pub async fn update_loop(coordinator: Arc<Mutex<FlipUpVMixCoordinator>>) {
                     for player in coordinator.available_players_mut() {
                         tjing_result_map.update_mut_player(player)
                     }
+                    /*if let Some(div) = coordinator.find_division_by_name("Mixed Amateur 1") {
+                        coordinator.set_leaderboard(&div, None);
+                    }*/
                 }
             }
         }

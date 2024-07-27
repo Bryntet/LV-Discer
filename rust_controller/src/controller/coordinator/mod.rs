@@ -36,10 +36,10 @@ pub struct FlipUpVMixCoordinator {
 }
 
 impl FlipUpVMixCoordinator {
-    pub async fn new(ip: String, event_id: String, focused_player: usize) -> Result<Self, Error> {
+    pub async fn new(ip: String, event_id: String, focused_player: usize,round: usize) -> Result<Self, Error> {
         let queue = VMixQueue::new(ip.clone())?;
-        let handler = RustHandler::new(&event_id).await?;
-
+        let handler = RustHandler::new(&event_id,round).await?;
+        
 
         let first_group = handler.groups.first().unwrap().first().unwrap();
         let mut coordinator = FlipUpVMixCoordinator {
@@ -48,12 +48,12 @@ impl FlipUpVMixCoordinator {
             focused_player_index: focused_player,
             ip,
             player_manager: PlayerManager::new(first_group.player_ids()),
+            leaderboard: handler.get_previous_leaderboards(),
             handler,
-            round_ind: 0,
+            round_ind: round,
             lb_div_ind: 0,
             current_through: 0,
             vmix_queue: Arc::new(queue),
-            leaderboard: Leaderboard::default(),
             event_id,
         };
         coordinator.queue_add(&coordinator.focused_player().set_name());
@@ -64,6 +64,10 @@ impl FlipUpVMixCoordinator {
 impl FlipUpVMixCoordinator {
     pub fn available_players(&self) -> Vec<&Player> {
         self.handler.get_players()
+    }
+    
+    pub fn previous_rounds_players(&self) -> Vec<&Player> {
+        self.handler.get_previous_rounds_players()
     }
 
     pub fn available_players_mut(&mut self) -> Vec<&mut Player> {
@@ -149,9 +153,6 @@ impl FlipUpVMixCoordinator {
     pub fn current_players(&self) -> Vec<&Player> {
         self.player_manager.players(self.available_players())
     }
-}
-
-impl FlipUpVMixCoordinator {
     fn clear_lb(idx: usize) -> Vec<VMixFunction<LeaderBoardProperty>> {
         let mut new_player = get_data::Player::null_player();
 
@@ -195,12 +196,6 @@ impl FlipUpVMixCoordinator {
             .player(self.available_players())
             .unwrap()
     }
-}
-
-// API Funcs
-// basically leftover from WASM
-
-impl FlipUpVMixCoordinator {
     pub fn set_div(&mut self, div: &Division) {
         if let Some((idx, _)) = self.all_divs.iter().find_position(|d| d.id == div.id) {
             self.selected_div_index = idx;
@@ -215,20 +210,24 @@ impl FlipUpVMixCoordinator {
             .find(|div| div.id.inner() == div_id).map(Arc::clone)
         
     }
+    
+    pub fn find_division_by_name(&self, div_name: &str) -> Option<Arc<Division>> {
+        self.handler.get_divisions().iter().find(|div|div.name== div_name).map(Arc::clone)
+    }
 
     pub fn set_leaderboard(&mut self, division: &Division, lb_start_ind: Option<usize>) {
         self.queue_add(&FlipUpVMixCoordinator::clear_lb(10));
-        println!("set_leaderboard");
-        //let mut lb_copy = self.clone();
         self.set_current_through();
-        println!("past set_lb_thru");
         if self.current_hole() <= 19 {
-            println!("hole <= 19");
-
-            self.leaderboard.update_players(LeaderboardState::new(
+            let current_players =
+                self.available_players().into_iter().filter(|player|player.division.id==division.id).cloned().collect_vec();
+            let previous = self.previous_rounds_players().into_iter().filter(|player|player.division.id==division.id).cloned().collect_vec();
+            self.leaderboard.add_state(LeaderboardState::new(
                 self.round_ind,
-                self.available_players().into_iter().filter(|player|player.division.id==division.id).cloned().collect_vec(),
+                current_players,
+                previous
             ));
+            
             self.queue_add(&self.leaderboard.to_vmix_instructions());
         } else {
             println!("PANIC, hole > 18");

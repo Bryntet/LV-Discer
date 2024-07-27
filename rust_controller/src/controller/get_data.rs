@@ -2,7 +2,7 @@ use super::queries;
 use crate::api::Error;
 use crate::controller::queries::layout::hole::Hole;
 use crate::controller::queries::layout::Holes;
-use crate::flipup_vmix_controls::LeaderBoardProperty;
+use crate::flipup_vmix_controls::{Leaderboard, LeaderBoardProperty, LeaderboardState};
 use crate::flipup_vmix_controls::{OverarchingScore, Score};
 use crate::vmix::functions::*;
 use crate::{controller, dto};
@@ -106,7 +106,7 @@ pub struct HoleResult {
 
 impl From<&HoleResult> for Score {
     fn from(res: &HoleResult) -> Self {
-        Self::new(res.throws(), res.hole_representation.par as i8, res.hole)
+        Self::new(res.throws() as i8, res.hole_representation.par as i8, res.hole)
     }
 }
 
@@ -127,10 +127,11 @@ impl HoleResult {
         holes: &controller::queries::layout::hole::Holes,
         tjing: controller::queries::HoleResult,
     ) -> Option<Self> {
+        let hole_rep = holes.find_hole(hole)?;
         Some(Self {
             hole,
-            throws: tjing.score as u8,
-            hole_representation: holes.find_hole(hole)?,
+            throws: (tjing.score as i8  + hole_rep.par as i8) as u8,
+            hole_representation: hole_rep,
             tjing_result: Some(tjing),
             ob: HashSet::new(),
             finished: false,
@@ -142,14 +143,14 @@ impl HoleResult {
     }
 
     pub fn actual_score(&self) -> i8 {
-        self.throws() - self.hole_representation.par as i8
+        self.throws() as i8 - self.hole_representation.par as i8
     }
 
-    fn throws(&self) -> i8 {
+    fn throws(&self) -> u8 {
         if let Some(tjing) = &self.tjing_result {
-            tjing.score as i8
+            tjing.score as u8
         } else {
-            self.throws as i8
+            self.throws
         }
     }
 
@@ -167,7 +168,8 @@ impl HoleResult {
 }
 
 impl PlayerRound {
-    pub fn new(results: Vec<HoleResult>, round: usize) -> Self {
+    pub fn new(mut results: Vec<HoleResult>, round: usize) -> Self {
+        results.sort_by(|a,b|a.hole.cmp(&b.hole));
         Self {
             results,
             finished: false,
@@ -202,23 +204,20 @@ impl PlayerRound {
             .collect()
     }
 
-    pub fn update_tjing(&mut self, results: &[Option<queries::HoleResult>]) {
+    pub fn update_tjing(&mut self, results: &[queries::HoleResult]) {
         for result in &mut self.results {
-            if let Some(Some(tjing_result)) = results.get(result.hole as usize) {
+            if let Some(tjing_result) = results.iter().find(|hole|hole.hole.number as u8 == result.hole) {
                 result.tjing_result = Some(tjing_result.to_owned());
             }
         }
     }
-}
-
-impl PlayerRound {
     pub fn current_result(&self, hole: u8) -> Option<&HoleResult> {
         self.results.iter().find(|result| result.hole == hole)
     }
 
     // Gets score up until hole
     pub fn score_to_hole(&self, hole: usize) -> isize {
-        (0..hole + 1).map(|i| self.hole_score(i)).sum()
+        (0..=hole).map(|i| self.hole_score(i)).sum()
     }
 
     fn hole_score(&self, hole: usize) -> isize {
@@ -253,6 +252,10 @@ impl PlayerRound {
             input: VMixHoleInfo::HoleFeet(feet).into(),
         });
         r_vec
+    }
+    
+    pub fn amount_of_holes_finished(&self) -> u8 {
+        self.results.iter().filter(|result| result.tjing_result.is_some() || result.finished).count() as u8
     }
 }
 
@@ -465,7 +468,6 @@ impl Player {
         for result in &self.results.results {
             self.round_score += result.actual_score() as isize;
         }
-        dbg!(self.round_score);
         self.total_score += self.round_score
     }
 
@@ -728,13 +730,7 @@ impl Player {
 
     fn set_rs(&self, hidden: bool) -> VMixFunction<LeaderBoardProperty> {
         VMixFunction::SetText {
-            value: if self.lb_pos == 0 {
-                "".to_string()
-            } else if hidden {
-                "E".to_string()
-            } else {
-                fix_score(self.round_score)
-            },
+            value: fix_score(self.round_score),
             input: LeaderBoardProperty::RoundScore(self.position).into(),
         }
     }
@@ -748,13 +744,7 @@ impl Player {
                 input: LeaderBoardProperty::TotalScoreTitle.into(),
             },
             VMixFunction::SetText {
-                value: if self.lb_pos == 0 {
-                    "".to_string()
-                } else if hidden && self.round_ind == 0 {
-                    "E".to_string()
-                } else {
-                    fix_score(self.total_score)
-                },
+                value: fix_score(self.total_score),
                 input: LeaderBoardProperty::TotalScore { pos: self.position }.into(),
             },
         ]
@@ -805,10 +795,10 @@ struct PlayerContainer {
     round: usize,
 }
 impl PlayerContainer {
-    fn new(rounds_with_players: Vec<Vec<Player>>) -> Self {
+    fn new(rounds_with_players: Vec<Vec<Player>>, round: usize) -> Self {
         Self {
             rounds_with_players,
-            round: 0,
+            round,
         }
     }
 
@@ -824,6 +814,10 @@ impl PlayerContainer {
     pub fn players(&self) -> &Vec<Player> {
         self.rounds_with_players.get(self.round).unwrap()
     }
+    
+    pub fn previous_rounds_players(&self) -> Vec<&Player> {
+        self.rounds_with_players.iter().enumerate().take_while(|(i,_)|i<&self.round).flat_map(|(_,player)|player).collect_vec()
+    }
 
     pub fn players_mut(&mut self) -> &mut Vec<Player> {
         self.rounds_with_players.get_mut(self.round).unwrap()
@@ -831,7 +825,7 @@ impl PlayerContainer {
 }
 
 impl RustHandler {
-    pub async fn new(event_id: &str) -> Result<Self, Error> {
+    pub async fn new(event_id: &str, round: usize) -> Result<Self, Error> {
         let time = std::time::Instant::now();
         let round_ids = Self::get_rounds(event_id).await?;
         let event = Self::get_event(event_id, round_ids.clone()).await;
@@ -854,6 +848,7 @@ impl RustHandler {
                 .enumerate()
                 .flat_map(|(round_num, round)| Some((round_num, round.event?)))
                 .map(|(round_num, event)| {
+                    
                     let holes = holes.get(round_num).expect("hole should exist");
                     event
                         .players
@@ -862,6 +857,7 @@ impl RustHandler {
                         .collect_vec()
                 })
                 .collect_vec(),
+            round
         );
 
         for (i, round) in container.rounds_with_players.iter_mut().enumerate() {
@@ -884,8 +880,27 @@ impl RustHandler {
             player_container: container,
             divisions,
             groups,
-            round_ind: 0,
+            round_ind: round,
         })
+    }
+    
+    
+    pub fn get_previous_leaderboards(&self) -> Leaderboard {
+        let mut lb = Leaderboard::default();
+        
+        if self.round_ind == 0 {
+            return lb;
+        }
+
+        
+        let previous_players = self.get_previous_rounds_players().into_iter().filter(|player|player.division.name == "Mixed Amateur 1").collect_vec();
+        for round in 0..self.round_ind {
+            
+            let state = LeaderboardState::new(round,previous_players.clone().into_iter().filter(|player|player.round_ind==round).cloned().collect_vec(),previous_players.clone().into_iter().filter(|player|player.round_ind<round).cloned().collect_vec());
+            lb.add_state(state)
+        }
+        
+        lb
     }
 
     pub async fn get_event(
@@ -1056,6 +1071,10 @@ impl RustHandler {
 
     pub fn get_players(&self) -> Vec<&Player> {
         self.player_container.players().iter().collect_vec()
+    }
+    
+    pub fn get_previous_rounds_players(&self) -> Vec<&Player> {
+        self.player_container.previous_rounds_players()
     }
 
     pub fn get_players_mut(&mut self) -> Vec<&mut Player> {

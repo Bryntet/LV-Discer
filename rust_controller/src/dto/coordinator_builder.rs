@@ -9,17 +9,18 @@ use rocket_okapi::okapi::{schemars, schemars::JsonSchema};
 pub struct CoordinatorBuilder {
     ip: String,
     event_id: String,
+    round: usize
 }
 
 impl CoordinatorBuilder {
-    pub fn new(ip: String, event_id: String) -> Self {
-        Self { ip, event_id }
+    pub fn new(ip: String, event_id: String, round: usize) -> Self {
+        Self { ip, event_id, round}
     }
 }
 
 impl CoordinatorBuilder {
     pub async fn into_coordinator(self) -> Result<FlipUpVMixCoordinator, Error> {
-        FlipUpVMixCoordinator::new(self.ip, self.event_id, 0).await
+        FlipUpVMixCoordinator::new(self.ip, self.event_id, 0, self.round).await
     }
 }
 

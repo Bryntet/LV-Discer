@@ -66,7 +66,7 @@ fn get_normal_routes() -> Vec<Route> {
         clear_all,
         get_groups,
         index,
-        update_leaderboard, // TODO
+        update_leaderboard,
         increase_score,
         focused_players,
         focused_player,
@@ -105,20 +105,20 @@ pub fn launch() -> Rocket<Build> {
     let hole_update_sender = GeneralChannel::from(hole_update_sender);
 
     let conf = {
-        
+
         #[cfg(windows)]
         let ip = IpAddr::V4("10.170.120.134".parse().unwrap());
         #[cfg(not(windows))]
         let ip = IpAddr::V4("10.170.122.114".parse().unwrap());
         rocket::Config {
-            address:ip, 
+            address:ip,
             cli_colors: true,
             log_level: LogLevel::Normal,
             ..Default::default()
         }
-        
+
     };
-    
+
     rocket::build()
         .configure(conf)
         .manage(CoordinatorLoader(Mutex::new(None)))

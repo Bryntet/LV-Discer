@@ -76,7 +76,7 @@ export class ApiClient {
 
     // Note: This took a boolean previously, unsure why
     async updateLeaderboard() {
-        await this.post("/vmix/leaderboard/update");
+        await this.post("/vmix/update/leaderboard/Mixed%20Amateur%201");
     }
 
     async setFocusedPlayer(player_id: number): Promise<Player> {
