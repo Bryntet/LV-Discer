@@ -94,12 +94,6 @@ export class LevandeVideoInstance extends InstanceBase<Config> {
 		if (typeof this.div_names === 'undefined') {
 			this.div_names = []
 		}
-		this.config.p1 = 'none'
-		this.config.p2 = 'none'
-		this.config.p3 = 'none'
-		this.config.p4 = 'none'
-		this.config.div = 'none'
-		this.config.round = 1
 		//this.saveConfig(config)
 
 		
