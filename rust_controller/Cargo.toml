@@ -1,52 +1,44 @@
 [package]
-name = "levandevideo-rust"
+name = "flipup-sm-coordinator"
 version = "0.1.0"
 authors = ["Edvin Bryntesson <epost@edvinbryntesson.se>"]
 edition = "2021"
 
-[lib]
-crate-type = ["cdylib"]
-
-[features]
-default = ["console_error_panic_hook"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-cynic = { version = "3.4.3" }
-syn = "2.0.52"
+cynic = { version = "3.7.3" }
+syn = "2.0.66"
 log = "0.4.21"
-serde = "1.0.197"
-serde_json = "1.0.114"
-clap = "4.5.3"
-anyhow = "1.0.81"
-paste = "1.0.14"
-quote = "1.0.35"
-wasm-bindgen = "0.2.92"
-wasm-bindgen-futures = "0.4.42"
-console_error_panic_hook = { version = "0.1.7", optional = true }
-getrandom = { version = "0.2.12", features = ["js"] }
-reqwest = { version = "0.11.26", features = ["json", "blocking", "wasm-streams"] }
-js-sys = "0.3.69"
-regex = "1.10.3"
-serde-wasm-bindgen = "0.6.5"
-wasm-bindgen-test = "0.3.42"
-cynic-codegen = "3.5.0"
-wasm-macros = {path = "wasm_macros" }
-web-sys = {version =  "0.3.69",features = ["Headers", "Request", "RequestInit", "RequestMode", "Response"] }
-tokio = {version =  "1.37.0", features = ["rt", "io-util", "sync"] }
-futures = "0.3.30"
+serde = "1.0.203"
+serde_json = "1.0.117"
+clap = "4.5.4"
+anyhow = "1.0.86"
+paste = "1.0.15"
+quote = "1.0.36"
+getrandom = { version = "0.2.15" }
+reqwest = { version = "0.12.4", features = ["json"] }
+regex = "1.10.4"
+cynic-codegen = "3.7.3"
 rand = "0.9.0-alpha.1"
-itertools = "0.12.1"
-#wasm-futures-executor = "0.2.0"
+itertools = "0.13.0"
+rocket = "0.5.1"
+rocket_okapi = {git = "https://github.com/Bryntet/okapi", features = ["swagger", "rapidoc", "rocket_dyn_templates", "rocket_ws"] }
+tokio = {version =  "1.38.0", features = ["full"] }
+rayon = "1.10.0"
+chrono = "0.4.38"
+chrono-tz = "0.9.0"
+rocket_ws = "0.1.1"
+thiserror = "1.0.61"
+
 
 [dev-dependencies]
-tokio-test = "0.4.4"
-wasm-bindgen-test = "0.3.42"
+fake = {version = "2.9.2", features = ["derive", "uuid", "always-true-rng"]}
 
+[dependencies.rocket_dyn_templates]
+version = "0.2.0"
+features = ["handlebars"]
 
 [build-dependencies]
-cynic-codegen = "3.5.0"
-
-[workspace]
-members = ["wasm_macros", "."]
+cynic-codegen = "3.7.3"

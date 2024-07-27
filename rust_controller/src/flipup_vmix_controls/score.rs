@@ -1,6 +1,5 @@
-use crate::get_data::fix_score;
-use crate::vmix::functions::{VMixFunction, VMixProperty, VMixSelection};
-use crate::flipup_vmix_controls::LeaderBoardProperty;
+use crate::controller::fix_score;
+use crate::vmix::functions::{VMixFunction, VMixPlayerInfo, VMixSelection};
 pub struct OverarchingScore {
     round: usize,
     round_score: isize,
@@ -9,8 +8,8 @@ pub struct OverarchingScore {
 }
 
 pub enum RoundScore {
-    Shown([VMixFunction<VMixProperty>; 2]),
-    Hidden(VMixFunction<VMixProperty>),
+    Shown([VMixFunction<VMixPlayerInfo>; 2]),
+    Hidden(VMixFunction<VMixPlayerInfo>),
 }
 
 impl OverarchingScore {
@@ -22,12 +21,12 @@ impl OverarchingScore {
             total_score,
         }
     }
-    pub fn set_round_score(&self) -> Vec<VMixFunction<VMixProperty>> {
+    pub fn set_round_score(&self) -> Vec<VMixFunction<VMixPlayerInfo>> {
         if self.round > 0 {
             vec![
                 VMixFunction::SetText {
                     value: "(".to_string() + &fix_score(self.round_score) + ")",
-                    input: VMixProperty::RoundScore(self.player).into(),
+                    input: VMixPlayerInfo::RoundScore(self.player).into(),
                 },
                 self.show_round_score(),
             ]
@@ -35,22 +34,22 @@ impl OverarchingScore {
             vec![self.hide_round_score()]
         }
     }
-    fn hide_round_score(&self) -> VMixFunction<VMixProperty> {
+    fn hide_round_score(&self) -> VMixFunction<VMixPlayerInfo> {
         VMixFunction::SetTextVisibleOff {
-            input: VMixProperty::RoundScore(self.player).into(),
+            input: VMixPlayerInfo::RoundScore(self.player).into(),
         }
     }
 
-    fn show_round_score(&self) -> VMixFunction<VMixProperty> {
+    fn show_round_score(&self) -> VMixFunction<VMixPlayerInfo> {
         VMixFunction::SetTextVisibleOn {
-            input: VMixProperty::RoundScore(self.player).into(),
+            input: VMixPlayerInfo::RoundScore(self.player).into(),
         }
     }
 
-    pub fn set_total_score(&self) -> VMixFunction<VMixProperty> {
+    pub fn set_total_score(&self) -> VMixFunction<VMixPlayerInfo> {
         VMixFunction::SetText {
             value: fix_score(self.total_score),
-            input: VMixProperty::TotalScore(self.player).into(),
+            input: VMixPlayerInfo::TotalScore(self.player).into(),
         }
     }
 }
@@ -80,8 +79,8 @@ pub enum ReadableScore {
     Ace,
 }
 impl ReadableScore {
-    const fn new(throws: usize, par: usize) -> Self {
-        let score = throws as i8 - par as i8;
+    const fn new(throws: i8, par: i8) -> Self {
+        let score = throws - par;
         match score {
             0 => Self::Par,
             -1 => Self::Birdie,
@@ -126,13 +125,13 @@ impl ReadableScore {
     }
 }
 pub struct Score {
-    throws: usize,
+    throws: i8,
     readable_score: ReadableScore,
-    par: usize,
-    hole: usize,
+    par: i8,
+    hole: u8,
 }
 impl Score {
-    pub(crate) const fn new(throws: usize, par: usize, hole: usize) -> Self {
+    pub(crate) const fn new(throws: i8, par: i8, hole: u8) -> Self {
         Self {
             throws,
             par,
@@ -141,16 +140,20 @@ impl Score {
         }
     }
 
-    pub const fn update_score_colour(&self, player: usize) -> VMixFunction<VMixProperty> {
+    pub const fn par_score(&self) -> i8 {
+        self.throws - self.par
+    }
+
+    pub const fn update_score_colour(&self, player: usize) -> VMixFunction<VMixPlayerInfo> {
         VMixFunction::SetColor {
             color: self.readable_score.to_colour(),
-            input: VMixSelection(VMixProperty::ScoreColor {
-                hole: self.hole,
+            input: VMixSelection(VMixPlayerInfo::ScoreColor {
+                hole: self.hole as usize,
                 player,
             }),
         }
     }
-    pub fn update_score(&self, player: usize) -> [VMixFunction<VMixProperty>; 3] {
+    pub fn update_score(&self, player: usize) -> [VMixFunction<VMixPlayerInfo>; 3] {
         [
             self.update_score_text(player),
             self.show_score(player),
@@ -159,47 +162,46 @@ impl Score {
     }
 
     fn get_score_text(&self) -> String {
-        match self.readable_score {
-            ReadableScore::Par => "E".to_string(),
-            _ => {
-                let score = self.throws as i32 - self.par as i32;
-                String::from(if score > 0 { "+" } else { "" }) + score.to_string().as_str()
-            }
+        let score = self.par_score();
+        match score {
+            (1..) => format!("%2B{}", score), // URL encoding for plus
+            0 => "E".to_string(),
+            _ => score.to_string(), // No need for minus as that's already a part of the score
         }
     }
 
-    fn update_score_text(&self, player: usize) -> VMixFunction<VMixProperty> {
+    fn update_score_text(&self, player: usize) -> VMixFunction<VMixPlayerInfo> {
         VMixFunction::SetText {
             value: self.get_score_text(),
-            input: VMixSelection(VMixProperty::Score {
-                hole: self.hole,
+            input: VMixSelection(VMixPlayerInfo::Score {
+                hole: self.hole as usize, // TODO remove
                 player,
             }),
         }
     }
 
-    fn show_score(&self, player: usize) -> VMixFunction<VMixProperty> {
+    fn show_score(&self, player: usize) -> VMixFunction<VMixPlayerInfo> {
         VMixFunction::SetTextVisibleOn {
-            input: VMixSelection(VMixProperty::Score {
-                hole: self.hole,
+            input: VMixSelection(VMixPlayerInfo::Score {
+                hole: self.hole as usize,
                 player,
             }),
         }
     }
 
-    pub fn play_mov_vmix(&self, player: usize, ob: bool) -> [VMixFunction<VMixProperty>; 3] {
+    pub fn play_mov_vmix(&self, player: usize, ob: bool) -> [VMixFunction<VMixPlayerInfo>; 2] {
         [
             Self::stop_previous_mov(),
-            self.set_input_pan(player),
+            //self.set_input_pan(0),
             self.to_vmix_mov(ob),
         ]
     }
 
-    fn stop_previous_mov() -> VMixFunction<VMixProperty> {
+    fn stop_previous_mov() -> VMixFunction<VMixPlayerInfo> {
         VMixFunction::OverlayInput4Off
     }
 
-    fn set_input_pan(&self, player: usize) -> VMixFunction<VMixProperty> {
+    fn set_input_pan(&self, player: usize) -> VMixFunction<VMixPlayerInfo> {
         let pan = match player + 1 {
             1 => -0.628,
             2 => -0.628 + 0.419,
@@ -210,9 +212,9 @@ impl Score {
         VMixFunction::SetPanX { pan }
     }
 
-    const fn to_vmix_mov(&self, ob: bool) -> VMixFunction<VMixProperty> {
+    const fn to_vmix_mov(&self, ob: bool) -> VMixFunction<VMixPlayerInfo> {
         if ob {
-            VMixFunction::OverlayInput4("00 OB.mov")
+            VMixFunction::OverlayInput4("\"00 OB.mov\"")
         } else {
             VMixFunction::OverlayInput4(self.readable_score.to_mov())
         }

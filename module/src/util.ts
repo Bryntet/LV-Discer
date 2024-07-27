@@ -1,10 +1,10 @@
 import { DropdownChoice, InstanceBase } from "@companion-module/base";
-import { FlipUpVMixCoordinator } from "../../rust_controller/pkg";
+import {ApiClient} from "./coordinator_communication";
 
 
 export interface InstanceBaseExt<TConfig> extends InstanceBase<TConfig> {
 	config: TConfig
-    rust_main: FlipUpVMixCoordinator
+    coordinator: ApiClient
     focused_players: DropdownChoice[]
     foc_player_ind: number
 }

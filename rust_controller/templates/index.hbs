@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Groups and Players by Round</title>
+    <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+    <script src="https://unpkg.com/htmx.org@1.9.12/dist/ext/ws.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 80%;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        .round-selector {
+            margin-bottom: 20px;
+        }
+        #groups-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+        .group {
+            background-color: #fff;
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            flex: 1;
+            min-width: 200px;
+            max-width: 90%;
+        }
+        .group-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+        }
+        .group-header h2 {
+            margin: 0;
+            font-size: 1.2em;
+        }
+        .group-content {
+            display: block;
+            margin-top: 15px;
+        }
+        .player {
+            margin: 10px 0;
+            padding: 5px 0;
+            border-bottom: 1px solid #eee;
+        }
+        .player:last-child {
+            border-bottom: none;
+        }
+        input[type="checkbox"] {
+            margin-right: 10px;
+        }
+        button, select {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover, select:hover {
+            background-color: #45a049;
+        }
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        .toggle-icon {
+            font-size: 1.2em;
+        }
+        .status-indicator {
+            font-size: 0.8em;
+            padding: 2px 6px;
+            border-radius: 4px;
+            margin-left: 10px;
+        }
+        .popup-menu {
+            display: none;
+            position: absolute;
+            background-color: #f9f9f9;
+            min-width: 300px;
+            box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+            z-index: 1;
+            border-radius: 4px;
+            padding: 10px;
+        }
+
+        .popup-menu .player-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            padding: 5px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .popup-menu .player-item:last-child {
+            border-bottom: none;
+        }
+
+        .popup-menu .player-name {
+            flex: 1;
+        }
+
+        .popup-menu .player-actions {
+            display: flex;
+            gap: 5px;
+        }
+
+        .popup-menu button {
+            padding: 5px 10px;
+            font-size: 0.8em;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+
+        .popup-menu button:hover {
+            opacity: 0.8;
+        }
+
+        .throw-plus { background-color: #4CAF50; color: white; }
+        .throw-minus { background-color: #f44336; color: white; }
+        .in-basket { background-color: #2196F3; color: white; }
+        .ob { background-color: #FF9800; color: white; }
+
+        .group {
+            position: relative;
+        }
+        .player-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            padding: 5px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .player-info {
+            flex: 1;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-right: 10px;
+        }
+
+        .throw-count {
+            font-weight: bold;
+            margin-left: 10px;
+        }
+        .status-OPEN { background-color: #4CAF50; color: white; }
+        .status-CLOSED { background-color: #f44336; color: white; }
+        .status-DONE { background-color: #2196F3; color: white; }
+        #selected-players-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            list-style-type: none;
+            padding: 0;
+            max-width: fit-content;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        #selected-players-list li {
+            background-color: #fff;
+            border-radius: 8px;
+            padding: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            text-align: center;
+            width: 20%;
+            max-width: fit-content;
+            margin-left: auto;
+            margin-right: auto;
+
+        }
+        #selected-players-container li {
+
+        }
+        #selected-players-container li.focused {
+            background-color: #007BFF;
+        }
+        .selected-player img {
+            border-radius: 50%;
+            object-fit: cover;
+            width: 50%;
+
+        }
+        .selected-player h3 {
+            margin: 10px 0 0;
+            font-size: 1em;
+            color: #333;
+        }
+
+
+        #selected-players-container li.queued {
+            --base-hue: 39; /* Orange hue */
+            --saturation: 100%;
+            --lightness: calc(50% - (var(--queue-position) - 1) * 15%);
+            background-color: hsl(var(--base-hue), var(--saturation), var(--lightness));
+            transition: background-color 0.3s ease;
+        }
+
+        #selected-players-container li.queued .queue-number {
+            font-weight: bold;
+            margin-left: 10px;
+            color: blue;
+        }
+
+
+
+
+
+
+    </style>
+</head>
+<body>
+<h1>Groups and Players by Round</h1>
+
+
+<div hx-ext="ws" ws-connect="/ws/htmx/players/selected/watch">
+    <div id="selected-players-container">
+        <h2>Selected Players</h2>
+        <ul id="selected-players-list"></ul>
+    </div>
+</div>
+
+
+<div hx-ext="ws" ws-connect="/ws/htmx/players/selected/set">
+
+    <div id="chat_room">
+        <div id="chat_messages"></div>
+    </div>
+    <form id="form" ws-send>
+        <input name="message" >
+        <button type="submit">Send</button>
+    </form>
+</div>
+
+<div id="groups-container">
+    {{#if groups}}
+        {{#each groups as |group groupIndex|}}
+            <div class="group" id="{{group.id}}">
+                <div class="group-header">
+                    <h2>
+                        Group {{group.group_number}}
+                        <span class="status-indicator status-{{group.status}}">{{group.status}}</span>
+                    </h2>
+                    <button class="select-group" hx-post="/htmx/group/{{group.id}}" hx-trigger="click" hx-target="#selected-players-list">
+                        Select Group
+                    </button>
+                    <button class="group-menu-btn">Group Actions</button>
+                </div>
+                <div class="popup-menu">
+                    {{#each group.players as |player|}}
+                        <div class="player-item" data-player-id="{{player.id}}">
+                            <div class="player-info">
+                                <span class="player-name">{{player.name}}</span>
+                                <span class="throw-count">Throws: <span class="count">0</span></span>
+                            </div>
+                            <div class="player-actions">
+                                <button class="throw-plus">+</button>
+                                <button class="throw-minus">-</button>
+                                <button class="in-basket">In</button>
+                                <button class="ob">OB</button>
+                            </div>
+                        </div>
+                    {{/each}}
+                </div>
+                <div class="group-content">
+                    {{#each group.players as |player|}}
+                        <div class="player" data-player-id="{{player.id}}">
+                            <span class="player-name">{{player.name}}</span>
+                            <button class="queue-player" hx-post="/player/{{player.id}}/add-to-queue">Queue player</button>
+                        </div>
+                    {{/each}}
+                </div>
+            </div>
+        {{/each}}
+    {{else}}
+        <p>No groups available for this round.</p>
+    {{/if}}
+</div>
+<div id="result"></div>
+
+<script>
+    document.addEventListener('click', function(e) {
+        if (e.target && e.target.classList.contains('group-menu-btn')) {
+            const group = e.target.closest('.group');
+            const menu = group.querySelector('.popup-menu');
+            menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
+        } else if (!e.target.closest('.popup-menu')) {
+            const menus = document.querySelectorAll('.popup-menu');
+            menus.forEach(menu => menu.style.display = 'none');
+        }
+    });
+
+    document.addEventListener('click', function(e) {
+        if (e.target && e.target.closest('.player-actions')) {
+            const action = e.target.classList[0];
+            const playerItem = e.target.closest('.player-item');
+            const playerName = playerItem.querySelector('.player-name').textContent;
+            const groupNumber = e.target.closest('.group').querySelector('.group-header h2').textContent.trim().split(' ')[1];
+            const playerId = playerItem.dataset.playerId;
+
+            console.log(`Group ${groupNumber} - Player: ${playerName}, Action: ${action}`);
+
+            if (action === 'throw-plus' || action === 'throw-minus') {
+                updateThrowCount(playerId, action === 'throw-plus' ? 1 : -1);
+            }
+
+            // Here you can add code to handle other actions, e.g., send to server
+        }
+    });
+
+    function updateThrowCount(playerId, change) {
+        const playerElements = document.querySelectorAll(`[data-player-id="${playerId}"]`);
+        playerElements.forEach(element => {
+            const countElement = element.querySelector('.throw-count .count');
+            let count = parseInt(countElement.textContent);
+            count += change;
+            count = Math.max(0, count); // Ensure count doesn't go below 0
+            countElement.textContent = count;
+        });
+    }
+</script>
+</body>
+</html>

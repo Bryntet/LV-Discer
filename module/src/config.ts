@@ -1,5 +1,15 @@
 import { DropdownChoice, Regex, SomeCompanionConfigField } from "@companion-module/base";
 
+export interface WebSocketSubscription {
+	url: string;
+	variableName: string;
+	subpath: string;
+	debug_messages?: boolean;
+
+}
+
+
+
 export interface Config {
     vmix_ip: string;
     event_id: string;
