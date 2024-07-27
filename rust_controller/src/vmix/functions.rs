@@ -168,7 +168,7 @@ impl VMixSelectionTrait for VMixPlayerInfo {
     fn get_selection_name(&self) -> String {
         match self {
             VMixPlayerInfo::Score { hole, .. } => {
-                format!("p{}s{}.Text", 1, hole)
+                format!("p{}s{}", 1, hole)
             }
 
             VMixPlayerInfo::ScoreColor { hole, .. } => {
@@ -180,12 +180,12 @@ impl VMixSelectionTrait for VMixPlayerInfo {
             VMixPlayerInfo::PosSquareColor(v1) => {
                 format!("Rectangle{}", v1 + 1)
             }
-            VMixPlayerInfo::Name(ind) => format!("p{}name.Text", ind + 1),
-            VMixPlayerInfo::Surname(ind) => format!("p{}surname.Text", ind + 1),
-            VMixPlayerInfo::TotalScore(ind) => format!("p{}scoretot.Text", ind + 1),
-            VMixPlayerInfo::RoundScore(ind) => format!("p{}scorernd.Text", ind + 1),
-            VMixPlayerInfo::Throw(ind) => format!("p{}throw.Text", ind + 1),
-            VMixPlayerInfo::PlayerPosition(pos) => format!("p{}pos.Text", pos + 1),
+            VMixPlayerInfo::Name(ind) => format!("p{}name", ind + 1),
+            VMixPlayerInfo::Surname(ind) => format!("p{}surname", ind + 1),
+            VMixPlayerInfo::TotalScore(ind) => format!("p{}scoretot", ind + 1),
+            VMixPlayerInfo::RoundScore(ind) => format!("p{}scorernd", ind + 1),
+            VMixPlayerInfo::Throw(ind) => format!("p{}throw", ind + 1),
+            VMixPlayerInfo::PlayerPosition(pos) => format!("p{}pos", pos + 1),
         }
     }
 

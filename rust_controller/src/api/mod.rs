@@ -104,7 +104,7 @@ pub fn launch() -> Rocket<Build> {
 
     rocket::build()
         .configure(rocket::Config {
-            address: IpAddr::V4("10.180.121.3".parse().unwrap()),
+            address: IpAddr::V4("10.170.122.114".parse().unwrap()),
             ..Default::default()
         })
         .manage(CoordinatorLoader(Mutex::new(None)))

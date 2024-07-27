@@ -212,11 +212,11 @@
         #selected-players-container li.queued .queue-number {
             font-weight: bold;
             margin-left: 10px;
-            color: hsl(var(--base-hue), 100%, 20%); /* Darker orange for contrast */
+            color: blue;
         }
 
 
-        
+
 
 
 
@@ -279,7 +279,7 @@
                     {{#each group.players as |player|}}
                         <div class="player" data-player-id="{{player.id}}">
                             <span class="player-name">{{player.name}}</span>
-                            <span class="throw-count">Throws: <span class="count">0</span></span>
+                            <button class="queue-player" hx-post="/player/{{player.id}}/add-to-queue">Queue player</button>
                         </div>
                     {{/each}}
                 </div>
