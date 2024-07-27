@@ -77,7 +77,8 @@ fn get_normal_routes() -> Vec<Route> {
         set_hole_info,
         update_other_leaderboard,
         next_queue,
-        add_to_queue
+        add_to_queue,
+        focused_card
     ]
 }
 

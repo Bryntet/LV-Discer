@@ -1,5 +1,5 @@
 import * as console from "node:console";
-import {InstanceBase} from "@companion-module/base";
+import {DropdownChoice, InstanceBase} from "@companion-module/base";
 import fetch from "node-fetch";
 
 export class ApiClient {
@@ -57,7 +57,7 @@ export class ApiClient {
 
     async chosenPlayers(instance: InstanceBase<any>): Promise<Player[]> {
 
-        const playerObjects = await fetch(`${this.baseUrl}/players/focused`);
+        const playerObjects = await fetch(`${this.baseUrl}/players/card`);
         let players: any = await playerObjects.json();
         let array: Player[] = [];
         for (const player of players) {
@@ -66,6 +66,8 @@ export class ApiClient {
         instance.log("info", array.toString());
         return array;
     }
+
+
 
 
     async focusedPlayer(): Promise<Player> {
@@ -140,5 +142,9 @@ export class Player {
     static fromJSON(jsonObject: any): Player {
 
         return new Player(jsonObject["name"], jsonObject["focused"], jsonObject["image_url"] || null, jsonObject["holes_finished"], jsonObject["index"]);
+    }
+
+    public toDropdown(index: number): DropdownChoice {
+        return {"id": index,"label":this.name}
     }
 }

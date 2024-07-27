@@ -90,8 +90,9 @@ pub async fn add_to_queue(coordinator: Coordinator, channel: &GeneralChannel<Pla
 
 #[openapi(tag = "Queue")]
 #[post("/players/queue/next")]
-pub async fn next_queue(coordinator: Coordinator, channel: &GeneralChannel<PlayerManagerUpdate>) {
-    coordinator.lock().await.next_queued(channel)
+pub async fn next_queue(coordinator: Coordinator, channel: &GeneralChannel<PlayerManagerUpdate>) -> Result<(), Error> {
+    coordinator.lock().await.next_queued(channel)?;
+    Ok(())
 }
 
 

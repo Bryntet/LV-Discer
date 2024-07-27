@@ -92,14 +92,22 @@ impl FlipUpVMixCoordinator {
         channel.send(self);
     }
     
-    pub fn next_queued(&mut self, channel: &GeneralChannel<PlayerManagerUpdate>) {
+    pub fn next_queued(&mut self, channel: &GeneralChannel<PlayerManagerUpdate>) -> Result<(), Error> {
         self.player_manager.next_queued();
+        self.queue_add(&self.focused_player().set_all_values()?);
         channel.send(self);
+        Ok(())
     }
     
     pub fn dto_players(&self) -> Vec<dto::Player> {
-        self.player_manager.dto_players(self.available_players())
+        self.player_manager.dto_players(self.available_players(),false)
     }
+    
+    pub fn dto_card(&self) -> Vec<dto::Player> {
+        self.player_manager.dto_players(self.available_players(),true)
+    }
+    
+    
     
     pub fn round_id(&self) -> &str {
         self.handler.round_id()

@@ -78,3 +78,11 @@ pub async fn focused_player(coordinator: Coordinator) -> Json<dto::Player> {
     let coordinator = coordinator.lock().await;
     dto::Player::from(coordinator.focused_player()).into()
 }
+
+
+#[openapi(tag = "Player")]
+#[get("/players/card")]
+pub async fn focused_card(coordinator: Coordinator) -> Json<Vec<dto::Player>> {
+    let coordinator = coordinator.lock().await;
+    coordinator.dto_card().into()
+}

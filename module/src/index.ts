@@ -9,7 +9,7 @@ import { ApiClient } from './coordinator_communication';
 
 export class LevandeVideoInstance extends InstanceBase<Config> {
 	public config: Config = {
-		coordinator_ip: '10.170.120.134',
+		coordinator_ip: '10.170.122.114',
 	};
 	public coordinator = new ApiClient(`http://${this.config.coordinator_ip}:8000`);
 	private webSocketSubscriptions: WebSocketSubscription[] = [{
@@ -28,7 +28,7 @@ export class LevandeVideoInstance extends InstanceBase<Config> {
 	private div_names: DropdownChoice[] = [{ id: "none", label: 'None' }];
 	public foc_player_ind: number = 0;
 	public foc_player: string = "z"
-	public focused_players: DropdownChoice[] = [{ id: 'none', label: 'None' }];
+	public focused_players: DropdownChoice[] = [{ id: 'none', label: 'None' },{id:0,label:"1"},{id:1,label:"2"},{id:2,label:"3"},{id:3,label:"4"}];
 	public hole: number = 0;
 
 	constructor(internal: unknown) {
@@ -45,7 +45,6 @@ export class LevandeVideoInstance extends InstanceBase<Config> {
 		console.log('Rust module initialized')
 		this.config = config
 
-		await this.refreshInternalFocusedPlayers();
 
 		this.setVariableDefinitions([
 			{
@@ -94,9 +93,7 @@ export class LevandeVideoInstance extends InstanceBase<Config> {
 		if (typeof this.div_names === 'undefined') {
 			this.div_names = []
 		}
-		//this.saveConfig(config)
 
-		
 		this.foc_player_ind = 0;
 		this.setVariableValues(await this.varValues())
 
@@ -121,7 +118,7 @@ export class LevandeVideoInstance extends InstanceBase<Config> {
 
 	}
 
-	async varValues(): Promise<CompanionVariableValues> {
+	public async varValues(): Promise<CompanionVariableValues> {
 		let focusedPlayers = await this.coordinator.chosenPlayers(this);
 		this.log("info", "HELLO");
 		this.log("info", focusedPlayers.toString())

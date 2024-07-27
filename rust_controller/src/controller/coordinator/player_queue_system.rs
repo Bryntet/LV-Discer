@@ -127,13 +127,11 @@ impl PlayerManager {
     }
 
     fn set_focused(&mut self, id: &str) {
-
         self.managed_players.iter().enumerate().for_each(|(i,player)|{
             if player.player_id == id {
                 self.focused = i;
             }
         })
-
     }
 
     pub fn set_focused_by_card_index(&mut self, index: usize) -> Result<(), Error> {
@@ -158,9 +156,13 @@ impl PlayerManager {
         out_players
     }
 
-    pub fn dto_players(&self, players: Vec<&Player>) -> Vec<dto::Player> {
+    pub fn dto_players(&self, players: Vec<&Player>, card_only: bool) -> Vec<dto::Player> {
         let mut dto_players = vec![];
-        for (i,player) in self.managed_players.iter().enumerate() {
+        for (i,player) in self.managed_players.iter().enumerate().filter(|(_,player)|if card_only {
+            player.inside_card
+        } else {
+            true
+        }) {
             if let Some(normal_player) = players.iter().find(|normal_player|player.player_id==normal_player.player_id) {
                 let mut dto = dto::Player::from(*normal_player);
                 if self.focused == i {
