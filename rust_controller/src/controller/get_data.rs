@@ -213,7 +213,7 @@ impl PlayerRound {
         }
     }
     pub fn current_result(&self, hole: u8) -> Option<&HoleResult> {
-        self.results.iter().find(|result| result.hole == hole + 1)
+        self.results.iter().find(|result| result.hole == if hole+1 > 18 {18} else {hole+1})
     }
 
     // Gets score up until hole
@@ -231,7 +231,6 @@ impl PlayerRound {
     pub fn get_hole_info(&self, hole: u8) -> Vec<VMixFunction<VMixHoleInfo>> {
         let mut r_vec: Vec<VMixFunction<VMixHoleInfo>> = vec![];
         let hole = self.current_result(hole).unwrap();
-        dbg!(hole.hole,&hole.tjing_result);
 
         r_vec.push(VMixFunction::SetText {
             value: "".to_string(),
@@ -451,6 +450,7 @@ impl Player {
         }
         return_vec.push(self.set_tot_score());
         if self.hole_shown_up_until != 0 {
+
             let funcs: Vec<_> = (0..self.hole_shown_up_until)
                 .par_bridge()
                 .flat_map(|hole| self.get_score(hole).unwrap().update_score(1))
@@ -800,7 +800,7 @@ impl PlayerContainer {
         }
     }
 
-    
+
 
     pub fn players(&self) -> &Vec<Player> {
         self.rounds_with_players.get(self.round).unwrap()

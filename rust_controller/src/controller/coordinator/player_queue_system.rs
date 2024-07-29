@@ -63,6 +63,11 @@ impl PlayerManager {
             .into_iter()
             .find(|player| player.player_id == queue.player_id)
     }
+    
+    pub fn player_mut<'a>(&'a self, players: Vec<&'a mut Player>) -> Option<&'a mut Player> {
+        let queue = &self.managed_players[self.focused];
+        players.into_iter().find(|player|player.player_id==queue.player_id)
+    }
 
     fn card(&self) -> Vec<&PlayerWithQueue> {
         self.managed_players.iter().filter(|queue|queue.inside_card).collect_vec()

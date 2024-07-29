@@ -141,9 +141,8 @@ impl FlipUpVMixCoordinator {
     }
 
     pub fn focused_player_mut(&mut self) -> &mut Player {
-        let index = self.focused_player_index;
-        let id = self.player_manager.focused_id(index).to_owned().unwrap();
-        self.handler.find_player_mut(id).unwrap()
+        let id = self.player_manager.player(self.available_players()).unwrap().player_id.to_owned();
+        self.handler.find_player_mut(&id).unwrap()
     }
 
     pub fn groups(&self) -> Vec<&dto::Group> {
