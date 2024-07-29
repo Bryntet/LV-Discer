@@ -208,11 +208,12 @@ impl PlayerRound {
         for result in &mut self.results {
             if let Some(tjing_result) = results.iter().find(|hole|hole.hole.number as u8 == result.hole) {
                 result.tjing_result = Some(tjing_result.to_owned());
+                result.finished = true;
             }
         }
     }
     pub fn current_result(&self, hole: u8) -> Option<&HoleResult> {
-        self.results.iter().find(|result| result.hole == hole)
+        self.results.iter().find(|result| result.hole == hole + 1)
     }
 
     // Gets score up until hole
@@ -230,6 +231,7 @@ impl PlayerRound {
     pub fn get_hole_info(&self, hole: u8) -> Vec<VMixFunction<VMixHoleInfo>> {
         let mut r_vec: Vec<VMixFunction<VMixHoleInfo>> = vec![];
         let hole = self.current_result(hole).unwrap();
+        dbg!(hole.hole,&hole.tjing_result);
 
         r_vec.push(VMixFunction::SetText {
             value: "".to_string(),
@@ -498,7 +500,7 @@ impl Player {
         let score = self.get_current_shown_score()?.update_score(1);
 
         self.round_score += s.par_score() as isize;
-        self.total_score += dbg!(s.par_score()) as isize;
+        self.total_score += s.par_score() as isize;
 
         return_vec.extend(score);
 
@@ -700,10 +702,6 @@ impl Player {
         }
     }
 
-    pub fn set_round(&mut self, round_ind: usize) -> Vec<VMixFunction<VMixPlayerInfo>> {
-        self.round_ind = round_ind;
-        self.reset_scores()
-    }
 
     fn set_lb_name(&self) -> VMixFunction<LeaderBoardProperty> {
         VMixFunction::SetText {
@@ -802,14 +800,7 @@ impl PlayerContainer {
         }
     }
 
-    pub fn set_round(&mut self, round: usize) -> Result<(), &'static str> {
-        if self.rounds_with_players.len() > round {
-            Err("That round does not exist")
-        } else {
-            self.round = round;
-            Ok(())
-        }
-    }
+    
 
     pub fn players(&self) -> &Vec<Player> {
         self.rounds_with_players.get(self.round).unwrap()
@@ -992,9 +983,8 @@ impl RustHandler {
                     .pools
                     .into_iter()
                     .flat_map(|pool| pool.layout_version.holes)
-                    .dedup_by(|a, b| a.number == b.number)
                     .collect_vec();
-                match Holes::try_from(holes) {
+                match Holes::from_vec_hole(holes,) {
                     Err(e) => return Err(e),
                     Ok(holes) => rounds_holes.push(holes),
                 }

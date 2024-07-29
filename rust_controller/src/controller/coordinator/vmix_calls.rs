@@ -10,7 +10,7 @@ impl FlipUpVMixCoordinator {
                 &self
                     .focused_player()
                     .results
-                    .get_hole_info(self.current_through),
+                    .get_hole_info(self.current_hole() as u8)
             );
         }
     }

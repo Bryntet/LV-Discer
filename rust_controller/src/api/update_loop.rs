@@ -76,7 +76,7 @@ impl TjingResultMap {
     }
 
     pub fn update_mut_player(&self, player: &mut controller::Player) {
-        let hash_player_result = self.results.get(&player.player_id).into_iter().flat_map(|list|list.into_iter()).flatten().cloned().collect_vec();
+        let hash_player_result = self.results.get(&player.player_id).into_iter().flat_map(|list|list.iter()).flatten().cloned().collect_vec();
         player.results.update_tjing(&hash_player_result);
     }
 }

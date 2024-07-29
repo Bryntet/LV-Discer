@@ -1,4 +1,5 @@
 use std::sync::Arc;
+use crate::vmix::functions::VMixFunction::OverlayInput4Off;
 
 pub trait VMixSelectionTrait {
     fn get_selection(&self) -> String {
@@ -62,13 +63,13 @@ impl<InputEnum: VMixSelectionTrait> VMixFunction<InputEnum> {
     fn get_input(&self) -> Option<String> {
         use VMixFunction::*;
         match self {
-            SetText { input, .. } => Some(input.get_selection()),
-            SetColor { input, .. } => Some(input.get_selection()),
+            SetText { input, .. } |
+            SetColor { input, .. } |
+            SetImage { input, .. } |
+            SetTextVisibleOn { input } |
+            SetTextVisibleOff { input } => Some(input.get_selection()),
             OverlayInput4(mov) => Some(format!("Input={}", mov)),
             OverlayInput4Off | SetPanX { .. } => None,
-            SetImage { input, .. } => Some(input.get_selection()),
-            SetTextVisibleOn { input } => Some(input.get_selection()),
-            SetTextVisibleOff { input } => Some(input.get_selection()),
         }
     }
 
@@ -94,7 +95,23 @@ impl<InputEnum: VMixSelectionTrait> VMixFunction<InputEnum> {
         }
         .map(|value| "Value=".to_string() + &value)
     }
+
+    pub fn get_input_if_exists(&mut self) -> Option<&mut InputEnum> {
+        use VMixFunction::*;
+        match self {
+            SetText { input, .. } |
+            SetColor { input, .. } |
+            SetImage { input, .. } |
+            SetTextVisibleOn { input } |
+            SetTextVisibleOff { input } => Some(input),
+            OverlayInput4(_) |
+            OverlayInput4Off | SetPanX { .. } => None,
+        }
+    }
+
+    
 }
+
 
 impl<InputEnum: VMixSelectionTrait> VMixFunction<InputEnum> {
     const fn get_start_cmd(&self) -> &'static str {

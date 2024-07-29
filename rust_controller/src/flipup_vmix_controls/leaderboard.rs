@@ -314,6 +314,7 @@ impl LeaderboardPlayer {
         ]
     }
 }
+
 #[derive(Debug)]
 enum LeaderboardMovement {
     Up(usize),

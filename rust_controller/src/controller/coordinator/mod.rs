@@ -218,7 +218,7 @@ impl FlipUpVMixCoordinator {
     pub fn set_leaderboard(&mut self, division: &Division, lb_start_ind: Option<usize>) {
         self.queue_add(&FlipUpVMixCoordinator::clear_lb(10));
         self.set_current_through();
-        if self.current_hole() <= 19 {
+        if self.current_hole() <= 18 {
             let current_players =
                 self.available_players().into_iter().filter(|player|player.division.id==division.id).cloned().collect_vec();
             let previous = self.previous_rounds_players().into_iter().filter(|player|player.division.id==division.id).cloned().collect_vec();
@@ -247,12 +247,7 @@ impl FlipUpVMixCoordinator {
         Ok(())
     }
 
-    pub fn set_round(&mut self, idx: usize) {
-        self.round_ind = idx;
-        self.current_through = 0;
-        let actions = self.focused_player_mut().set_round(idx);
-        self.queue_add(&actions);
-    }
+  
 
     pub async fn fetch_event(&mut self) {}
 
@@ -307,7 +302,6 @@ impl FlipUpVMixCoordinator {
         player.ind = 0;
         let mut actions = vec![];
         actions.extend(player.set_name());
-        actions.extend(player.set_round(round));
         self.queue_add(&actions)
     }
 

@@ -61,7 +61,6 @@ fn get_normal_routes() -> Vec<Route> {
         set_focus,
         load,
         set_group,
-        set_round,
         play_animation,
         clear_all,
         get_groups,

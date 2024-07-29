@@ -32,12 +32,7 @@ pub async fn load(loader: &State<CoordinatorLoader>, builder: Json<CoordinatorBu
     *loader.0.lock().await = Some(coordinator.into());
 }
 
-#[openapi(tag = "Config")]
-#[post("/round/<round_number>")]
-pub async fn set_round(coordinator: Coordinator, round_number: usize) {
-    let mut coordinator = coordinator.lock().await;
-    coordinator.set_round(round_number);
-}
+
 
 #[openapi(tag = "Config")]
 #[post("/group/<group_id>")]

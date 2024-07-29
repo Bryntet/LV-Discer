@@ -131,10 +131,14 @@ pub mod layout {
 
     pub mod hole {
         use std::sync::Arc;
+        use itertools::Itertools;
+        use crate::api::Error;
+        use super::super::Division;
 
         #[derive(Debug, Clone)]
         pub struct Holes {
             holes: Vec<Arc<Hole>>,
+            division: Arc<Division>
         }
         impl Holes {
             pub fn find_hole(&self, hole_number: u8) -> Option<Arc<Hole>> {
@@ -142,6 +146,13 @@ pub mod layout {
                     .iter()
                     .find(|h| h.hole == hole_number)
                     .map(Arc::clone)
+            }
+            
+            pub fn from_vec_hole(holes: Vec<super::Hole>) -> Result<Self, Error> {
+                let mut holes: Vec<Hole> = holes.into_iter().map(|hole|Hole::try_from(hole)).try_collect()?;
+                holes.sort_by_key(|hole|hole.hole);
+                let holes = holes.into_iter().map(Arc::new).collect();
+                Ok(Self{holes, division: Division::default().into()})
             }
         }
 
@@ -177,29 +188,9 @@ pub mod layout {
             }
         }
 
-        impl TryFrom<Vec<super::Hole>> for Holes {
-            type Error = crate::api::Error;
-            fn try_from(value: Vec<super::Hole>) -> Result<Self, Self::Error> {
-                let mut holes = vec![];
-                for hole in value {
-                    holes.push(Arc::new(Hole::try_from(hole)?))
-                }
-                let holes = Holes { holes };
-                if holes.holes.len() < 18 {
-                    return Err(Self::Error::NotEnoughHoles {
-                        holes: holes.holes.len(),
-                    });
-                }
-                Ok(holes)
-            }
-        }
+        
 
-        impl From<Vec<Hole>> for Holes {
-            fn from(value: Vec<Hole>) -> Self {
-                let holes = value.into_iter().map(Arc::new).collect();
-                Holes { holes }
-            }
-        }
+        
     }
 
     pub use hole::*;
