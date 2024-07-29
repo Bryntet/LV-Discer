@@ -400,7 +400,22 @@ mod prop {
         }
         const INPUT_ID: &'static str = "38ded319-d270-41ec-b161-130db4b19901";
     }
+    
+    
+    struct LeaderboardTop10(LeaderBoardProperty);
+    impl VMixSelectionTrait for LeaderboardTop10 {
+        fn get_selection_name(&self) -> String {
+            self.0.get_selection_name()
+        }
+        fn data_extension(&self) -> &'static str {
+            self.0.data_extension()
+        }
+        fn value(&self) -> Option<String> {
+            self.0.value()
+        }
 
+        const INPUT_ID: &'static str = "1900db1a-4f83-4111-848d-d9a87474f56c";
+    }
 }
 use crate::flipup_vmix_controls::Image;
 pub use prop::LeaderBoardProperty;
