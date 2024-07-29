@@ -99,8 +99,19 @@ impl FlipUpVMixCoordinator {
     pub fn add_to_queue(
         &mut self,
         player_id: String,
+        hole: Option<u8>,
+        throw: Option<u8>,
         channel: &GeneralChannel<PlayerManagerUpdate>,
     ) {
+        if let Some(hole) = hole {
+            if let Some(player) = self.find_player_mut(&player_id) {
+                player.hole_shown_up_until = hole as usize;
+                if let Some(throw) = throw {
+                    player.throws = throw;
+                }
+            }
+            
+        }
         self.player_manager.add_to_queue(player_id);
         channel.send(self);
     }

@@ -215,7 +215,6 @@ impl VMixSelectionTrait for VMixPlayerInfo {
     const INPUT_ID: &'static str = "8db7c455-e05c-4e65-821b-048cd7057cb1";
 }
 
-pub struct PlayerInfoCurrent()
 #[derive(Clone, Debug)]
 pub enum VMixHoleInfo {
     Hole(u8),

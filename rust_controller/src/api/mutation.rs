@@ -1,7 +1,8 @@
+use rocket::form::Form;
 use crate::api::guard::CoordinatorLoader;
 use crate::api::{Coordinator, Error, GeneralChannel, PlayerManagerUpdate};
 use crate::dto;
-use crate::dto::CoordinatorBuilder;
+use crate::dto::{CoordinatorBuilder, HoleSetting};
 use rocket::response::content::RawHtml;
 use rocket::serde::json::Json;
 use rocket::State;
@@ -75,16 +76,18 @@ pub async fn set_score_ready(coordinator: Coordinator, player_id: &str) -> Resul
 }
 
 #[openapi(tag = "Queue")]
-#[post("/player/<player_id>/add-to-queue")]
+#[post("/player/<player_id>/add-to-queue", data="<hole_setting>")]
 pub async fn add_to_queue(
     coordinator: Coordinator,
     channel: &GeneralChannel<PlayerManagerUpdate>,
     player_id: &str,
+    hole_setting: Form<dto::HoleSetting>,
 ) -> Result<(), Error> {
+    let (hole, throws) = dbg!((hole_setting.hole, hole_setting.throws));
     coordinator
         .lock()
         .await
-        .add_to_queue(player_id.to_string(), channel);
+        .add_to_queue(player_id.to_string(), hole,throws,channel);
     Ok(())
 }
 

@@ -3,7 +3,7 @@ use crate::{controller, dto};
 use itertools::Itertools;
 use rocket_okapi::okapi::schemars;
 use schemars::JsonSchema;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Debug, JsonSchema, Clone)]
 pub struct Player {
@@ -14,6 +14,11 @@ pub struct Player {
     pub holes_finished: usize,
     pub index: usize,
     pub queue: Option<usize>,
+}
+#[derive(Debug, JsonSchema,Clone,FromForm,Deserialize)]
+pub struct HoleSetting {
+    pub hole: Option<u8>,
+    pub throws: Option<u8>
 }
 
 impl Player {
