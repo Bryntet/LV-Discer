@@ -9,7 +9,7 @@ import { ApiClient } from './coordinator_communication';
 
 export class LevandeVideoInstance extends InstanceBase<Config> {
 	public config: Config = {
-		coordinator_ip: '10.170.122.114',
+		coordinator_ip: '10.170.120.134',
 	};
 	public coordinator = new ApiClient(`http://${this.config.coordinator_ip}:8000`);
 	private webSocketSubscriptions: WebSocketSubscription[] = [{
