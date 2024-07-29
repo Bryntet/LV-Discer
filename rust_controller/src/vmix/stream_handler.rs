@@ -22,7 +22,7 @@ pub struct VMixQueue {
     functions_sender: tokio::sync::broadcast::Sender<String>,
 }
 
-use crate::vmix::functions::{VMixFunction, VMixSelectionTrait};
+use crate::vmix::functions::{VMixInterfacer, VMixSelectionTrait};
 
 impl VMixQueue {
     pub fn new(ip: String) -> Result<Self, Error> {
@@ -85,8 +85,9 @@ impl VMixQueue {
         }
     }
 
-    pub fn add<T: VMixSelectionTrait>(&self, functions: &[VMixFunction<T>]) {
+    pub fn add<T: VMixSelectionTrait>(&self, functions: &[VMixInterfacer<T>]) {
         for func in functions {
+            
             match self.functions_sender.send(func.to_cmd()) {
                 Ok(_) => (),
                 Err(e) => {
@@ -125,7 +126,7 @@ mod test {
             .flat_map(|player| {
                 (1..=9).flat_map(move |hole| random_score_type(hole).update_score(player))
             })
-            .collect::<Vec<VMixFunction<_>>>();
+            .collect::<Vec<VMixInterfacer<_>>>();
         q.add(&funcs);
 
         /*loop {
@@ -146,15 +147,15 @@ mod test {
         for player in 0..=3 {
             for hole in 1..=9 {
                 q.add(&[
-                    VMixFunction::SetText {
+                    VMixInterfacer::SetText {
                         input: VMixProperty::Score { player, hole }.into(),
                         value: "".to_string(),
                     },
-                    VMixFunction::SetColor {
+                    VMixInterfacer::SetColor {
                         input: VMixProperty::ScoreColor { player, hole }.into(),
                         color: DEFAULT_FOREGROUND_COL,
                     },
-                    VMixFunction::SetTextVisibleOff {
+                    VMixInterfacer::SetTextVisibleOff {
                         input: VMixProperty::Score { player, hole }.into(),
                     },
                 ]);

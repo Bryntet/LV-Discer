@@ -14,7 +14,7 @@ use get_data::Player;
 use itertools::Itertools;
 use rocket::State;
 use std::sync::Arc;
-use vmix::functions::VMixFunction;
+use vmix::functions::VMixInterfacer;
 use vmix::functions::{VMixPlayerInfo, VMixSelectionTrait};
 use vmix::VMixQueue;
 use player_queue_system::PlayerManager;
@@ -153,10 +153,10 @@ impl FlipUpVMixCoordinator {
     pub fn current_players(&self) -> Vec<&Player> {
         self.player_manager.players(self.available_players())
     }
-    fn clear_lb(idx: usize) -> Vec<VMixFunction<LeaderBoardProperty>> {
+    fn clear_lb(idx: usize) -> Vec<VMixInterfacer<LeaderBoardProperty>> {
         let mut new_player = get_data::Player::null_player();
 
-        let mut r_v: Vec<VMixFunction<LeaderBoardProperty>> = vec![];
+        let mut r_v: Vec<VMixInterfacer<LeaderBoardProperty>> = vec![];
         for i in 0..=idx {
             new_player.position = i;
             r_v.extend(new_player.set_lb());
@@ -164,7 +164,7 @@ impl FlipUpVMixCoordinator {
         r_v
     }
 
-    fn queue_add<T: VMixSelectionTrait>(&self, funcs: &[VMixFunction<T>]) {
+    fn queue_add<T: VMixSelectionTrait>(&self, funcs: &[VMixInterfacer<T>]) {
         self.vmix_queue.add(funcs)
     }
 
@@ -172,16 +172,16 @@ impl FlipUpVMixCoordinator {
         self.current_through = self.focused_player().hole_shown_up_until as u8
     }
 
-    fn make_checkin_text(&self) -> VMixFunction<LeaderBoardProperty> {
+    fn make_checkin_text(&self) -> VMixInterfacer<LeaderBoardProperty> {
         let value = self.get_div_names()[self.selected_div_index]
             .to_string()
             .to_uppercase()
             + " "
             + "LEADERBOARD CHECK-IN";
-        VMixFunction::SetText {
+        VMixInterfacer::set_text(
             value,
-            input: LeaderBoardProperty::CheckinText.into(),
-        }
+            LeaderBoardProperty::CheckinText,
+        )
     }
 
     pub fn toggle_pos(&mut self) {
@@ -316,7 +316,7 @@ impl FlipUpVMixCoordinator {
     }
 
     pub fn reset_scores(&mut self) {
-        let return_vec: Vec<VMixFunction<VMixPlayerInfo>> = vec![];
+        let return_vec: Vec<VMixInterfacer<VMixPlayerInfo>> = vec![];
         let actions = self.focused_player_mut().reset_scores();
         self.queue_add(&actions);
         self.queue_add(&FlipUpVMixCoordinator::clear_lb(10));

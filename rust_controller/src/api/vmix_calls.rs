@@ -1,5 +1,5 @@
 use crate::api::{Coordinator, Error, GeneralChannel, HoleUpdate};
-use crate::vmix::functions::{VMixFunction, VMixPlayerInfo};
+use crate::vmix::functions::{VMixFunction, VMixInterfacer, VMixPlayerInfo};
 use rocket::State;
 use rocket_okapi::openapi;
 
@@ -11,41 +11,7 @@ pub async fn play_animation(co: Coordinator) -> Result<(), Error> {
     co.lock().await.play_animation()
 }
 
-/// # Reset state
-/// Reset the state to the default configuration.
-// TODO: add leaderboard clearing
-// TODO: add hole information clearing
-#[openapi(tag = "VMix")]
-#[post("/vmix/clear/all")]
-pub async fn clear_all(co: Coordinator) {
-    let queue = co.lock().await.vmix_queue.clone();
-    let mut actions = vec![];
-    for player in 0..=3 {
-        for hole in 1..=9 {
-            actions.extend([
-                VMixFunction::SetText {
-                    value: "".to_string(),
-                    input: VMixPlayerInfo::Score { hole, player },
-                },
-                VMixFunction::SetColor {
-                    color: "3F334D00",
-                    input: VMixPlayerInfo::ScoreColor { hole, player },
-                },
-            ])
-        }
-        actions.extend([
-            VMixFunction::SetText {
-                value: "0".to_string(),
-                input: VMixPlayerInfo::TotalScore(player),
-            },
-            VMixFunction::SetText {
-                value: "0".to_string(),
-                input: VMixPlayerInfo::RoundScore(player),
-            },
-        ])
-    }
-    queue.add(&actions)
-}
+
 
 /// # Update leaderboard
 /// Set the leaderboard to the current state

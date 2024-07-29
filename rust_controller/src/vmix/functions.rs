@@ -1,4 +1,5 @@
 use std::sync::Arc;
+use crate::flipup_vmix_controls::LeaderBoardProperty;
 use crate::vmix::functions::VMixFunction::OverlayInput4Off;
 
 pub trait VMixSelectionTrait {
@@ -28,134 +29,106 @@ pub trait VMixSelectionTrait {
 }
 
 
+pub struct VMixInterfacer<InputEnum: VMixSelectionTrait>{
+    value: Option<String>,
+    input: Option<InputEnum>,
+    function: VMixFunction,
+}
 
+
+// Functions initialisers
+impl<InputEnum: VMixSelectionTrait> VMixInterfacer<InputEnum> {
+    pub fn set_text(value: String,input:InputEnum) -> Self {
+        Self {
+            value: Some(value),
+            input: Some(input),
+            function: VMixFunction::SetText
+        }
+    }
+    pub fn set_color(value: &str, input: InputEnum) -> Self {
+        Self {
+            value: Some(format!("#{}",value)),
+            input: Some(input),
+            function: VMixFunction::SetColor
+        }
+    }
+    
+    pub fn set_text_visible_on(input: InputEnum) -> Self{
+        Self {value: None,input: Some(input),function: VMixFunction::SetTextVisibleOn}
+    }
+    pub fn set_text_visible_off(input: InputEnum) -> Self{
+        Self {value: None,input: Some(input),function: VMixFunction::SetTextVisibleOff}
+    }
+    
+    pub fn set_image(value: String, input: InputEnum) -> Self {
+        Self {value: Some(value),input: Some(input),function: VMixFunction::SetImage}
+    }
+    
+    pub fn overlay_input_4_off() -> Self {
+        Self {value: None, input: None, function: VMixFunction::OverlayInput4Off}
+    }
+    
+    pub fn overlay_input_4(value: &'static str) -> Self {
+        Self {value: Some(value.to_string()), input: None, function: VMixFunction::OverlayInput4}
+    }
+}
 
 #[derive(Clone, Debug)]
-pub enum VMixFunction<InputEnum: VMixSelectionTrait> {
-    SetText {
-        value: String,
-        input: InputEnum,
-    },
-    SetPanX {
-        pan: f64,
-    },
-    SetColor {
-        color: &'static str,
-        input:InputEnum,
-    },
-    SetTextVisibleOn {
-        input: InputEnum,
-    },
-    SetTextVisibleOff {
-        input: InputEnum,
-    },
-    SetImage {
-        value: String,
-        input: InputEnum,
-    },
+pub enum VMixFunction {
+    SetText,
+    SetColor,
+    SetTextVisibleOn,
+    SetTextVisibleOff,
+    SetImage,
     OverlayInput4Off,
-    OverlayInput4(&'static str),
+    OverlayInput4,
 }
 
 
-
-impl<InputEnum: VMixSelectionTrait> VMixFunction<InputEnum> {
+impl<InputEnum: VMixSelectionTrait> VMixInterfacer<InputEnum> {
     fn get_input(&self) -> Option<String> {
-        use VMixFunction::*;
-        match self {
-            SetText { input, .. } |
-            SetColor { input, .. } |
-            SetImage { input, .. } |
-            SetTextVisibleOn { input } |
-            SetTextVisibleOff { input } => Some(input.get_selection()),
-            OverlayInput4(mov) => Some(format!("Input={}", mov)),
-            OverlayInput4Off | SetPanX { .. } => None,
+        match self.function {
+            VMixFunction::OverlayInput4 => Some(format!("Input={}", self.value.as_ref().unwrap())),
+            VMixFunction::OverlayInput4Off => None,
+            _ => self.input.as_ref().map(|i| i.get_selection().to_owned())
         }
     }
-
-    fn get_value(&self) -> Option<String> {
-        match self {
-            Self::SetText { value, .. } => {
-                if !value.is_empty() {
-                    Some(value.clone())
-                } else {
-                    None
-                }
-            }
-            #[cfg(not(target_arch = "wasm32"))]
-            Self::SetColor { color, .. } => Some("#".to_string() + color),
-            #[cfg(target_arch = "wasm32")]
-            Self::SetColor { color, .. } => Some("%23".to_string() + color),
-            Self::OverlayInput4Off => None,
-            Self::OverlayInput4(_) => None,
-            Self::SetImage { value, .. } => Some(value.to_string()),
-            Self::SetPanX { pan: value, .. } => Some(value.to_string()),
-            Self::SetTextVisibleOn { .. } => None,
-            Self::SetTextVisibleOff { .. } => None,
-        }
-        .map(|value| "Value=".to_string() + &value)
-    }
-
-    pub fn get_input_if_exists(&mut self) -> Option<&mut InputEnum> {
-        use VMixFunction::*;
-        match self {
-            SetText { input, .. } |
-            SetColor { input, .. } |
-            SetImage { input, .. } |
-            SetTextVisibleOn { input } |
-            SetTextVisibleOff { input } => Some(input),
-            OverlayInput4(_) |
-            OverlayInput4Off | SetPanX { .. } => None,
-        }
-    }
-
     
-}
-
-
-impl<InputEnum: VMixSelectionTrait> VMixFunction<InputEnum> {
-    const fn get_start_cmd(&self) -> &'static str {
-        match self {
-            VMixFunction::SetText { .. } => "SetText",
-            VMixFunction::SetColor { .. } => "SetColor",
-            VMixFunction::SetPanX { .. } => "SetPanX",
-            VMixFunction::SetTextVisibleOn { .. } => "SetTextVisibleOn",
-            VMixFunction::SetTextVisibleOff { .. } => "SetTextVisibleOff",
-            VMixFunction::SetImage { .. } => "SetImage",
-            VMixFunction::OverlayInput4Off => "OverlayInput4Off",
-            VMixFunction::OverlayInput4(_) => "OverlayInput4",
-        }
+    fn get_value(&self) -> Option<&String> {
+        self.value.as_ref()
     }
+
 
     pub fn to_cmd(&self) -> String {
-        let cmd = self.get_start_cmd();
+        let cmd = self.function.get_start_cmd();
         let input = self.get_input();
         let value = self.get_value();
 
-        // wasm32 uses http api
-        #[cfg(target_arch = "wasm32")]
-        {
-            "Function=".to_string()
-                + &(match (input, value) {
-                    (Some(input), Some(value)) => format!("{cmd}&{input}&{value}"),
-                    (Some(input), None) => format!("{cmd}&{}", input),
-                    (None, Some(value)) => format!("{cmd}&{value}"),
-                    (None, None) => cmd.to_string(),
-                })
+        "FUNCTION ".to_string()
+            + &match (input,value) {
+            (Some(input),Some(value)) => format!("{cmd} {input}&Value={value}",),
+            (Some(input),None) => format!("{cmd} {input}"),
+            (None,Some(value)) => format!("{cmd} Value={value}"),
+            (None,None) => cmd.to_string()
         }
-        #[cfg(not(target_arch = "wasm32"))]
-        {
-            "FUNCTION ".to_string()
-                + &(match (input, value) {
-                    (Some(input), Some(value)) => format!("{cmd} {input}&{value}",),
-                    (Some(input), None) => format!("{cmd} {input}"),
-                    (None, Some(value)) => format!("{cmd} {value}",),
-                    (None, None) => cmd.to_string(),
-                })
-                + "\r\n"
+            + "\r\n"
+    }
+}
+impl VMixFunction {
+    const fn get_start_cmd(&self) -> &'static str {
+        match self {
+            VMixFunction::SetText => "SetText",
+            VMixFunction::SetColor => "SetColor",
+            VMixFunction::SetTextVisibleOn  => "SetTextVisibleOn",
+            VMixFunction::SetTextVisibleOff => "SetTextVisibleOff",
+            VMixFunction::SetImage => "SetImage",
+            VMixFunction::OverlayInput4Off => "OverlayInput4Off",
+            VMixFunction::OverlayInput4 => "OverlayInput4",
         }
     }
 }
+
+
 
 #[derive(Clone, Debug)]
 pub enum VMixPlayerInfo {

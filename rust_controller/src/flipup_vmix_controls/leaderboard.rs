@@ -1,5 +1,5 @@
 use crate::controller::{fix_score, Player};
-use crate::vmix::functions::{VMixFunction, VMixSelectionTrait};
+use crate::vmix::functions::{VMixInterfacer, VMixSelectionTrait};
 use itertools::Itertools;
 use rayon::prelude::*;
 use rocket::form::validate::one_of;
@@ -50,7 +50,7 @@ impl Leaderboard {
         }
     }
 
-    pub fn to_vmix_instructions(&self) -> Vec<VMixFunction<LeaderBoardProperty>> {
+    pub fn to_vmix_instructions(&self) -> Vec<VMixInterfacer<LeaderBoardProperty>> {
         self.current_state().map(|state|state.to_vmix_instructions(self.previous_state())).expect("Should work")
     }
     
@@ -142,7 +142,7 @@ impl LeaderboardState {
     pub fn to_vmix_instructions(
         &self,
         other: Option<&Self>,
-    ) -> Vec<VMixFunction<LeaderBoardProperty>> {
+    ) -> Vec<VMixInterfacer<LeaderBoardProperty>> {
         let players = self.leaderboard_players(other);
         players
             .iter()
@@ -225,83 +225,82 @@ impl LeaderboardPlayer {
             id: player.player_id.clone()
         }
     }
-
-    fn set_hot_round(&self) -> VMixFunction<LeaderBoardProperty> {
-        VMixFunction::SetImage {
-            value: if self.hot_round {
+    
+    fn set_hot_round(&self) -> VMixInterfacer<LeaderBoardProperty> {
+        VMixInterfacer::set_image(
+            if self.hot_round {
                 Image::Flames
             } else {
                 Image::Nothing
             }
             .to_location(),
-            input: LeaderBoardProperty::HotRound(self.index).into(),
-        }
+             LeaderBoardProperty::HotRound(self.index).into(),
+        )
     }
 
-    fn set_round_score(&self) -> VMixFunction<LeaderBoardProperty> {
-        VMixFunction::SetText {
-            value: format!("({})",fix_score(self.round_score)),
-            input: LeaderBoardProperty::RoundScore(self.index).into(),
-        }
+    fn set_round_score(&self) -> VMixInterfacer<LeaderBoardProperty> {
+        VMixInterfacer::set_text (
+            format!("({})",fix_score(self.round_score)),
+            LeaderBoardProperty::RoundScore(self.index).into(),
+        )
     }
 
-    fn set_total_score(&self) -> VMixFunction<LeaderBoardProperty> {
-        VMixFunction::SetText {
-            value: fix_score(self.total_score),
-            input: LeaderBoardProperty::TotalScore { pos: self.index }.into(),
-        }
+    fn set_total_score(&self) -> VMixInterfacer<LeaderBoardProperty> {
+        VMixInterfacer::set_text (
+            fix_score(self.total_score),
+            LeaderBoardProperty::TotalScore { pos: self.index }.into(),
+        )
     }
 
-    fn set_position(&self) -> VMixFunction<LeaderBoardProperty> {
-        VMixFunction::SetText {
-            value: "".to_string(),
-            input: LeaderBoardProperty::Position {
+    fn set_position(&self) -> VMixInterfacer<LeaderBoardProperty> {
+        VMixInterfacer::set_text (
+            "".to_string(),
+            LeaderBoardProperty::Position {
                 pos: self.index,
                 lb_pos: self.position,
                 tied: self.tied,
-            }
-            .into(),
-        }
+            },
+        )
     }
 
-    fn set_movement_img(&self) -> VMixFunction<LeaderBoardProperty> {
-        VMixFunction::SetImage {
-            value: match self.movement {
+    fn set_movement_img(&self) -> VMixInterfacer<LeaderBoardProperty> {
+        VMixInterfacer::set_image(
+            match self.movement {
                 LeaderboardMovement::Up(_) => Image::RedTriDown,
                 LeaderboardMovement::Down(_) => Image::GreenTriUp,
                 LeaderboardMovement::Same => Image::Nothing,
             }
             .to_location(),
-            input: LeaderBoardProperty::Arrow { pos: self.index }.into(),
-        }
+            LeaderBoardProperty::Arrow { pos: self.index }.into(),
+        )
     }
 
-    fn set_movement_text(&self) -> VMixFunction<LeaderBoardProperty> {
-        VMixFunction::SetText {
-            value: match self.movement {
+    fn set_movement_text(&self) -> VMixInterfacer<LeaderBoardProperty> {
+        VMixInterfacer::set_text (
+            match self.movement {
                 LeaderboardMovement::Up(n) |
                 LeaderboardMovement::Down(n) => n.to_string(),
                 LeaderboardMovement::Same => " ".to_string(),
             },
-            input: LeaderBoardProperty::Move { pos: self.index }.into(),
-        }
+            LeaderBoardProperty::Move { pos: self.index }.into(),
+        )
     }
 
-    fn set_thru(&self) -> VMixFunction<LeaderBoardProperty> {
-        VMixFunction::SetText {
-            value: self.thru.to_string(),
-            input: LeaderBoardProperty::Thru(self.index).into(),
-        }
+    fn set_thru(&self) -> VMixInterfacer<LeaderBoardProperty> {
+        VMixInterfacer::set_text(
+            self.thru.to_string(),
+            LeaderBoardProperty::Thru(self.index).into(),
+        )
     }
 
-    fn set_name(&self) -> VMixFunction<LeaderBoardProperty> {
-        VMixFunction::SetText {
-            value: self.name.clone(),
-            input: LeaderBoardProperty::Name(self.index).into(),
-        }
+    fn set_name(&self) -> VMixInterfacer<LeaderBoardProperty> {
+        VMixInterfacer::set_text(
+            self.name.clone(),
+            LeaderBoardProperty::Name(self.index).into(),
+        )
     }
 
-    pub fn combine(&self) -> Vec<VMixFunction<LeaderBoardProperty>> {
+    pub fn combine(&self) -> Vec<VMixInterfacer<LeaderBoardProperty>> {
         vec![
             self.set_hot_round(),
             self.set_round_score(),

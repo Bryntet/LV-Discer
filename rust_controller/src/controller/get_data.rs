@@ -30,7 +30,7 @@ pub enum RankUpDown {
 pub trait HoleScoreOrDefault {
     fn hole_score(&self, hole: usize) -> isize;
     fn score_to_hole(&self, hole: usize) -> isize;
-    fn get_hole_info(&self, hole: u8) -> Vec<VMixFunction<VMixHoleInfo>>;
+    fn get_hole_info(&self, hole: u8) -> Vec<VMixInterfacer<VMixHoleInfo>>;
 }
 
 impl HoleScoreOrDefault for Option<&PlayerRound> {
@@ -46,7 +46,7 @@ impl HoleScoreOrDefault for Option<&PlayerRound> {
             None => isize::MAX,
         }
     }
-    fn get_hole_info(&self, hole: u8) -> Vec<VMixFunction<VMixHoleInfo>> {
+    fn get_hole_info(&self, hole: u8) -> Vec<VMixInterfacer<VMixHoleInfo>> {
         match self {
             Some(round) => round.get_hole_info(hole),
             None => vec![],
@@ -55,24 +55,24 @@ impl HoleScoreOrDefault for Option<&PlayerRound> {
 }
 
 impl RankUpDown {
-    fn get_instructions(&self, pos: usize) -> [VMixFunction<LeaderBoardProperty>; 2] {
+    fn get_instructions(&self, pos: usize) -> [VMixInterfacer<LeaderBoardProperty>; 2] {
         [self.make_move(pos), self.make_arrow(pos)]
     }
 
-    fn make_move(&self, pos: usize) -> VMixFunction<LeaderBoardProperty> {
+    fn make_move(&self, pos: usize) -> VMixInterfacer<LeaderBoardProperty> {
         let movement = match self {
             RankUpDown::Up(val) => val.to_string(),
             RankUpDown::Down(val) => val.to_string(),
             RankUpDown::Same => "".to_string(),
         };
 
-        VMixFunction::SetText {
-            value: movement,
-            input: LeaderBoardProperty::Move { pos }.into(),
-        }
+        VMixInterfacer::set_text(
+            movement,
+            LeaderBoardProperty::Move { pos }.into(),
+        )
     }
 
-    fn make_arrow(&self, pos: usize) -> VMixFunction<LeaderBoardProperty> {
+    fn make_arrow(&self, pos: usize) -> VMixInterfacer<LeaderBoardProperty> {
         let img = match self {
             RankUpDown::Up(_) => r"C:\livegrafik-flipup\greentri.png",
             RankUpDown::Down(_) => r"C:\livegrafik-flipup\redtri.png",
@@ -80,10 +80,10 @@ impl RankUpDown {
         }
         .to_string();
 
-        VMixFunction::SetImage {
-            value: img,
-            input: LeaderBoardProperty::Arrow { pos }.into(),
-        }
+        VMixInterfacer::set_image(
+            img,
+            LeaderBoardProperty::Arrow { pos }.into(),
+        )
     }
 }
 // TODO: Refactor out
@@ -158,11 +158,11 @@ impl HoleResult {
         self.into()
     }
 
-    pub fn get_score_colour(&self, player: usize) -> VMixFunction<VMixPlayerInfo> {
+    pub fn get_score_colour(&self, player: usize) -> VMixInterfacer<VMixPlayerInfo> {
         self.to_score().update_score_colour(player)
     }
 
-    pub fn get_mov(&self, player: usize) -> [VMixFunction<VMixPlayerInfo>; 2] {
+    pub fn get_mov(&self, player: usize) -> [VMixInterfacer<VMixPlayerInfo>; 2] {
         self.to_score().play_mov_vmix(player, false)
     }
 }
@@ -228,30 +228,30 @@ impl PlayerRound {
         }
     }
 
-    pub fn get_hole_info(&self, hole: u8) -> Vec<VMixFunction<VMixHoleInfo>> {
-        let mut r_vec: Vec<VMixFunction<VMixHoleInfo>> = vec![];
+    pub fn get_hole_info(&self, hole: u8) -> Vec<VMixInterfacer<VMixHoleInfo>> {
+        let mut r_vec: Vec<VMixInterfacer<VMixHoleInfo>> = vec![];
         let hole = self.current_result(hole).unwrap();
 
-        r_vec.push(VMixFunction::SetText {
-            value: "".to_string(),
-            input: VMixHoleInfo::Hole(hole.hole).into(),
-        });
+        r_vec.push(VMixInterfacer::set_text(
+            "".to_string(),
+            VMixHoleInfo::Hole(hole.hole).into(),
+        ));
 
-        r_vec.push(VMixFunction::SetText {
-            value: "".to_string(),
-            input: VMixHoleInfo::HolePar(hole.hole_representation.par).into(),
-        });
+        r_vec.push(VMixInterfacer::set_text(
+            "".to_string(),
+            VMixHoleInfo::HolePar(hole.hole_representation.par).into(),
+        ));
 
-        r_vec.push(VMixFunction::SetText {
-            value: "".to_string(),
-            input: VMixHoleInfo::HoleMeters(hole.hole_representation.length).into(),
-        });
+        r_vec.push(VMixInterfacer::set_text(
+            "".to_string(),
+            VMixHoleInfo::HoleMeters(hole.hole_representation.length).into(),
+        ));
 
         let feet = (hole.hole_representation.length as f32 * 3.28084) as u16;
-        r_vec.push(VMixFunction::SetText {
-            value: "".to_string(),
-            input: VMixHoleInfo::HoleFeet(feet).into(),
-        });
+        r_vec.push(VMixInterfacer::set_text (
+            "".to_string(),
+            VMixHoleInfo::HoleFeet(feet).into(),
+        ));
         r_vec
     }
     
@@ -418,16 +418,16 @@ impl Player {
 
     // Below goes JS TCP Strings
 
-    pub fn set_name(&self) -> Vec<VMixFunction<VMixPlayerInfo>> {
+    pub fn set_name(&self) -> Vec<VMixInterfacer<VMixPlayerInfo>> {
         vec![
-            VMixFunction::SetText {
-                value: self.first_name.clone(),
-                input: VMixPlayerInfo::Name(self.ind).into(),
-            },
-            VMixFunction::SetText {
-                value: self.surname.clone(),
-                input: VMixPlayerInfo::Surname(self.ind).into(),
-            },
+            VMixInterfacer::set_text(
+                self.first_name.clone(),
+                VMixPlayerInfo::Name(self.ind).into(),
+            ),
+            VMixInterfacer::set_text(
+                 self.surname.clone(),
+                VMixPlayerInfo::Surname(self.ind).into(),
+            )
         ]
     }
 
@@ -442,7 +442,7 @@ impl Player {
         OverarchingScore::from(self)
     }
 
-    pub fn set_all_values(&self) -> Result<Vec<VMixFunction<VMixPlayerInfo>>, Error> {
+    pub fn set_all_values(&self) -> Result<Vec<VMixInterfacer<VMixPlayerInfo>>, Error> {
         let mut return_vec = vec![];
         return_vec.extend(self.set_name());
         if let Some(set_pos) = self.set_pos() {
@@ -476,8 +476,8 @@ impl Player {
         self.total_score += self.round_score
     }
 
-    pub fn increase_score(&mut self) -> Result<Vec<VMixFunction<VMixPlayerInfo>>, Error> {
-        let mut return_vec: Vec<VMixFunction<VMixPlayerInfo>> = vec![];
+    pub fn increase_score(&mut self) -> Result<Vec<VMixInterfacer<VMixPlayerInfo>>, Error> {
+        let mut return_vec: Vec<VMixInterfacer<VMixPlayerInfo>> = vec![];
 
         if !self.first_scored {
             self.first_scored = true;
@@ -516,14 +516,14 @@ impl Player {
         return_vec.push(self.set_throw());
         Ok(return_vec)
     }
-    fn add_total_score(&self, outside_instructions: &mut Vec<VMixFunction<VMixPlayerInfo>>) {
+    fn add_total_score(&self, outside_instructions: &mut Vec<VMixInterfacer<VMixPlayerInfo>>) {
         outside_instructions.push(self.overarching_score_representation().set_total_score())
     }
 
-    fn add_round_score(&self, outside_instructions: &mut Vec<VMixFunction<VMixPlayerInfo>>) {
+    fn add_round_score(&self, outside_instructions: &mut Vec<VMixInterfacer<VMixPlayerInfo>>) {
         outside_instructions.extend(self.overarching_score_representation().set_round_score())
     }
-    pub fn revert_hole_score(&mut self) -> Vec<VMixFunction<VMixPlayerInfo>> {
+    pub fn revert_hole_score(&mut self) -> Vec<VMixInterfacer<VMixPlayerInfo>> {
         let mut return_vec = vec![];
         if self.hole_shown_up_until > 0 {
             self.hole_shown_up_until -= 1;
@@ -538,22 +538,22 @@ impl Player {
         return_vec
     }
 
-    fn set_tot_score(&self) -> VMixFunction<VMixPlayerInfo> {
-        VMixFunction::SetText {
-            value: fix_score(self.total_score),
-            input: VMixPlayerInfo::TotalScore(self.ind).into(),
-        }
+    fn set_tot_score(&self) -> VMixInterfacer<VMixPlayerInfo> {
+        VMixInterfacer::set_text (
+            fix_score(self.total_score),
+            VMixPlayerInfo::TotalScore(self.ind).into(),
+        )
     }
     
-    fn set_round_score(&self) -> VMixFunction<VMixPlayerInfo> {
-        VMixFunction::SetText {
-            value: fix_score(self.round_score),
-            input: VMixPlayerInfo::RoundScore(self.ind)
-        }
+    fn set_round_score(&self) -> VMixInterfacer<VMixPlayerInfo> {
+        VMixInterfacer::set_text (
+            fix_score(self.round_score),
+            VMixPlayerInfo::RoundScore(self.ind)
+        )
     }
     
 
-    pub fn set_pos(&self) -> Option<VMixFunction<VMixPlayerInfo>> {
+    pub fn set_pos(&self) -> Option<VMixInterfacer<VMixPlayerInfo>> {
         let value_string = if self.lb_even {
             "T".to_string()
         } else {
@@ -561,50 +561,39 @@ impl Player {
         } + &self.lb_pos.to_string();
 
         if self.visible_player {
-            Some(VMixFunction::SetText {
-                value: value_string,
-                input: VMixPlayerInfo::PlayerPosition(self.ind as u16).into(),
-            })
+            Some(VMixInterfacer::set_text(
+                value_string,
+                VMixPlayerInfo::PlayerPosition(self.ind as u16).into(),
+            ))
         } else {
             None
         }
     }
 
-    pub fn hide_pos(&mut self) -> [VMixFunction<VMixPlayerInfo>; 3] {
+    pub fn hide_pos(&mut self) -> [VMixInterfacer<VMixPlayerInfo>; 3] {
         self.pos_visible = false;
         [
-            VMixFunction::SetTextVisibleOff {
-                input: VMixPlayerInfo::PlayerPosition(self.ind as u16).into(),
-            },
-            VMixFunction::SetColor {
-                color: "00000000",
-                input: VMixPlayerInfo::PosRightTriColor(self.ind).into(),
-            },
-            VMixFunction::SetColor {
-                color: "00000000",
-                input: VMixPlayerInfo::PosSquareColor(self.ind).into(),
-            },
+            VMixInterfacer::set_text_visible_off(
+                VMixPlayerInfo::PlayerPosition(self.ind as u16).into(),
+        ),
+            VMixInterfacer::set_color("00000000",VMixPlayerInfo::PosRightTriColor(self.ind).into()),
+            VMixInterfacer::set_color("00000000",VMixPlayerInfo::PosSquareColor(self.ind).into()),
         ]
     }
 
-    pub fn show_pos(&mut self) -> [VMixFunction<VMixPlayerInfo>; 3] {
+    pub fn show_pos(&mut self) -> [VMixInterfacer<VMixPlayerInfo>; 3] {
         self.pos_visible = true;
         [
-            VMixFunction::SetTextVisibleOn {
-                input: VMixPlayerInfo::PlayerPosition(self.ind as u16).into(),
-            },
-            VMixFunction::SetColor {
-                color: DEFAULT_BACKGROUND_COL,
-                input: VMixPlayerInfo::PosRightTriColor(self.ind).into(),
-            },
-            VMixFunction::SetColor {
-                color: DEFAULT_BACKGROUND_COL,
-                input: VMixPlayerInfo::PosSquareColor(self.ind).into(),
-            },
+            VMixInterfacer::set_text_visible_on(
+                VMixPlayerInfo::PlayerPosition(self.ind as u16).into(),
+        ),
+
+            VMixInterfacer::set_color(DEFAULT_BACKGROUND_COL,VMixPlayerInfo::PosRightTriColor(self.ind).into()),
+            VMixInterfacer::set_color(DEFAULT_BACKGROUND_COL,VMixPlayerInfo::PosSquareColor(self.ind).into()),
         ]
     }
 
-    pub fn toggle_pos(&mut self) -> [VMixFunction<VMixPlayerInfo>; 3] {
+    pub fn toggle_pos(&mut self) -> [VMixInterfacer<VMixPlayerInfo>; 3] {
         if self.pos_visible {
             self.hide_pos()
         } else {
@@ -612,7 +601,7 @@ impl Player {
         }
     }
 
-    /*pub fn shift_scores(&mut self, last_blank: bool) -> Vec<VMixFunction<VMixProperty>> {
+    /*pub fn shift_scores(&mut self, last_blank: bool) -> Vec<VMixInterfacer<VMixProperty>> {
         let mut return_vec = vec![];
         let in_hole = self.hole_shown_up_until;
 
@@ -630,18 +619,18 @@ impl Player {
             return_vec.extend(self.set_hole_score());
         }
         if last_blank && self.hole_shown_up_until != 18 {
-            return_vec.push(VMixFunction::SetText {
+            return_vec.push(VMixInterfacer::SetText {
                 value: (in_hole + 2).to_string(),
                 input: VMixProperty::HoleNumber(9, self.ind).into(),
             });
-            return_vec.push(VMixFunction::SetTextVisibleOff {
+            return_vec.push(VMixInterfacer::SetTextVisibleOff {
                 input: VMixProperty::Score {
                     hole: 9,
                     player: self.ind,
                 }
                 .into(),
             });
-            return_vec.push(VMixFunction::SetColor {
+            return_vec.push(VMixInterfacer::SetColor {
                 color: DEFAULT_FOREGROUND_COL_ALPHA,
                 input: VMixProperty::ScoreColor {
                     hole: 9,
@@ -657,7 +646,7 @@ impl Player {
         }
     }*/
 
-    fn del_score(&self, hole: usize) -> [VMixFunction<VMixPlayerInfo>; 3] {
+    fn del_score(&self, hole: usize) -> [VMixInterfacer<VMixPlayerInfo>; 3] {
         let score_prop = VMixPlayerInfo::Score {
             hole,
             player: self.ind,
@@ -668,33 +657,33 @@ impl Player {
             player: self.ind,
         };
         [
-            VMixFunction::SetText {
-                value: "".to_string(),
-                input: score_prop.clone().into(),
-            },
-            VMixFunction::SetColor {
-                color: DEFAULT_FOREGROUND_COL_ALPHA,
-                input: col_prop.into(),
-            },
-            VMixFunction::SetTextVisibleOff {
-                input: score_prop.into(),
-            },
+            VMixInterfacer::set_text(
+                "".to_string(),
+                score_prop.clone().into(),
+            ),
+            VMixInterfacer::set_color(
+                DEFAULT_FOREGROUND_COL_ALPHA,
+                col_prop.into(),
+            ),
+            VMixInterfacer::set_text_visible_off (
+                score_prop.into(),
+            ),
         ]
     }
 
-    fn del_current_score(&self) -> [VMixFunction<VMixPlayerInfo>; 3] {
+    fn del_current_score(&self) -> [VMixInterfacer<VMixPlayerInfo>; 3] {
         self.del_score(self.hole_shown_up_until + 1)
     }
 
-    fn delete_all_scores_after_current(&self) -> Vec<VMixFunction<VMixPlayerInfo>> {
+    fn delete_all_scores_after_current(&self) -> Vec<VMixInterfacer<VMixPlayerInfo>> {
         ((self.hole_shown_up_until + 1)..=18)
             .par_bridge()
             .flat_map(|hole| self.del_score(hole))
             .collect()
     }
 
-    pub fn reset_scores(&mut self) -> Vec<VMixFunction<VMixPlayerInfo>> {
-        let mut return_vec: Vec<VMixFunction<VMixPlayerInfo>> = vec![];
+    pub fn reset_scores(&mut self) -> Vec<VMixInterfacer<VMixPlayerInfo>> {
+        let mut return_vec: Vec<VMixInterfacer<VMixPlayerInfo>> = vec![];
         return_vec.extend(self.delete_all_scores_after_current());
         self.hole_shown_up_until = 0;
         self.round_score = 0;
@@ -706,22 +695,19 @@ impl Player {
         return_vec
     }
 
-    pub fn set_throw(&self) -> VMixFunction<VMixPlayerInfo> {
-        VMixFunction::SetText {
-            value: self.throws.to_string(),
-            input: VMixPlayerInfo::Throw(self.ind).into(),
-        }
+    pub fn set_throw(&self) -> VMixInterfacer<VMixPlayerInfo> {
+        VMixInterfacer::set_color(&self.throws.to_string(),VMixPlayerInfo::Throw(self.ind).into())
     }
 
 
-    fn set_lb_name(&self) -> VMixFunction<LeaderBoardProperty> {
-        VMixFunction::SetText {
-            value: self.name.clone(),
-            input: LeaderBoardProperty::Name(self.position).into(),
-        }
+    fn set_lb_name(&self) -> VMixInterfacer<LeaderBoardProperty> {
+        VMixInterfacer::set_text(
+            self.name.clone(),
+            LeaderBoardProperty::Name(self.position).into(),
+        )
     }
 
-    fn set_lb_hr(&self) -> VMixFunction<LeaderBoardProperty> {
+    fn set_lb_hr(&self) -> VMixInterfacer<LeaderBoardProperty> {
         let value = if self.hot_round
             && self.round_ind != 0
             && self.hole_shown_up_until != 0
@@ -731,59 +717,49 @@ impl Player {
         } else {
             r"X:\FLIPUP\grafik\alpha.png"
         };
-        VMixFunction::SetImage {
-            value: value.to_string(),
-            input: LeaderBoardProperty::HotRound(self.position).into(),
-        }
+        VMixInterfacer::set_image(
+            value.to_string(),
+            LeaderBoardProperty::HotRound(self.position).into(),
+        )
     }
 
-    fn set_rs(&self) -> VMixFunction<LeaderBoardProperty> {
-        VMixFunction::SetText {
-            value: fix_score(self.round_score),
-            input: LeaderBoardProperty::RoundScore(self.position).into(),
-        }
+    fn set_rs(&self) -> VMixInterfacer<LeaderBoardProperty> {
+        VMixInterfacer::set_text(
+            fix_score(self.round_score),
+            LeaderBoardProperty::RoundScore(self.position).into(),
+        )
     }
 
-    fn set_ts(&self, hidden: bool) -> [VMixFunction<LeaderBoardProperty>; 3] {
+    fn set_ts(&self, ) -> [VMixInterfacer<LeaderBoardProperty>; 3] {
         [
-            VMixFunction::SetTextVisibleOn {
-                input: LeaderBoardProperty::TotalScore { pos: self.position }.into(),
-            },
-            VMixFunction::SetTextVisibleOn {
-                input: LeaderBoardProperty::TotalScoreTitle.into(),
-            },
-            VMixFunction::SetText {
-                value: fix_score(self.total_score),
-                input: LeaderBoardProperty::TotalScore { pos: self.position }.into(),
-            },
+            VMixInterfacer::set_text_visible_on(LeaderBoardProperty::TotalScore { pos: self.position }.into()),
+        VMixInterfacer::set_text_visible_on(LeaderBoardProperty::TotalScoreTitle.into()),
+        VMixInterfacer::set_text(fix_score(self.total_score),LeaderBoardProperty::TotalScore { pos: self.position }.into()),
         ]
     }
 
-    fn set_moves(&self) -> [VMixFunction<LeaderBoardProperty>; 2] {
+    fn set_moves(&self) -> [VMixInterfacer<LeaderBoardProperty>; 2] {
         self.rank.get_instructions(self.position)
     }
 
-    fn set_thru(&self, hidden: bool) -> VMixFunction<LeaderBoardProperty> {
-        VMixFunction::SetText {
-            value: if self.lb_pos == 0 {
+    fn set_thru(&self,) -> VMixInterfacer<LeaderBoardProperty> {
+        VMixInterfacer::set_text(
+            if self.lb_pos == 0 {
                 "".to_string()
-            } else if hidden {
-                "0".to_string()
             } else {
                 self.hole_shown_up_until.to_string()
             },
-            input: LeaderBoardProperty::Thru(self.position).into(),
-        }
+            LeaderBoardProperty::Thru(self.position).into(),
+        )
     }
 
     // TODO: Remove this function.
-    pub fn set_lb(&mut self) -> Vec<VMixFunction<LeaderBoardProperty>> {
+    pub fn set_lb(&mut self) -> Vec<VMixInterfacer<LeaderBoardProperty>> {
         self.check_if_allowed_to_visible();
-        let hide = self.hole_shown_up_until == 0;
         let mut return_vec = vec![self.set_lb_name(), self.set_lb_hr(), self.set_rs()];
-        return_vec.extend(self.set_ts(hide));
+        return_vec.extend(self.set_ts());
         return_vec.extend(self.set_moves());
-        return_vec.push(self.set_thru(hide));
+        return_vec.push(self.set_thru());
         return_vec
     }
 }
