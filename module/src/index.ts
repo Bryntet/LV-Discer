@@ -155,16 +155,8 @@ export class LevandeVideoInstance extends InstanceBase<Config> {
 	}
 
 	async configUpdated(config: Config) {
-		this.log('debug', 'Config updating');
-		
-		console.log(config);
-		this.config = config;
-		await this.updateFocusedPlayers();
-		this.initActions();
-		this.initFeedbacks();
-		this.setVariableValues(await this.varValues());
-
-		await this.setFocusedPlayerVariables();
+		this.config.coordinator_ip = config.coordinator_ip;
+		this.config = config
 	}
 
 
