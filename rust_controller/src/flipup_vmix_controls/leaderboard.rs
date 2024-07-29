@@ -260,11 +260,13 @@ impl LeaderboardPlayer {
 
     fn set_position(&self) -> VMixInterfacer<LeaderBoardProperty> {
         VMixInterfacer::set_text (
-            "".to_string(),
+            if self.tied.is_some() {
+                format!("T{}", self.position)
+            } else {
+                self.position.to_string()
+            },
             LeaderBoardProperty::Position {
                 pos: self.index,
-                lb_pos: self.position,
-                tied: self.tied,
             },
         )
     }
@@ -277,7 +279,7 @@ impl LeaderboardPlayer {
                 LeaderboardMovement::Same => Image::Nothing,
             }
             .to_location(),
-            LeaderBoardProperty::Arrow { pos: self.index }.into(),
+            LeaderBoardProperty::Arrow { pos: self.index },
         )
     }
 
@@ -347,8 +349,6 @@ mod prop {
     pub enum LeaderBoardProperty {
         Position {
             pos: usize,
-            lb_pos: usize,
-            tied: Option<u8>,
         },
         Name(usize),
         HotRound(usize),
@@ -397,24 +397,14 @@ mod prop {
         }
 
         fn value(&self) -> Option<String> {
-            match self {
-                LeaderBoardProperty::Position { tied, lb_pos,.. } => {
-                    if tied.is_some() {
-                        Some(format!("T{}", lb_pos))
-                    } else {
-                        Some(lb_pos.to_string())
-                    }
-                }
-
-                _ => None,
-            }
+            None
         }
         const INPUT_ID: &'static str = "38ded319-d270-41ec-b161-130db4b19901";
     }
     
 
     pub enum LeaderboardTop6{
-        Position{pos: usize, tied: Option<u8>, lb_pos: usize },
+        Position{pos: usize},
         Name{pos:usize},
         LastScore{
             pos:usize,
@@ -442,17 +432,7 @@ mod prop {
             "Text"
         }
         fn value(&self) -> Option<String> {
-            match self {
-                Self::Position { tied, lb_pos,.. } => {
-                    if tied.is_some() {
-                        Some(format!("T{}", lb_pos))
-                    } else {
-                        Some(lb_pos.to_string())
-                    }
-                }
-
-                _ => None,
-            }
+            None
         }
 
         const INPUT_ID: &'static str = "1900db1a-4f83-4111-848d-d9a87474f56c";
@@ -462,7 +442,7 @@ mod prop {
         pub fn from_prop(leader_board_property: LeaderBoardProperty) -> Option<Self> {
             match leader_board_property{
                 LeaderBoardProperty::CheckinText|LeaderBoardProperty::TotalScoreTitle | LeaderBoardProperty::Arrow {..} | LeaderBoardProperty::HotRound(_) | LeaderBoardProperty::Move {..}=> None,
-                LeaderBoardProperty::Position {pos,lb_pos,tied} => Some(LeaderboardTop6::Position { pos,lb_pos,tied }),
+                LeaderBoardProperty::Position {pos,} => Some(LeaderboardTop6::Position { pos, }),
                 LeaderBoardProperty::Thru(pos) => Some(LeaderboardTop6::Thru {pos}),
                 LeaderBoardProperty::TotalScore {pos} => Some(LeaderboardTop6::TotalScore {pos}),
                 LeaderBoardProperty::RoundScore(pos) => Some(LeaderboardTop6::RoundScore {pos}),
