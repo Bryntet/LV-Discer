@@ -228,7 +228,7 @@ impl FlipUpVMixCoordinator {
                 previous
             ));
             
-            self.queue_add(&self.leaderboard.to_vmix_instructions());
+            self.leaderboard.send_to_vmix(self.vmix_queue.clone());
         } else {
             println!("PANIC, hole > 18");
         }

@@ -1,3 +1,4 @@
+use std::sync::Arc;
 use crate::controller::{fix_score, Player};
 use crate::vmix::functions::{VMixInterfacer, VMixSelectionTrait};
 use itertools::Itertools;
@@ -50,8 +51,8 @@ impl Leaderboard {
         }
     }
 
-    pub fn to_vmix_instructions(&self) -> Vec<VMixInterfacer<LeaderBoardProperty>> {
-        self.current_state().map(|state|state.to_vmix_instructions(self.previous_state())).expect("Should work")
+    pub fn send_to_vmix(&self, queue: Arc<VMixQueue>) {
+        self.current_state().map(|state|state.send_to_vmix(self.previous_state(),queue.clone())).expect("Should work")
     }
     
     pub fn add_state(&mut self, state: LeaderboardState) {
@@ -139,15 +140,20 @@ impl LeaderboardState {
             .collect_vec()
     }
 
-    pub fn to_vmix_instructions(
+    pub fn send_to_vmix(
         &self,
         other: Option<&Self>,
-    ) -> Vec<VMixInterfacer<LeaderBoardProperty>> {
+        queue: Arc<VMixQueue>
+    ) {
         let players = self.leaderboard_players(other);
-        players
+        let first_batch = players
             .iter()
             .flat_map(LeaderboardPlayer::combine)
-            .collect_vec()
+            .collect_vec();
+
+        queue.add(&first_batch);
+        let second_batch = first_batch.into_iter().flat_map(VMixInterfacer::to_top_6).collect_vec();
+        queue.add(&second_batch);
     }
 }
 
@@ -312,6 +318,8 @@ impl LeaderboardPlayer {
             self.set_name(),
         ]
     }
+
+    
 }
 
 #[derive(Debug)]
@@ -332,6 +340,7 @@ impl LeaderboardMovement {
 }
 
 mod prop {
+    use crate::flipup_vmix_controls::{OverarchingScore, Score};
     use crate::vmix::functions::{VMixSelectionTrait};
 
     #[derive(Clone)]
@@ -403,32 +412,72 @@ mod prop {
         const INPUT_ID: &'static str = "38ded319-d270-41ec-b161-130db4b19901";
     }
     
-    
-    pub struct LeaderboardTop6(LeaderBoardProperty);
+
+    pub enum LeaderboardTop6{
+        Position{pos: usize, tied: Option<u8>, lb_pos: usize },
+        Name{pos:usize},
+        LastScore{
+            pos:usize,
+            hole:usize,
+        },
+        LastScoreColour{pos:usize,hole:usize,},
+        RoundScore{pos:usize},
+        TotalScore{pos:usize},
+        Thru{pos:usize}
+    }
     impl VMixSelectionTrait for LeaderboardTop6 {
         fn get_selection_name(&self) -> String {
-            self.0.get_selection_name()
+            use LeaderboardTop6::*;
+            match self {
+                Position {pos,..}  => format!("pos{pos}"),
+                Name{pos}=> format!("name{pos}"),
+                LastScore{pos,hole} =>format!("p{pos}ls{hole}",),
+                LastScoreColour {..} => unreachable!("not implemented yet"),
+                RoundScore {pos} => format!("p{pos}scorernd"),
+                TotalScore {pos} => format!("p{pos}scoretot"),
+                Thru {pos} => format!("p{pos}thru")
+            }
         }
         fn data_extension(&self) -> &'static str {
-            self.0.data_extension()
+            "Text"
         }
         fn value(&self) -> Option<String> {
-            self.0.value()
+            match self {
+                Self::Position { tied, lb_pos,.. } => {
+                    if tied.is_some() {
+                        Some(format!("T{}", lb_pos))
+                    } else {
+                        Some(lb_pos.to_string())
+                    }
+                }
+
+                _ => None,
+            }
         }
 
         const INPUT_ID: &'static str = "1900db1a-4f83-4111-848d-d9a87474f56c";
     }
 
-    impl From<LeaderBoardProperty> for LeaderboardTop6 {
-        fn from(value: LeaderBoardProperty) -> Self {
-            Self(value)
+    impl LeaderboardTop6 {
+        pub fn from_prop(leader_board_property: LeaderBoardProperty) -> Option<Self> {
+            match leader_board_property{
+                LeaderBoardProperty::CheckinText|LeaderBoardProperty::TotalScoreTitle | LeaderBoardProperty::Arrow {..} | LeaderBoardProperty::HotRound(_) | LeaderBoardProperty::Move {..}=> None,
+                LeaderBoardProperty::Position {pos,lb_pos,tied} => Some(LeaderboardTop6::Position { pos,lb_pos,tied }),
+                LeaderBoardProperty::Thru(pos) => Some(LeaderboardTop6::Thru {pos}),
+                LeaderBoardProperty::TotalScore {pos} => Some(LeaderboardTop6::TotalScore {pos}),
+                LeaderBoardProperty::RoundScore(pos) => Some(LeaderboardTop6::RoundScore {pos}),
+
+                LeaderBoardProperty::Name(pos) => Some(LeaderboardTop6::Name {pos})
+            }
         }
     }
+
+
 }
 use crate::flipup_vmix_controls::Image;
-pub use prop::LeaderBoardProperty;
+pub use prop::{LeaderBoardProperty,LeaderboardTop6};
 use crate::controller::queries::Division;
-use crate::flipup_vmix_controls::leaderboard::prop::LeaderboardTop6;
+use crate::vmix::VMixQueue;
 
 #[cfg(test)]
 mod test {
@@ -567,7 +616,7 @@ mod test {
         let holes = Holes::dummy();
         let p = LeaderboardState::new(1, make_many_players(holes));
         let a = Leaderboard::new(p.clone());
-        let funcs = a.to_vmix_instructions();
+        let funcs = a.send_to_vmix();
         let q = VMixQueue::new("10.170.120.134".to_string()).unwrap();
         q.add(&funcs);
         tokio::time::sleep(tokio::time::Duration::new(1, 0)).await;

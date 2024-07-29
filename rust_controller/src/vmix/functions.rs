@@ -1,5 +1,5 @@
 use std::sync::Arc;
-use crate::flipup_vmix_controls::LeaderBoardProperty;
+use crate::flipup_vmix_controls::{LeaderBoardProperty, LeaderboardTop6};
 use crate::vmix::functions::VMixFunction::OverlayInput4Off;
 
 pub trait VMixSelectionTrait {
@@ -35,6 +35,17 @@ pub struct VMixInterfacer<InputEnum: VMixSelectionTrait>{
     function: VMixFunction,
 }
 
+impl VMixInterfacer<LeaderBoardProperty> {
+    pub fn to_top_6(self) -> Option<VMixInterfacer<LeaderboardTop6>> {
+        let input = LeaderboardTop6::from_prop(self.input?)?;
+
+        Some(VMixInterfacer {
+            value: self.value,
+            function: self.function,
+            input: Some(input),
+        })
+    }
+}
 
 // Functions initialisers
 impl<InputEnum: VMixSelectionTrait> VMixInterfacer<InputEnum> {
