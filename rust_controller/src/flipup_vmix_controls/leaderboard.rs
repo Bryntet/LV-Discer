@@ -1,7 +1,8 @@
 use crate::controller::{fix_score, Player};
-use crate::vmix::functions::VMixFunction;
+use crate::vmix::functions::{VMixFunction, VMixSelectionTrait};
 use itertools::Itertools;
 use rayon::prelude::*;
+use rocket::form::validate::one_of;
 
 #[derive(Debug, Clone, Default)]
 pub struct Leaderboard {
@@ -331,8 +332,9 @@ impl LeaderboardMovement {
 }
 
 mod prop {
-    use crate::vmix::functions::{VMixSelection, VMixSelectionTrait};
+    use crate::vmix::functions::{VMixSelectionTrait};
 
+    #[derive(Clone)]
     pub enum LeaderBoardProperty {
         Position {
             pos: usize,
@@ -402,7 +404,7 @@ mod prop {
     }
     
     
-    struct LeaderboardTop10(LeaderBoardProperty);
+    pub struct LeaderboardTop10(LeaderBoardProperty);
     impl VMixSelectionTrait for LeaderboardTop10 {
         fn get_selection_name(&self) -> String {
             self.0.get_selection_name()
@@ -416,10 +418,17 @@ mod prop {
 
         const INPUT_ID: &'static str = "1900db1a-4f83-4111-848d-d9a87474f56c";
     }
+
+    impl From<LeaderBoardProperty> for LeaderboardTop10 {
+        fn from(value: LeaderBoardProperty) -> Self {
+            Self(value)
+        }
+    }
 }
 use crate::flipup_vmix_controls::Image;
 pub use prop::LeaderBoardProperty;
 use crate::controller::queries::Division;
+use crate::flipup_vmix_controls::leaderboard::prop::LeaderboardTop10;
 
 #[cfg(test)]
 mod test {

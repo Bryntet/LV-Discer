@@ -1,5 +1,5 @@
 use crate::controller::fix_score;
-use crate::vmix::functions::{VMixFunction, VMixPlayerInfo, VMixSelection};
+use crate::vmix::functions::{VMixFunction, VMixPlayerInfo, };
 pub struct OverarchingScore {
     round: usize,
     round_score: isize,
@@ -147,10 +147,10 @@ impl Score {
     pub const fn update_score_colour(&self, player: usize) -> VMixFunction<VMixPlayerInfo> {
         VMixFunction::SetColor {
             color: self.readable_score.to_colour(),
-            input: VMixSelection(VMixPlayerInfo::ScoreColor {
+            input: VMixPlayerInfo::ScoreColor {
                 hole: self.hole as usize,
                 player,
-            }),
+            },
         }
     }
     pub fn update_score(&self, player: usize) -> [VMixFunction<VMixPlayerInfo>; 3] {
@@ -173,19 +173,19 @@ impl Score {
     fn update_score_text(&self, player: usize) -> VMixFunction<VMixPlayerInfo> {
         VMixFunction::SetText {
             value: self.get_score_text(),
-            input: VMixSelection(VMixPlayerInfo::Score {
+            input: VMixPlayerInfo::Score {
                 hole: self.hole as usize, // TODO remove
                 player,
-            }),
+            },
         }
     }
 
     fn show_score(&self, player: usize) -> VMixFunction<VMixPlayerInfo> {
         VMixFunction::SetTextVisibleOn {
-            input: VMixSelection(VMixPlayerInfo::Score {
+            input: VMixPlayerInfo::Score {
                 hole: self.hole as usize,
                 player,
-            }),
+            }
         }
     }
 

@@ -25,48 +25,38 @@ pub trait VMixSelectionTrait {
 
     const INPUT_ID: &'static str;
 }
-#[derive(Clone, Debug)]
-pub struct VMixSelection<T: VMixSelectionTrait>(pub T);
 
-impl<T: VMixSelectionTrait> VMixSelection<T> {
-    fn get_selection(&self) -> String {
-        self.0.get_selection()
-    }
-}
 
-impl<T: VMixSelectionTrait> From<T> for VMixSelection<T> {
-    fn from(value: T) -> Self {
-        Self(value)
-    }
-}
 
 
 #[derive(Clone, Debug)]
 pub enum VMixFunction<InputEnum: VMixSelectionTrait> {
     SetText {
         value: String,
-        input: VMixSelection<InputEnum>,
+        input: InputEnum,
     },
     SetPanX {
         pan: f64,
     },
     SetColor {
         color: &'static str,
-        input: VMixSelection<InputEnum>,
+        input:InputEnum,
     },
     SetTextVisibleOn {
-        input: VMixSelection<InputEnum>,
+        input: InputEnum,
     },
     SetTextVisibleOff {
-        input: VMixSelection<InputEnum>,
+        input: InputEnum,
     },
     SetImage {
         value: String,
-        input: VMixSelection<InputEnum>,
+        input: InputEnum,
     },
     OverlayInput4Off,
     OverlayInput4(&'static str),
 }
+
+
 
 impl<InputEnum: VMixSelectionTrait> VMixFunction<InputEnum> {
     fn get_input(&self) -> Option<String> {

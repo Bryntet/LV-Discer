@@ -25,22 +25,22 @@ pub async fn clear_all(co: Coordinator) {
             actions.extend([
                 VMixFunction::SetText {
                     value: "".to_string(),
-                    input: VMixPlayerInfo::Score { hole, player }.into(),
+                    input: VMixPlayerInfo::Score { hole, player },
                 },
                 VMixFunction::SetColor {
                     color: "3F334D00",
-                    input: VMixPlayerInfo::ScoreColor { hole, player }.into(),
+                    input: VMixPlayerInfo::ScoreColor { hole, player },
                 },
             ])
         }
         actions.extend([
             VMixFunction::SetText {
                 value: "0".to_string(),
-                input: VMixPlayerInfo::TotalScore(player).into(),
+                input: VMixPlayerInfo::TotalScore(player),
             },
             VMixFunction::SetText {
                 value: "0".to_string(),
-                input: VMixPlayerInfo::RoundScore(player).into(),
+                input: VMixPlayerInfo::RoundScore(player),
             },
         ])
     }
