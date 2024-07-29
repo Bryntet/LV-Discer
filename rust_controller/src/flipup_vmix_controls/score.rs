@@ -154,8 +154,9 @@ impl Score {
         }
     }
     pub fn update_score(&self, player: usize) -> [VMixFunction<VMixPlayerInfo>; 3] {
+        
         [
-            self.update_score_text(player),
+            self.update_total_score_text(player),
             self.show_score(player),
             self.update_score_colour(player),
         ]
@@ -170,7 +171,9 @@ impl Score {
         }
     }
 
-    fn update_score_text(&self, player: usize) -> VMixFunction<VMixPlayerInfo> {
+    
+    
+    fn update_total_score_text(&self, player: usize) -> VMixFunction<VMixPlayerInfo> {
         VMixFunction::SetText {
             value: self.get_score_text(),
             input: VMixPlayerInfo::Score {

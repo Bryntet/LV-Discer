@@ -56,6 +56,7 @@ impl FlipUpVMixCoordinator {
             vmix_queue: Arc::new(queue),
             event_id,
         };
+        coordinator.handler.add_total_score_to_players();
         coordinator.queue_add(&coordinator.focused_player().set_name());
         coordinator.reset_score();
         Ok(coordinator)

@@ -449,11 +449,14 @@ impl Player {
             return_vec.push(set_pos);
         }
         return_vec.push(self.set_tot_score());
+        return_vec.push(self.set_round_score());
         if self.hole_shown_up_until != 0 {
 
             let funcs: Vec<_> = (0..self.hole_shown_up_until)
                 .par_bridge()
-                .flat_map(|hole| self.get_score(hole).unwrap().update_score(1))
+                .flat_map(|hole| {
+                    self.get_score(hole).unwrap().update_score(1)
+                })
                 .collect();
             return_vec.extend(funcs);
         }
@@ -541,6 +544,14 @@ impl Player {
             input: VMixPlayerInfo::TotalScore(self.ind).into(),
         }
     }
+    
+    fn set_round_score(&self) -> VMixFunction<VMixPlayerInfo> {
+        VMixFunction::SetText {
+            value: fix_score(self.round_score),
+            input: VMixPlayerInfo::RoundScore(self.ind)
+        }
+    }
+    
 
     pub fn set_pos(&self) -> Option<VMixFunction<VMixPlayerInfo>> {
         let value_string = if self.lb_even {
@@ -726,7 +737,7 @@ impl Player {
         }
     }
 
-    fn set_rs(&self, hidden: bool) -> VMixFunction<LeaderBoardProperty> {
+    fn set_rs(&self) -> VMixFunction<LeaderBoardProperty> {
         VMixFunction::SetText {
             value: fix_score(self.round_score),
             input: LeaderBoardProperty::RoundScore(self.position).into(),
@@ -769,7 +780,7 @@ impl Player {
     pub fn set_lb(&mut self) -> Vec<VMixFunction<LeaderBoardProperty>> {
         self.check_if_allowed_to_visible();
         let hide = self.hole_shown_up_until == 0;
-        let mut return_vec = vec![self.set_lb_name(), self.set_lb_hr(), self.set_rs(hide)];
+        let mut return_vec = vec![self.set_lb_name(), self.set_lb_hr(), self.set_rs()];
         return_vec.extend(self.set_ts(hide));
         return_vec.extend(self.set_moves());
         return_vec.push(self.set_thru(hide));
@@ -810,8 +821,8 @@ impl PlayerContainer {
         self.rounds_with_players.iter().enumerate().take_while(|(i,_)|i<&self.round).flat_map(|(_,player)|player).collect_vec()
     }
 
-    pub fn players_mut(&mut self) -> &mut Vec<Player> {
-        self.rounds_with_players.get_mut(self.round).unwrap()
+    pub fn players_mut(&mut self) -> Vec<&mut Player> {
+        self.rounds_with_players.get_mut(self.round).unwrap().iter_mut().collect_vec()
     }
 }
 
@@ -886,14 +897,28 @@ impl RustHandler {
         
         let previous_players = self.get_previous_rounds_players().into_iter().filter(|player|player.division.name == "Mixed Amateur 1").collect_vec();
         for round in 0..self.round_ind {
-            
             let state = LeaderboardState::new(round,previous_players.clone().into_iter().filter(|player|player.round_ind==round).cloned().collect_vec(),previous_players.clone().into_iter().filter(|player|player.round_ind<round).cloned().collect_vec());
             lb.add_state(state)
         }
-        
         lb
     }
-
+    
+    pub fn add_total_score_to_players(&mut self) {
+        let mut players = self.get_previous_rounds_players().into_iter().cloned().collect_vec();
+        for player in players.iter_mut() {
+            player.fix_round_score(None);
+        }
+        
+        let mut mutable_players = self.player_container.players_mut();
+        players.into_iter().for_each(|player|{
+            
+            let total_score = player.total_score;
+            let player_id = player.player_id.as_str();
+            if let Some(player) = mutable_players.iter_mut().find(|player|player.player_id==player_id) {
+                player.total_score += total_score;
+            }
+        })
+    }
     pub async fn get_event(
         event_id: &str,
         round_ids: Vec<String>,
@@ -1055,7 +1080,7 @@ impl RustHandler {
     pub fn find_player_mut(&mut self, player_id: &str) -> Option<&mut Player> {
         self.player_container
             .players_mut()
-            .iter_mut()
+            .into_iter()
             .find(|player| player.player_id == player_id)
     }
 
@@ -1068,6 +1093,6 @@ impl RustHandler {
     }
 
     pub fn get_players_mut(&mut self) -> Vec<&mut Player> {
-        self.player_container.players_mut().iter_mut().collect_vec()
+        self.player_container.players_mut()
     }
 }

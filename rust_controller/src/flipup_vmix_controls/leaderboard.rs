@@ -240,7 +240,7 @@ impl LeaderboardPlayer {
 
     fn set_round_score(&self) -> VMixFunction<LeaderBoardProperty> {
         VMixFunction::SetText {
-            value: fix_score(self.round_score),
+            value: format!("({})",fix_score(self.round_score)),
             input: LeaderBoardProperty::RoundScore(self.index).into(),
         }
     }
@@ -405,8 +405,8 @@ mod prop {
     }
     
     
-    pub struct LeaderboardTop10(LeaderBoardProperty);
-    impl VMixSelectionTrait for LeaderboardTop10 {
+    pub struct LeaderboardTop6(LeaderBoardProperty);
+    impl VMixSelectionTrait for LeaderboardTop6 {
         fn get_selection_name(&self) -> String {
             self.0.get_selection_name()
         }
@@ -420,7 +420,7 @@ mod prop {
         const INPUT_ID: &'static str = "1900db1a-4f83-4111-848d-d9a87474f56c";
     }
 
-    impl From<LeaderBoardProperty> for LeaderboardTop10 {
+    impl From<LeaderBoardProperty> for LeaderboardTop6 {
         fn from(value: LeaderBoardProperty) -> Self {
             Self(value)
         }
@@ -429,7 +429,7 @@ mod prop {
 use crate::flipup_vmix_controls::Image;
 pub use prop::LeaderBoardProperty;
 use crate::controller::queries::Division;
-use crate::flipup_vmix_controls::leaderboard::prop::LeaderboardTop10;
+use crate::flipup_vmix_controls::leaderboard::prop::LeaderboardTop6;
 
 #[cfg(test)]
 mod test {
