@@ -11,6 +11,7 @@ use crate::controller::coordinator::FlipUpVMixCoordinator;
 use guard::*;
 use mutation::*;
 
+use rocket::log::LogLevel;
 use rocket::tokio::sync::broadcast::channel;
 use rocket::{Build, Rocket, Route};
 use rocket_dyn_templates::Template;
@@ -20,9 +21,8 @@ use rocket_okapi::settings::UrlObject;
 use rocket_okapi::swagger_ui::{make_swagger_ui, SwaggerUIConfig};
 use std::net::IpAddr;
 use std::sync::Arc;
-use rocket::log::LogLevel;
 use tokio::sync::{Mutex, MutexGuard};
-pub use websocket::channels::{PlayerManagerUpdate, HoleUpdate};
+pub use websocket::channels::{HoleUpdate, PlayerManagerUpdate};
 
 pub use crate::api::websocket::channels::GeneralChannel;
 pub use guard::Error;
@@ -103,18 +103,16 @@ pub fn launch() -> Rocket<Build> {
     let hole_update_sender = GeneralChannel::from(hole_update_sender);
 
     let conf = {
-
         #[cfg(windows)]
         let ip = IpAddr::V4("10.170.120.134".parse().unwrap());
         #[cfg(not(windows))]
         let ip = IpAddr::V4("10.170.122.114".parse().unwrap());
         rocket::Config {
-            address:ip,
+            address: ip,
             cli_colors: true,
             log_level: LogLevel::Normal,
             ..Default::default()
         }
-
     };
 
     rocket::build()

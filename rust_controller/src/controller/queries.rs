@@ -30,7 +30,7 @@ impl Default for Division {
     fn default() -> Self {
         Division {
             name: "".to_string(),
-            id: cynic::Id::new("")
+            id: cynic::Id::new(""),
         }
     }
 }
@@ -130,15 +130,15 @@ pub mod layout {
     use super::schema;
 
     pub mod hole {
-        use std::sync::Arc;
-        use itertools::Itertools;
-        use crate::api::Error;
         use super::super::Division;
+        use crate::api::Error;
+        use itertools::Itertools;
+        use std::sync::Arc;
 
         #[derive(Debug, Clone)]
         pub struct Holes {
             holes: Vec<Arc<Hole>>,
-            division: Arc<Division>
+            division: Arc<Division>,
         }
         impl Holes {
             pub fn find_hole(&self, hole_number: u8) -> Option<Arc<Hole>> {
@@ -147,12 +147,18 @@ pub mod layout {
                     .find(|h| h.hole == hole_number)
                     .map(Arc::clone)
             }
-            
+
             pub fn from_vec_hole(holes: Vec<super::Hole>) -> Result<Self, Error> {
-                let mut holes: Vec<Hole> = holes.into_iter().map(|hole|Hole::try_from(hole)).try_collect()?;
-                holes.sort_by_key(|hole|hole.hole);
+                let mut holes: Vec<Hole> = holes
+                    .into_iter()
+                    .map(|hole| Hole::try_from(hole))
+                    .try_collect()?;
+                holes.sort_by_key(|hole| hole.hole);
                 let holes = holes.into_iter().map(Arc::new).collect();
-                Ok(Self{holes, division: Division::default().into()})
+                Ok(Self {
+                    holes,
+                    division: Division::default().into(),
+                })
             }
         }
 
@@ -187,10 +193,6 @@ pub mod layout {
                 })
             }
         }
-
-        
-
-        
     }
 
     pub use hole::*;
@@ -273,6 +275,7 @@ pub mod group {
         pub status: GroupStatus,
         pub position: f64,
         pub player_connections_v2: Vec<GroupPlayerConnectionTypeCombined>,
+        pub start_hole: Option<super::Hole>,
     }
 
     #[derive(cynic::InlineFragments, Debug, Clone)]

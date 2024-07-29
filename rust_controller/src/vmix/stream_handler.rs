@@ -87,7 +87,6 @@ impl VMixQueue {
 
     pub fn add<T: VMixSelectionTrait>(&self, functions: &[VMixInterfacer<T>]) {
         for func in functions {
-            
             match self.functions_sender.send(func.to_cmd()) {
                 Ok(_) => (),
                 Err(e) => {

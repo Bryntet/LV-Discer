@@ -1,9 +1,10 @@
-use std::sync::Arc;
 use crate::controller::{fix_score, Player};
 use crate::vmix::functions::{VMixInterfacer, VMixSelectionTrait};
 use itertools::Itertools;
 use rayon::prelude::*;
 use rocket::form::validate::one_of;
+use rocket::http::ext::IntoCollection;
+use std::sync::Arc;
 
 #[derive(Debug, Clone, Default)]
 pub struct Leaderboard {
@@ -52,32 +53,42 @@ impl Leaderboard {
     }
 
     pub fn send_to_vmix(&self, queue: Arc<VMixQueue>) {
-        self.current_state().map(|state|state.send_to_vmix(self.previous_state(),queue.clone())).expect("Should work")
+        self.current_state()
+            .map(|state| state.send_to_vmix(self.previous_state(), queue.clone()))
+            .expect("Should work")
     }
-    
+
     pub fn add_state(&mut self, state: LeaderboardState) {
-        if self.current_state().is_some_and(|current_state|current_state.round==state.round){
+        if self
+            .current_state()
+            .is_some_and(|current_state| current_state.round == state.round)
+        {
             self.states.pop();
-        } 
+        }
         self.states.push(state)
-        
     }
 }
 impl LeaderboardState {
-    pub fn new(round: usize, mut current_round_players: Vec<Player>, mut all_previous_rounds_players: Vec<Player>) -> Self {
-        current_round_players
-            .iter_mut()
-            .for_each(|player| {
-                let previous_instances = all_previous_rounds_players.iter_mut()
-                    .filter(|previous_round_player|previous_round_player.player_id==player.player_id).collect_vec();
-                let total = previous_instances.into_iter().map(|player|{
+    pub fn new(
+        round: usize,
+        mut current_round_players: Vec<Player>,
+        mut all_previous_rounds_players: Vec<Player>,
+    ) -> Self {
+        current_round_players.iter_mut().for_each(|player| {
+            let previous_instances = all_previous_rounds_players
+                .iter_mut()
+                .filter(|previous_round_player| previous_round_player.player_id == player.player_id)
+                .collect_vec();
+            let total = previous_instances
+                .into_iter()
+                .map(|player| {
                     player.fix_round_score(None);
                     player.round_score
-                }).sum::<isize>();
-                player.fix_round_score(None);
-                player.total_score += total;
-                
-            });
+                })
+                .sum::<isize>();
+            player.fix_round_score(None);
+            player.total_score += total;
+        });
         Self::sort_players(&mut current_round_players);
         Self {
             where_to_start: LeaderboardStart::Latest,
@@ -99,13 +110,13 @@ impl LeaderboardState {
             .map(|p| p.round_score)
             .min()
             .unwrap_or_default();
-        let other = other.map(|state|state.leaderboard_players(None));
+        let other = other.map(|state| state.leaderboard_players(None));
         let players_with_pos = Self::players_with_positions(self.players.iter().collect_vec());
-        
+
         players_with_pos
             .into_iter()
             .enumerate()
-            .map(|(real_pos, (index,player))| {
+            .map(|(real_pos, (index, player))| {
                 LeaderboardPlayer::new(
                     player,
                     index,
@@ -118,7 +129,6 @@ impl LeaderboardState {
             })
             .collect_vec()
     }
-    
 
     fn players_with_positions(players: Vec<&Player>) -> Vec<(usize, &Player)> {
         let mut pos = 1;
@@ -133,18 +143,14 @@ impl LeaderboardState {
                     same_score_count = 0;
                 }
                 same_score_count += 1;
-                
+
                 last_score = player.total_score;
                 (pos, player)
             })
             .collect_vec()
     }
 
-    pub fn send_to_vmix(
-        &self,
-        other: Option<&Self>,
-        queue: Arc<VMixQueue>
-    ) {
+    pub fn send_to_vmix(&self, other: Option<&Self>, queue: Arc<VMixQueue>) {
         let players = self.leaderboard_players(other);
         let first_batch = players
             .iter()
@@ -152,7 +158,24 @@ impl LeaderboardState {
             .collect_vec();
 
         queue.add(&first_batch);
-        let second_batch = first_batch.into_iter().flat_map(VMixInterfacer::to_top_6).collect_vec();
+        let mut second_batch = first_batch
+            .into_iter()
+            .flat_map(VMixInterfacer::to_top_6)
+            .collect_vec();
+        let v: Vec<_> = self
+            .players
+            .clone()
+            .into_iter()
+            .flat_map(|( player)| {
+                player
+                    .results
+                    .the_latest_6_holes()
+                    .into_iter()
+                    .enumerate()
+                    .map(move |(hole_num, hole)| hole.to_leaderboard_top_6(self.leaderboard_players(other).iter().find(|lb_player|lb_player.id == player.player_id).unwrap().position, hole_num))
+            })
+            .collect_vec();
+        second_batch.extend(v);
         queue.add(&second_batch);
     }
 }
@@ -192,16 +215,13 @@ impl LeaderboardPlayer {
         round: usize,
         all_other_players: &[Player],
     ) -> Self {
-
         let other_pos = other_board
             .and_then(|players| {
                 players
                     .iter()
                     .find(|other_player| other_player.id == player.player_id)
             })
-            .map(|player| {
-                player.position
-            });
+            .map(|player| player.position);
         let movement = match other_pos {
             Some(other_pos) => LeaderboardMovement::new(pos, other_pos),
             None => LeaderboardMovement::Same,
@@ -228,10 +248,10 @@ impl LeaderboardPlayer {
             total_score: player.total_score,
             thru: player.results.amount_of_holes_finished(),
             tied: tie,
-            id: player.player_id.clone()
+            id: player.player_id.clone(),
         }
     }
-    
+
     fn set_hot_round(&self) -> VMixInterfacer<LeaderBoardProperty> {
         VMixInterfacer::set_image(
             if self.hot_round {
@@ -240,34 +260,32 @@ impl LeaderboardPlayer {
                 Image::Nothing
             }
             .to_location(),
-             LeaderBoardProperty::HotRound(self.index).into(),
+            LeaderBoardProperty::HotRound(self.index).into(),
         )
     }
 
     fn set_round_score(&self) -> VMixInterfacer<LeaderBoardProperty> {
-        VMixInterfacer::set_text (
-            format!("({})",fix_score(self.round_score)),
+        VMixInterfacer::set_text(
+            format!("({})", fix_score(self.round_score)),
             LeaderBoardProperty::RoundScore(self.index).into(),
         )
     }
 
     fn set_total_score(&self) -> VMixInterfacer<LeaderBoardProperty> {
-        VMixInterfacer::set_text (
+        VMixInterfacer::set_text(
             fix_score(self.total_score),
             LeaderBoardProperty::TotalScore { pos: self.index }.into(),
         )
     }
 
     fn set_position(&self) -> VMixInterfacer<LeaderBoardProperty> {
-        VMixInterfacer::set_text (
+        VMixInterfacer::set_text(
             if self.tied.is_some() {
                 format!("T{}", self.position)
             } else {
                 self.position.to_string()
             },
-            LeaderBoardProperty::Position {
-                pos: self.index,
-            },
+            LeaderBoardProperty::Position { pos: self.index },
         )
     }
 
@@ -284,10 +302,9 @@ impl LeaderboardPlayer {
     }
 
     fn set_movement_text(&self) -> VMixInterfacer<LeaderBoardProperty> {
-        VMixInterfacer::set_text (
+        VMixInterfacer::set_text(
             match self.movement {
-                LeaderboardMovement::Up(n) |
-                LeaderboardMovement::Down(n) => n.to_string(),
+                LeaderboardMovement::Up(n) | LeaderboardMovement::Down(n) => n.to_string(),
                 LeaderboardMovement::Same => " ".to_string(),
             },
             LeaderBoardProperty::Move { pos: self.index }.into(),
@@ -320,8 +337,6 @@ impl LeaderboardPlayer {
             self.set_name(),
         ]
     }
-
-    
 }
 
 #[derive(Debug)]
@@ -343,25 +358,17 @@ impl LeaderboardMovement {
 
 mod prop {
     use crate::flipup_vmix_controls::{OverarchingScore, Score};
-    use crate::vmix::functions::{VMixSelectionTrait};
+    use crate::vmix::functions::VMixSelectionTrait;
 
     #[derive(Clone)]
     pub enum LeaderBoardProperty {
-        Position {
-            pos: usize,
-        },
+        Position { pos: usize },
         Name(usize),
         HotRound(usize),
         RoundScore(usize),
-        TotalScore {
-            pos: usize,
-        },
-        Move {
-            pos: usize,
-        },
-        Arrow {
-            pos: usize,
-        },
+        TotalScore { pos: usize },
+        Move { pos: usize },
+        Arrow { pos: usize },
         Thru(usize),
         CheckinText,
         TotalScoreTitle,
@@ -401,31 +408,27 @@ mod prop {
         }
         const INPUT_ID: &'static str = "38ded319-d270-41ec-b161-130db4b19901";
     }
-    
 
-    pub enum LeaderboardTop6{
-        Position{pos: usize},
-        Name{pos:usize},
-        LastScore{
-            pos:usize,
-            hole:usize,
-        },
-        LastScoreColour{pos:usize,hole:usize,},
-        RoundScore{pos:usize},
-        TotalScore{pos:usize},
-        Thru{pos:usize}
+    pub enum LeaderboardTop6 {
+        Position { pos: usize },
+        Name { pos: usize },
+        LastScore { pos: usize, hole: usize },
+        LastScoreColour { pos: usize, hole: usize },
+        RoundScore { pos: usize },
+        TotalScore { pos: usize },
+        Thru { pos: usize },
     }
     impl VMixSelectionTrait for LeaderboardTop6 {
         fn get_selection_name(&self) -> String {
             use LeaderboardTop6::*;
             match self {
-                Position {pos,..}  => format!("pos{pos}"),
-                Name{pos}=> format!("name{pos}"),
-                LastScore{pos,hole} =>format!("p{pos}ls{hole}",),
-                LastScoreColour {..} => unreachable!("not implemented yet"),
-                RoundScore {pos} => format!("p{pos}scorernd"),
-                TotalScore {pos} => format!("p{pos}scoretot"),
-                Thru {pos} => format!("p{pos}thru")
+                Position { pos, .. } => format!("pos{pos}"),
+                Name { pos } => format!("name{pos}"),
+                LastScore { pos, hole } => format!("p{pos}ls{hole}",),
+                LastScoreColour { .. } => unreachable!("not implemented yet"),
+                RoundScore { pos } => format!("p{pos}scorernd"),
+                TotalScore { pos } => format!("p{pos}scoretot"),
+                Thru { pos } => format!("p{pos}thru"),
             }
         }
         fn data_extension(&self) -> &'static str {
@@ -440,24 +443,28 @@ mod prop {
 
     impl LeaderboardTop6 {
         pub fn from_prop(leader_board_property: LeaderBoardProperty) -> Option<Self> {
-            match leader_board_property{
-                LeaderBoardProperty::CheckinText|LeaderBoardProperty::TotalScoreTitle | LeaderBoardProperty::Arrow {..} | LeaderBoardProperty::HotRound(_) | LeaderBoardProperty::Move {..}=> None,
-                LeaderBoardProperty::Position {pos,} => Some(LeaderboardTop6::Position { pos, }),
-                LeaderBoardProperty::Thru(pos) => Some(LeaderboardTop6::Thru {pos}),
-                LeaderBoardProperty::TotalScore {pos} => Some(LeaderboardTop6::TotalScore {pos}),
-                LeaderBoardProperty::RoundScore(pos) => Some(LeaderboardTop6::RoundScore {pos}),
+            match leader_board_property {
+                LeaderBoardProperty::CheckinText
+                | LeaderBoardProperty::TotalScoreTitle
+                | LeaderBoardProperty::Arrow { .. }
+                | LeaderBoardProperty::HotRound(_)
+                | LeaderBoardProperty::Move { .. } => None,
+                LeaderBoardProperty::Position { pos } => Some(LeaderboardTop6::Position { pos }),
+                LeaderBoardProperty::Thru(pos) => Some(LeaderboardTop6::Thru { pos }),
+                LeaderBoardProperty::TotalScore { pos } => {
+                    Some(LeaderboardTop6::TotalScore { pos })
+                }
+                LeaderBoardProperty::RoundScore(pos) => Some(LeaderboardTop6::RoundScore { pos }),
 
-                LeaderBoardProperty::Name(pos) => Some(LeaderboardTop6::Name {pos})
+                LeaderBoardProperty::Name(pos) => Some(LeaderboardTop6::Name { pos }),
             }
         }
     }
-
-
 }
-use crate::flipup_vmix_controls::Image;
-pub use prop::{LeaderBoardProperty,LeaderboardTop6};
 use crate::controller::queries::Division;
+use crate::flipup_vmix_controls::Image;
 use crate::vmix::VMixQueue;
+pub use prop::{LeaderBoardProperty, LeaderboardTop6};
 
 #[cfg(test)]
 mod test {

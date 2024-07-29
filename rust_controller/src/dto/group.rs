@@ -9,13 +9,15 @@ pub struct Group {
     pub players: Vec<dto::Player>,
     pub id: String,
     pub group_number: usize,
+    pub start_at: u8,
 }
 impl Group {
-    pub fn new(id: String, players: Vec<Player>, group_number: usize) -> Self {
+    pub fn new(id: String, players: Vec<Player>, group_number: usize, start_at: u8) -> Self {
         Group {
             players,
             id,
             group_number,
+            start_at,
         }
     }
 
@@ -44,6 +46,11 @@ impl From<&crate::controller::queries::Group> for Group {
             players,
             id: value.id.clone().into_inner(),
             group_number: value.position as usize + 1,
+            start_at: value
+                .start_hole
+                .clone()
+                .map(|hole| hole.number as u8)
+                .unwrap_or(0),
         }
     }
 }
@@ -66,6 +73,7 @@ impl From<crate::controller::queries::Group> for Group {
             players,
             id: value.id.into_inner(),
             group_number: value.position as usize + 1,
+            start_at: value.start_hole.map(|hole| hole.number as u8).unwrap_or(0),
         }
     }
 }

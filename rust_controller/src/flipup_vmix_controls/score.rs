@@ -1,5 +1,5 @@
 use crate::controller::fix_score;
-use crate::vmix::functions::{VMixInterfacer,  VMixPlayerInfo};
+use crate::vmix::functions::{VMixInterfacer, VMixPlayerInfo};
 pub struct OverarchingScore {
     round: usize,
     round_score: isize,
@@ -27,26 +27,20 @@ impl OverarchingScore {
                 VMixInterfacer::set_text(
                     "(".to_string() + &fix_score(self.round_score) + ")",
                     VMixPlayerInfo::RoundScore(self.player),
-            ),
+                ),
                 self.show_round_score(),
             ]
         } else {
             vec![self.hide_round_score()]
         }
     }
-    
-    
-    
+
     fn hide_round_score(&self) -> VMixInterfacer<VMixPlayerInfo> {
-        VMixInterfacer::set_text_visible_off (
-            VMixPlayerInfo::RoundScore(self.player),
-        )
+        VMixInterfacer::set_text_visible_off(VMixPlayerInfo::RoundScore(self.player))
     }
 
     fn show_round_score(&self) -> VMixInterfacer<VMixPlayerInfo> {
-        VMixInterfacer::set_text_visible_on(
-            VMixPlayerInfo::RoundScore(self.player),
-        )
+        VMixInterfacer::set_text_visible_on(VMixPlayerInfo::RoundScore(self.player))
     }
 
     pub fn set_total_score(&self) -> VMixInterfacer<VMixPlayerInfo> {
@@ -157,7 +151,6 @@ impl Score {
         )
     }
     pub fn update_score(&self, player: usize) -> [VMixInterfacer<VMixPlayerInfo>; 3] {
-
         [
             self.update_total_score_text(player),
             self.show_score(player),
@@ -174,20 +167,21 @@ impl Score {
         }
     }
 
-
-
     fn update_total_score_text(&self, player: usize) -> VMixInterfacer<VMixPlayerInfo> {
-        VMixInterfacer::set_text (
+        VMixInterfacer::set_text(
             self.get_score_text(),
             VMixPlayerInfo::Score {
                 hole: self.hole as usize, // TODO remove
                 player,
-            
-        })
+            },
+        )
     }
 
     fn show_score(&self, player: usize) -> VMixInterfacer<VMixPlayerInfo> {
-        VMixInterfacer::set_text_visible_on(VMixPlayerInfo::Score {hole: self.hole as usize, player})
+        VMixInterfacer::set_text_visible_on(VMixPlayerInfo::Score {
+            hole: self.hole as usize,
+            player,
+        })
     }
 
     pub fn play_mov_vmix(&self, player: usize, ob: bool) -> [VMixInterfacer<VMixPlayerInfo>; 2] {
@@ -201,8 +195,6 @@ impl Score {
     fn stop_previous_mov() -> VMixInterfacer<VMixPlayerInfo> {
         VMixInterfacer::overlay_input_4_off()
     }
-
-    
 
     fn to_vmix_mov(&self, ob: bool) -> VMixInterfacer<VMixPlayerInfo> {
         if ob {

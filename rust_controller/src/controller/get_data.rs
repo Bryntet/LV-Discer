@@ -2,7 +2,10 @@ use super::queries;
 use crate::api::Error;
 use crate::controller::queries::layout::hole::Hole;
 use crate::controller::queries::layout::Holes;
-use crate::flipup_vmix_controls::{Leaderboard, LeaderBoardProperty, LeaderboardState};
+use crate::controller::queries::Division;
+use crate::flipup_vmix_controls::{
+    LeaderBoardProperty, Leaderboard, LeaderboardState, LeaderboardTop6,
+};
 use crate::flipup_vmix_controls::{OverarchingScore, Score};
 use crate::vmix::functions::*;
 use crate::{controller, dto};
@@ -13,7 +16,6 @@ use rayon::prelude::*;
 use rocket::futures::{FutureExt, StreamExt};
 use std::collections::HashSet;
 use std::sync::Arc;
-use crate::controller::queries::Division;
 
 pub const DEFAULT_FOREGROUND_COL: &str = "3F334D";
 pub const DEFAULT_FOREGROUND_COL_ALPHA: &str = "3F334D00";
@@ -66,10 +68,7 @@ impl RankUpDown {
             RankUpDown::Same => "".to_string(),
         };
 
-        VMixInterfacer::set_text(
-            movement,
-            LeaderBoardProperty::Move { pos }.into(),
-        )
+        VMixInterfacer::set_text(movement, LeaderBoardProperty::Move { pos }.into())
     }
 
     fn make_arrow(&self, pos: usize) -> VMixInterfacer<LeaderBoardProperty> {
@@ -80,16 +79,14 @@ impl RankUpDown {
         }
         .to_string();
 
-        VMixInterfacer::set_image(
-            img,
-            LeaderBoardProperty::Arrow { pos }.into(),
-        )
+        VMixInterfacer::set_image(img, LeaderBoardProperty::Arrow { pos }.into())
     }
 }
 // TODO: Refactor out
 #[derive(Debug, Clone, Default)]
 pub struct PlayerRound {
     results: Vec<HoleResult>,
+    start_at_hole: u8,
     finished: bool,
     round: usize,
 }
@@ -106,7 +103,11 @@ pub struct HoleResult {
 
 impl From<&HoleResult> for Score {
     fn from(res: &HoleResult) -> Self {
-        Self::new(res.throws() as i8, res.hole_representation.par as i8, res.hole)
+        Self::new(
+            res.throws() as i8,
+            res.hole_representation.par as i8,
+            res.hole,
+        )
     }
 }
 
@@ -130,7 +131,7 @@ impl HoleResult {
         let hole_rep = holes.find_hole(hole)?;
         Some(Self {
             hole,
-            throws: (tjing.score as i8  + hole_rep.par as i8) as u8,
+            throws: (tjing.score as i8 + hole_rep.par as i8) as u8,
             hole_representation: hole_rep,
             tjing_result: Some(tjing),
             ob: HashSet::new(),
@@ -165,15 +166,24 @@ impl HoleResult {
     pub fn get_mov(&self, player: usize) -> [VMixInterfacer<VMixPlayerInfo>; 2] {
         self.to_score().play_mov_vmix(player, false)
     }
+
+    pub fn to_leaderboard_top_6(&self, pos: usize, hole: usize) -> VMixInterfacer<LeaderboardTop6> {
+        
+        VMixInterfacer::set_text(
+            fix_score(self.actual_score() as isize),
+            LeaderboardTop6::LastScore { pos, hole },
+        )
+    }
 }
 
 impl PlayerRound {
-    pub fn new(mut results: Vec<HoleResult>, round: usize) -> Self {
-        results.sort_by(|a,b|a.hole.cmp(&b.hole));
+    pub fn new(mut results: Vec<HoleResult>, round: usize, start_at_hole: u8) -> Self {
+        results.sort_by(|a, b| a.hole.cmp(&b.hole));
         Self {
             results,
             finished: false,
             round,
+            start_at_hole,
         }
     }
 
@@ -206,14 +216,19 @@ impl PlayerRound {
 
     pub fn update_tjing(&mut self, results: &[queries::HoleResult]) {
         for result in &mut self.results {
-            if let Some(tjing_result) = results.iter().find(|hole|hole.hole.number as u8 == result.hole) {
+            if let Some(tjing_result) = results
+                .iter()
+                .find(|hole| hole.hole.number as u8 == result.hole)
+            {
                 result.tjing_result = Some(tjing_result.to_owned());
                 result.finished = true;
             }
         }
     }
     pub fn current_result(&self, hole: u8) -> Option<&HoleResult> {
-        self.results.iter().find(|result| result.hole == if hole+1 > 18 {18} else {hole+1})
+        self.results
+            .iter()
+            .find(|result| result.hole == if hole + 1 > 18 { 18 } else { hole + 1 })
     }
 
     // Gets score up until hole
@@ -248,15 +263,28 @@ impl PlayerRound {
         ));
 
         let feet = (hole.hole_representation.length as f32 * 3.28084) as u16;
-        r_vec.push(VMixInterfacer::set_text (
+        r_vec.push(VMixInterfacer::set_text(
             "".to_string(),
             VMixHoleInfo::HoleFeet(feet).into(),
         ));
         r_vec
     }
-    
+
     pub fn amount_of_holes_finished(&self) -> u8 {
-        self.results.iter().filter(|result| result.tjing_result.is_some() || result.finished).count() as u8
+        self.results
+            .iter()
+            .filter(|result| result.tjing_result.is_some() || result.finished)
+            .count() as u8
+    }
+
+    pub fn the_latest_6_holes(self) -> Vec<HoleResult> {
+        dbg!(self.results
+            .into_iter()
+            .sorted_by_key(|result| result.hole)
+            .rev()
+            .take(6)
+            .rev()
+            .collect_vec())
     }
 }
 
@@ -297,18 +325,27 @@ pub struct Player {
     pub dnf: bool,
     pub first_scored: bool,
     pub visible_player: bool,
-    pub division: Arc<Division>
+    pub division: Arc<Division>,
 }
 
 impl Player {
-    fn from_query(player: queries::Player, round: usize, holes: &Holes, divisions: Vec<Arc<Division>>) -> Result<Self,Error> {
+    fn from_query(
+        player: queries::Player,
+        round: usize,
+        holes: &Holes,
+        divisions: Vec<Arc<Division>>,
+        starts_at_hole: u8,
+    ) -> Result<Self, Error> {
         let first_name = player.user.first_name.unwrap();
         let surname = player.user.last_name.unwrap();
         let image_id: Option<String> = player
             .user
             .profile
             .and_then(|profile| profile.profile_image_url);
-        let division = divisions.into_iter().find(|div| div.id==player.division.id).ok_or(Error::UnableToParse)?;
+        let division = divisions
+            .into_iter()
+            .find(|div| div.id == player.division.id)
+            .ok_or(Error::UnableToParse)?;
         let results = PlayerRound::new(
             player
                 .results
@@ -320,6 +357,7 @@ impl Player {
                 })
                 .collect_vec(),
             round,
+            starts_at_hole,
         );
         Ok(Self {
             player_id: player.id.into_inner(),
@@ -425,9 +463,9 @@ impl Player {
                 VMixPlayerInfo::Name(self.ind).into(),
             ),
             VMixInterfacer::set_text(
-                 self.surname.clone(),
+                self.surname.clone(),
                 VMixPlayerInfo::Surname(self.ind).into(),
-            )
+            ),
         ]
     }
 
@@ -451,12 +489,9 @@ impl Player {
         return_vec.push(self.set_tot_score());
         return_vec.push(self.set_round_score());
         if self.hole_shown_up_until != 0 {
-
             let funcs: Vec<_> = (0..self.hole_shown_up_until)
                 .par_bridge()
-                .flat_map(|hole| {
-                    self.get_score(hole).unwrap().update_score(1)
-                })
+                .flat_map(|hole| self.get_score(hole).unwrap().update_score(1))
                 .collect();
             return_vec.extend(funcs);
         }
@@ -468,7 +503,6 @@ impl Player {
 
     /// Used by leaderboard    
     pub fn fix_round_score(&mut self, up_until: Option<u8>) {
-        self.total_score -= self.round_score;
         self.round_score = 0;
         for result in &self.results.results {
             self.round_score += result.actual_score() as isize;
@@ -539,19 +573,18 @@ impl Player {
     }
 
     fn set_tot_score(&self) -> VMixInterfacer<VMixPlayerInfo> {
-        VMixInterfacer::set_text (
+        VMixInterfacer::set_text(
             fix_score(self.total_score),
             VMixPlayerInfo::TotalScore(self.ind).into(),
         )
     }
-    
+
     fn set_round_score(&self) -> VMixInterfacer<VMixPlayerInfo> {
-        VMixInterfacer::set_text (
+        VMixInterfacer::set_text(
             fix_score(self.round_score),
-            VMixPlayerInfo::RoundScore(self.ind)
+            VMixPlayerInfo::RoundScore(self.ind),
         )
     }
-    
 
     pub fn set_pos(&self) -> Option<VMixInterfacer<VMixPlayerInfo>> {
         let value_string = if self.lb_even {
@@ -575,9 +608,12 @@ impl Player {
         [
             VMixInterfacer::set_text_visible_off(
                 VMixPlayerInfo::PlayerPosition(self.ind as u16).into(),
-        ),
-            VMixInterfacer::set_color("00000000",VMixPlayerInfo::PosRightTriColor(self.ind).into()),
-            VMixInterfacer::set_color("00000000",VMixPlayerInfo::PosSquareColor(self.ind).into()),
+            ),
+            VMixInterfacer::set_color(
+                "00000000",
+                VMixPlayerInfo::PosRightTriColor(self.ind).into(),
+            ),
+            VMixInterfacer::set_color("00000000", VMixPlayerInfo::PosSquareColor(self.ind).into()),
         ]
     }
 
@@ -586,10 +622,15 @@ impl Player {
         [
             VMixInterfacer::set_text_visible_on(
                 VMixPlayerInfo::PlayerPosition(self.ind as u16).into(),
-        ),
-
-            VMixInterfacer::set_color(DEFAULT_BACKGROUND_COL,VMixPlayerInfo::PosRightTriColor(self.ind).into()),
-            VMixInterfacer::set_color(DEFAULT_BACKGROUND_COL,VMixPlayerInfo::PosSquareColor(self.ind).into()),
+            ),
+            VMixInterfacer::set_color(
+                DEFAULT_BACKGROUND_COL,
+                VMixPlayerInfo::PosRightTriColor(self.ind).into(),
+            ),
+            VMixInterfacer::set_color(
+                DEFAULT_BACKGROUND_COL,
+                VMixPlayerInfo::PosSquareColor(self.ind).into(),
+            ),
         ]
     }
 
@@ -657,17 +698,9 @@ impl Player {
             player: self.ind,
         };
         [
-            VMixInterfacer::set_text(
-                "".to_string(),
-                score_prop.clone().into(),
-            ),
-            VMixInterfacer::set_color(
-                DEFAULT_FOREGROUND_COL_ALPHA,
-                col_prop.into(),
-            ),
-            VMixInterfacer::set_text_visible_off (
-                score_prop.into(),
-            ),
+            VMixInterfacer::set_text("".to_string(), score_prop.clone().into()),
+            VMixInterfacer::set_color(DEFAULT_FOREGROUND_COL_ALPHA, col_prop.into()),
+            VMixInterfacer::set_text_visible_off(score_prop.into()),
         ]
     }
 
@@ -696,9 +729,11 @@ impl Player {
     }
 
     pub fn set_throw(&self) -> VMixInterfacer<VMixPlayerInfo> {
-        VMixInterfacer::set_color(&self.throws.to_string(),VMixPlayerInfo::Throw(self.ind).into())
+        VMixInterfacer::set_color(
+            &self.throws.to_string(),
+            VMixPlayerInfo::Throw(self.ind).into(),
+        )
     }
-
 
     fn set_lb_name(&self) -> VMixInterfacer<LeaderBoardProperty> {
         VMixInterfacer::set_text(
@@ -730,11 +765,16 @@ impl Player {
         )
     }
 
-    fn set_ts(&self, ) -> [VMixInterfacer<LeaderBoardProperty>; 3] {
+    fn set_ts(&self) -> [VMixInterfacer<LeaderBoardProperty>; 3] {
         [
-            VMixInterfacer::set_text_visible_on(LeaderBoardProperty::TotalScore { pos: self.position }.into()),
-        VMixInterfacer::set_text_visible_on(LeaderBoardProperty::TotalScoreTitle.into()),
-        VMixInterfacer::set_text(fix_score(self.total_score),LeaderBoardProperty::TotalScore { pos: self.position }.into()),
+            VMixInterfacer::set_text_visible_on(
+                LeaderBoardProperty::TotalScore { pos: self.position }.into(),
+            ),
+            VMixInterfacer::set_text_visible_on(LeaderBoardProperty::TotalScoreTitle.into()),
+            VMixInterfacer::set_text(
+                fix_score(self.total_score),
+                LeaderBoardProperty::TotalScore { pos: self.position }.into(),
+            ),
         ]
     }
 
@@ -742,7 +782,7 @@ impl Player {
         self.rank.get_instructions(self.position)
     }
 
-    fn set_thru(&self,) -> VMixInterfacer<LeaderBoardProperty> {
+    fn set_thru(&self) -> VMixInterfacer<LeaderBoardProperty> {
         VMixInterfacer::set_text(
             if self.lb_pos == 0 {
                 "".to_string()
@@ -787,18 +827,25 @@ impl PlayerContainer {
         }
     }
 
-
-
     pub fn players(&self) -> &Vec<Player> {
         self.rounds_with_players.get(self.round).unwrap()
     }
-    
+
     pub fn previous_rounds_players(&self) -> Vec<&Player> {
-        self.rounds_with_players.iter().enumerate().take_while(|(i,_)|i<&self.round).flat_map(|(_,player)|player).collect_vec()
+        self.rounds_with_players
+            .iter()
+            .enumerate()
+            .take_while(|(i, _)| i < &self.round)
+            .flat_map(|(_, player)| player)
+            .collect_vec()
     }
 
     pub fn players_mut(&mut self) -> Vec<&mut Player> {
-        self.rounds_with_players.get_mut(self.round).unwrap().iter_mut().collect_vec()
+        self.rounds_with_players
+            .get_mut(self.round)
+            .unwrap()
+            .iter_mut()
+            .collect_vec()
     }
 }
 
@@ -826,16 +873,34 @@ impl RustHandler {
                 .enumerate()
                 .flat_map(|(round_num, round)| Some((round_num, round.event?)))
                 .map(|(round_num, event)| {
-                    
                     let holes = holes.get(round_num).expect("hole should exist");
                     event
                         .players
                         .into_iter()
-                        .flat_map(|player| Player::from_query(player, round_num, holes,divisions.clone()))
+                        .flat_map(|player| {
+                            let id = player.id.clone().into_inner();
+                            Player::from_query(
+                                player,
+                                round_num,
+                                holes,
+                                divisions.clone(),
+                                groups[round]
+                                    .iter()
+                                    .find(|group| {
+                                        group
+                                            .players
+                                            .iter()
+                                            .map(|player| player.id.as_str())
+                                            .contains(&id.as_str())
+                                    })
+                                    .map(|group| group.start_at)
+                                    .unwrap_or(0),
+                            )
+                        })
                         .collect_vec()
                 })
                 .collect_vec(),
-            round
+            round,
         );
 
         for (i, round) in container.rounds_with_players.iter_mut().enumerate() {
@@ -861,39 +926,51 @@ impl RustHandler {
             round_ind: round,
         })
     }
-    
-    
+
     pub fn get_previous_leaderboards(&self) -> Leaderboard {
         let mut lb = Leaderboard::default();
-        
+
         if self.round_ind == 0 {
             return lb;
         }
 
-        
-        let previous_players = self.get_previous_rounds_players().into_iter().filter(|player|player.division.name == "Mixed Amateur 1").collect_vec();
+        let previous_players = self
+            .get_previous_rounds_players()
+            .into_iter()
+            .filter(|player| player.division.name == "Mixed Amateur 1")
+            .collect_vec();
         for round in 0..self.round_ind {
-            let state = LeaderboardState::new(round,previous_players.clone().into_iter().filter(|player|player.round_ind==round).cloned().collect_vec(),previous_players.clone().into_iter().filter(|player|player.round_ind<round).cloned().collect_vec());
+            let state = LeaderboardState::new(
+                round,
+                previous_players
+                    .clone()
+                    .into_iter()
+                    .filter(|player| player.round_ind == round)
+                    .cloned()
+                    .collect_vec(),
+                previous_players
+                    .clone()
+                    .into_iter()
+                    .filter(|player| player.round_ind < round)
+                    .cloned()
+                    .collect_vec(),
+            );
             lb.add_state(state)
         }
         lb
     }
-    
+
     pub fn add_total_score_to_players(&mut self) {
-        let mut players = self.get_previous_rounds_players().into_iter().cloned().collect_vec();
+        let mut players = self
+            .get_previous_rounds_players()
+            .into_iter()
+            .cloned()
+            .collect_vec();
         for player in players.iter_mut() {
             player.fix_round_score(None);
         }
+
         
-        let mut mutable_players = self.player_container.players_mut();
-        players.into_iter().for_each(|player|{
-            
-            let total_score = player.total_score;
-            let player_id = player.player_id.as_str();
-            if let Some(player) = mutable_players.iter_mut().find(|player|player.player_id==player_id) {
-                player.total_score += total_score;
-            }
-        })
     }
     pub async fn get_event(
         event_id: &str,
@@ -985,7 +1062,7 @@ impl RustHandler {
                     .into_iter()
                     .flat_map(|pool| pool.layout_version.holes)
                     .collect_vec();
-                match Holes::from_vec_hole(holes,) {
+                match Holes::from_vec_hole(holes) {
                     Err(e) => return Err(e),
                     Ok(holes) => rounds_holes.push(holes),
                 }
@@ -1063,7 +1140,7 @@ impl RustHandler {
     pub fn get_players(&self) -> Vec<&Player> {
         self.player_container.players().iter().collect_vec()
     }
-    
+
     pub fn get_previous_rounds_players(&self) -> Vec<&Player> {
         self.player_container.previous_rounds_players()
     }

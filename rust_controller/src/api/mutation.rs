@@ -32,8 +32,6 @@ pub async fn load(loader: &State<CoordinatorLoader>, builder: Json<CoordinatorBu
     *loader.0.lock().await = Some(coordinator.into());
 }
 
-
-
 #[openapi(tag = "Config")]
 #[post("/group/<group_id>")]
 pub async fn set_group(
@@ -78,18 +76,27 @@ pub async fn set_score_ready(coordinator: Coordinator, player_id: &str) -> Resul
 
 #[openapi(tag = "Queue")]
 #[post("/player/<player_id>/add-to-queue")]
-pub async fn add_to_queue(coordinator: Coordinator, channel: &GeneralChannel<PlayerManagerUpdate>, player_id: &str) -> Result<(), Error> {
-    coordinator.lock().await.add_to_queue(player_id.to_string(),channel);
+pub async fn add_to_queue(
+    coordinator: Coordinator,
+    channel: &GeneralChannel<PlayerManagerUpdate>,
+    player_id: &str,
+) -> Result<(), Error> {
+    coordinator
+        .lock()
+        .await
+        .add_to_queue(player_id.to_string(), channel);
     Ok(())
 }
 
 #[openapi(tag = "Queue")]
 #[post("/players/queue/next")]
-pub async fn next_queue(coordinator: Coordinator, channel: &GeneralChannel<PlayerManagerUpdate>) -> Result<(), Error> {
+pub async fn next_queue(
+    coordinator: Coordinator,
+    channel: &GeneralChannel<PlayerManagerUpdate>,
+) -> Result<(), Error> {
     coordinator.lock().await.next_queued(channel)?;
     Ok(())
 }
-
 
 #[catch(424)]
 pub fn make_coordinator() -> RawHtml<Template> {

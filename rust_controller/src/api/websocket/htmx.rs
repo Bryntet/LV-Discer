@@ -68,9 +68,6 @@ async fn make_html_response<'r>(
 ) -> Option<String> {
     let players = coordinator.lock().await.dto_players();
     metadata
-        .render(
-            "current_selected",
-            json!({"players": players}),
-        )
+        .render("current_selected", json!({"players": players}))
         .map(|(_, b)| b)
 }

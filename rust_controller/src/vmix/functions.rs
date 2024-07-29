@@ -1,6 +1,6 @@
-use std::sync::Arc;
 use crate::flipup_vmix_controls::{LeaderBoardProperty, LeaderboardTop6};
 use crate::vmix::functions::VMixFunction::OverlayInput4Off;
+use std::sync::Arc;
 
 pub trait VMixSelectionTrait {
     fn get_selection(&self) -> String {
@@ -28,8 +28,7 @@ pub trait VMixSelectionTrait {
     const INPUT_ID: &'static str;
 }
 
-
-pub struct VMixInterfacer<InputEnum: VMixSelectionTrait>{
+pub struct VMixInterfacer<InputEnum: VMixSelectionTrait> {
     value: Option<String>,
     input: Option<InputEnum>,
     function: VMixFunction,
@@ -49,38 +48,58 @@ impl VMixInterfacer<LeaderBoardProperty> {
 
 // Functions initialisers
 impl<InputEnum: VMixSelectionTrait> VMixInterfacer<InputEnum> {
-    pub fn set_text(value: String,input:InputEnum) -> Self {
+    pub fn set_text(value: String, input: InputEnum) -> Self {
         Self {
             value: Some(value),
             input: Some(input),
-            function: VMixFunction::SetText
+            function: VMixFunction::SetText,
         }
     }
     pub fn set_color(value: &str, input: InputEnum) -> Self {
         Self {
-            value: Some(format!("#{}",value)),
+            value: Some(format!("#{}", value)),
             input: Some(input),
-            function: VMixFunction::SetColor
+            function: VMixFunction::SetColor,
         }
     }
-    
-    pub fn set_text_visible_on(input: InputEnum) -> Self{
-        Self {value: None,input: Some(input),function: VMixFunction::SetTextVisibleOn}
+
+    pub fn set_text_visible_on(input: InputEnum) -> Self {
+        Self {
+            value: None,
+            input: Some(input),
+            function: VMixFunction::SetTextVisibleOn,
+        }
     }
-    pub fn set_text_visible_off(input: InputEnum) -> Self{
-        Self {value: None,input: Some(input),function: VMixFunction::SetTextVisibleOff}
+    pub fn set_text_visible_off(input: InputEnum) -> Self {
+        Self {
+            value: None,
+            input: Some(input),
+            function: VMixFunction::SetTextVisibleOff,
+        }
     }
-    
+
     pub fn set_image(value: String, input: InputEnum) -> Self {
-        Self {value: Some(value),input: Some(input),function: VMixFunction::SetImage}
+        Self {
+            value: Some(value),
+            input: Some(input),
+            function: VMixFunction::SetImage,
+        }
     }
-    
+
     pub fn overlay_input_4_off() -> Self {
-        Self {value: None, input: None, function: VMixFunction::OverlayInput4Off}
+        Self {
+            value: None,
+            input: None,
+            function: VMixFunction::OverlayInput4Off,
+        }
     }
-    
+
     pub fn overlay_input_4(value: &'static str) -> Self {
-        Self {value: Some(value.to_string()), input: None, function: VMixFunction::OverlayInput4}
+        Self {
+            value: Some(value.to_string()),
+            input: None,
+            function: VMixFunction::OverlayInput4,
+        }
     }
 }
 
@@ -95,20 +114,18 @@ pub enum VMixFunction {
     OverlayInput4,
 }
 
-
 impl<InputEnum: VMixSelectionTrait> VMixInterfacer<InputEnum> {
     fn get_input(&self) -> Option<String> {
         match self.function {
             VMixFunction::OverlayInput4 => Some(format!("Input={}", self.value.as_ref().unwrap())),
             VMixFunction::OverlayInput4Off => None,
-            _ => self.input.as_ref().map(|i| i.get_selection().to_owned())
+            _ => self.input.as_ref().map(|i| i.get_selection().to_owned()),
         }
     }
-    
+
     fn get_value(&self) -> Option<&String> {
         self.value.as_ref()
     }
-
 
     pub fn to_cmd(&self) -> String {
         let cmd = self.function.get_start_cmd();
@@ -116,12 +133,12 @@ impl<InputEnum: VMixSelectionTrait> VMixInterfacer<InputEnum> {
         let value = self.get_value();
 
         "FUNCTION ".to_string()
-            + &match (input,value) {
-            (Some(input),Some(value)) => format!("{cmd} {input}&Value={value}",),
-            (Some(input),None) => format!("{cmd} {input}"),
-            (None,Some(value)) => format!("{cmd} Value={value}"),
-            (None,None) => cmd.to_string()
-        }
+            + &match (input, value) {
+                (Some(input), Some(value)) => format!("{cmd} {input}&Value={value}",),
+                (Some(input), None) => format!("{cmd} {input}"),
+                (None, Some(value)) => format!("{cmd} Value={value}"),
+                (None, None) => cmd.to_string(),
+            }
             + "\r\n"
     }
 }
@@ -130,7 +147,7 @@ impl VMixFunction {
         match self {
             VMixFunction::SetText => "SetText",
             VMixFunction::SetColor => "SetColor",
-            VMixFunction::SetTextVisibleOn  => "SetTextVisibleOn",
+            VMixFunction::SetTextVisibleOn => "SetTextVisibleOn",
             VMixFunction::SetTextVisibleOff => "SetTextVisibleOff",
             VMixFunction::SetImage => "SetImage",
             VMixFunction::OverlayInput4Off => "OverlayInput4Off",
@@ -138,8 +155,6 @@ impl VMixFunction {
         }
     }
 }
-
-
 
 #[derive(Clone, Debug)]
 pub enum VMixPlayerInfo {
@@ -199,6 +214,8 @@ impl VMixSelectionTrait for VMixPlayerInfo {
 
     const INPUT_ID: &'static str = "8db7c455-e05c-4e65-821b-048cd7057cb1";
 }
+
+pub struct PlayerInfoCurrent()
 #[derive(Clone, Debug)]
 pub enum VMixHoleInfo {
     Hole(u8),

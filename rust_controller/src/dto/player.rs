@@ -13,7 +13,7 @@ pub struct Player {
     pub focused: bool,
     pub holes_finished: usize,
     pub index: usize,
-    pub queue: Option<usize>
+    pub queue: Option<usize>,
 }
 
 impl Player {
@@ -23,7 +23,7 @@ impl Player {
         image_url: Option<String>,
         holes_finished: usize,
         index: usize,
-        queue: Option<usize>
+        queue: Option<usize>,
     ) -> Self {
         Self {
             id,
@@ -44,8 +44,7 @@ impl Player {
             focused: false,
             holes_finished: player.amount_of_holes_finished(),
             index: player.ind,
-            queue
-            
+            queue,
         }
     }
 }
@@ -58,9 +57,7 @@ impl From<&controller::Player> for self::Player {
             focused: false,
             holes_finished: value.amount_of_holes_finished(),
             index: value.ind,
-            queue: None
+            queue: None,
         }
     }
 }
-
-

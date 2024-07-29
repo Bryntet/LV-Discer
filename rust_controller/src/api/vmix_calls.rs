@@ -11,8 +11,6 @@ pub async fn play_animation(co: Coordinator) -> Result<(), Error> {
     co.lock().await.play_animation()
 }
 
-
-
 /// # Update leaderboard
 /// Set the leaderboard to the current state
 #[openapi(tag = "VMix")]
@@ -29,9 +27,6 @@ pub async fn update_leaderboard(co: Coordinator, division: &str) -> Result<(), E
     co.set_leaderboard(&div, None);
     Ok(())
 }
-
-
-
 
 /// # Increase score
 /// Increase the score of the currently focused player

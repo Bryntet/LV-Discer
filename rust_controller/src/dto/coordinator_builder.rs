@@ -9,12 +9,16 @@ use rocket_okapi::okapi::{schemars, schemars::JsonSchema};
 pub struct CoordinatorBuilder {
     ip: String,
     event_id: String,
-    round: usize
+    round: usize,
 }
 
 impl CoordinatorBuilder {
     pub fn new(ip: String, event_id: String, round: usize) -> Self {
-        Self { ip, event_id, round}
+        Self {
+            ip,
+            event_id,
+            round,
+        }
     }
 }
 
