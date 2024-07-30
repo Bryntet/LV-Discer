@@ -43,7 +43,7 @@ impl FlipUpVMixCoordinator {
     ) -> Result<Self, Error> {
         let queue = VMixQueue::new(ip.clone())?;
         let handler = RustHandler::new(&event_id, round).await?;
-        
+
         let all_divs = handler.get_divisions();
         let first_group = handler.groups.first().unwrap().first().unwrap();
         let mut coordinator = FlipUpVMixCoordinator {
@@ -83,7 +83,7 @@ impl FlipUpVMixCoordinator {
         index: usize,
         player_updater: &GeneralChannel<api::PlayerManagerUpdate>,
         division_updater: &GeneralChannel<DivisionUpdate>
-        
+
     ) -> Result<(), Error> {
         if index >= self.player_manager.players(self.available_players()).len() {
             return Err(Error::CardIndexNotFound(index));
@@ -91,12 +91,15 @@ impl FlipUpVMixCoordinator {
         self.player_manager.set_focused_by_card_index(index)?;
         self.leaderboard_division = self.focused_player().division.clone();
         self.add_state_to_leaderboard();
-        let all_values = self.focused_player().set_all_values(&self.leaderboard)?;
+        let (all_values,current) = self.focused_player().set_all_values(&self.leaderboard)?;
+
         self.queue_add(&all_values);
+        self.queue_add(&current);
         player_updater.send(self);
         division_updater.send(self);
         Ok(())
     }
+
 
     pub fn add_to_queue(
         &mut self,
@@ -123,7 +126,10 @@ impl FlipUpVMixCoordinator {
     ) -> Result<(), Error> {
         self.player_manager.next_queued();
         self.add_state_to_leaderboard();
-        self.queue_add(&self.focused_player().set_all_values(&self.leaderboard)?);
+
+        let (all, current) = &self.focused_player().set_all_values(&self.leaderboard)?;
+        self.queue_add(&all);
+        self.queue_add(&current);
         channel.send(self);
         Ok(())
     }
@@ -154,7 +160,9 @@ impl FlipUpVMixCoordinator {
             .player_ids();
         self.player_manager.replace(ids);
         self.add_state_to_leaderboard();
-        self.queue_add(&self.focused_player().set_all_values(&self.leaderboard)?);
+        let (all, current) = self.focused_player().set_all_values(&self.leaderboard)?;
+        self.queue_add(&all);
+        self.queue_add(&current);
         updater.send(self);
         Ok(())
     }
@@ -199,12 +207,9 @@ impl FlipUpVMixCoordinator {
         self.current_through = self.focused_player().hole_shown_up_until as u8
     }
 
-    
 
-    pub fn toggle_pos(&mut self) {
-        let f = self.focused_player_mut().toggle_pos();
-        self.queue_add(&f)
-    }
+
+
     pub fn find_player_mut(&mut self, player_id: &str) -> Option<&mut Player> {
         self.handler.find_player_mut(player_id)
     }
@@ -254,10 +259,11 @@ impl FlipUpVMixCoordinator {
             previous,
         ));
     }
-    
+
     pub fn set_leaderboard(&mut self, lb_start_ind: Option<usize>) {
         if self.current_hole() <= 18 {
             self.add_state_to_leaderboard();
+            self.queue_add(&FlipUpVMixCoordinator::clear_lb(10));
             self.leaderboard.send_to_vmix(&self.leaderboard_division,self.vmix_queue.clone());
         } else {
             println!("PANIC, hole > 18");
@@ -267,13 +273,17 @@ impl FlipUpVMixCoordinator {
     pub fn set_to_hole(&mut self, hole: usize) -> Result<(), Error> {
         let player = self.focused_player_mut();
         let mut actions = vec![];
+        let mut actions2 = vec![];
         // Previously had shift-scores here
         for x in 1..=hole {
             player.hole_shown_up_until = x;
-            actions.extend(player.increase_score()?);
+            let (a,b) = player.increase_score()?;
+            actions.extend(a);
+            actions2.extend(b);
         }
 
         self.queue_add(&actions);
+        self.queue_add(&actions2);
         Ok(())
     }
 
@@ -285,16 +295,26 @@ impl FlipUpVMixCoordinator {
     ) -> Result<(), Error> {
         let player = self.focused_player_mut();
         if player.hole_shown_up_until <= 17 {
-            let f = player.increase_score()?;
+            let (mut f,mut current) = player.increase_score()?;
+            self.add_state_to_leaderboard();
+            let lb_things = self.focused_player().add_lb_things(&self.leaderboard);
+
+            let more_current = 
+
+                
+                lb_things.iter().flat_map(|interface|interface.to_owned().into_current_player()).collect_vec();
+            current.extend(more_current);
+            f.extend(lb_things);
             self.queue_add(&f);
+            self.queue_add(&current);
         }
         hole_update.send(self);
         Ok(())
     }
 
-    
 
-   
+
+
 
     pub fn ob_anim(&mut self) -> Result<(), Error> {
         println!("ob_anim");

@@ -28,6 +28,7 @@ pub trait VMixSelectionTrait {
     const INPUT_ID: &'static str;
 }
 
+#[derive(Clone)]
 pub struct VMixInterfacer<InputEnum: VMixSelectionTrait> {
     value: Option<String>,
     input: Option<InputEnum>,
@@ -171,14 +172,15 @@ impl VMixFunction {
 pub enum VMixPlayerInfo {
     Score { hole: usize, player: usize },
     ScoreColor { hole: usize, player: usize },
-    PosRightTriColor(usize),
-    PosSquareColor(usize),
     Name(usize),
     Surname(usize),
     TotalScore(usize),
     RoundScore(usize),
     Throw(usize),
     PlayerPosition(u16),
+    PositionArrow(usize),
+    PositionMove(usize),
+    HotRound(usize)
 }
 
 impl VMixSelectionTrait for VMixPlayerInfo {
@@ -191,11 +193,11 @@ impl VMixSelectionTrait for VMixPlayerInfo {
             VMixPlayerInfo::ScoreColor { hole, .. } => {
                 format!("p{}h{}", 1, hole)
             }
-            VMixPlayerInfo::PosRightTriColor(v1) => {
-                format!("RightTriangle{}", v1 + 1)
+            VMixPlayerInfo::PositionArrow(n) => {
+                format!("p{}posarw", n + 1)
             }
-            VMixPlayerInfo::PosSquareColor(v1) => {
-                format!("Rectangle{}", v1 + 1)
+            VMixPlayerInfo::PositionMove(n) => {
+                format!("p{}posmove", n + 1)
             }
             VMixPlayerInfo::Name(ind) => format!("p{}name", ind + 1),
             VMixPlayerInfo::Surname(ind) => format!("p{}surname", ind + 1),
@@ -203,6 +205,7 @@ impl VMixSelectionTrait for VMixPlayerInfo {
             VMixPlayerInfo::RoundScore(ind) => format!("p{}scorernd", ind + 1),
             VMixPlayerInfo::Throw(ind) => format!("p{}throw", ind + 1),
             VMixPlayerInfo::PlayerPosition(pos) => format!("p{}pos", pos + 1),
+            VMixPlayerInfo::HotRound(pos) => format!("p{}hotrnd",pos+1)
         }
     }
 
@@ -215,8 +218,9 @@ impl VMixSelectionTrait for VMixPlayerInfo {
             | RoundScore(_)
             | Surname(_)
             | Score { .. }
-            | TotalScore(_) => "Text",
-            PosSquareColor(_) | PosRightTriColor(_) | ScoreColor { .. } => "Fill.Color",
+            | TotalScore(_) | PositionMove(_) => "Text",
+            ScoreColor { .. } => "Fill.Color",
+            PositionArrow(_) | HotRound(_) => "Source"
         }
     }
     fn value(&self) -> Option<String> {
@@ -296,4 +300,43 @@ impl VMixSelectionTrait for VMixHoleInfo {
         })
     }
     const INPUT_ID: &'static str = "d9806a48-8766-40e0-b7fe-b217f9b1ef5b";
+}
+
+
+pub struct CurrentPlayer(pub VMixPlayerInfo);
+
+
+impl VMixSelectionTrait for CurrentPlayer {
+    fn get_selection_name(&self) -> String {
+        self.0.get_selection_name()
+    }
+
+    fn data_extension(&self) -> &'static str {
+        self.0.data_extension()
+    }
+
+    fn value(&self) -> Option<String> {
+        self.0.value()
+    }
+
+    const INPUT_ID: &'static str = "03a31701-8b74-46f9-a9e0-9e263d7ba0be";
+}
+
+impl VMixInterfacer<VMixPlayerInfo> {
+    pub fn into_current_player(self) -> Option<VMixInterfacer<CurrentPlayer>> {
+        
+        let input = match self.input {
+            Some(VMixPlayerInfo::Score { .. } | VMixPlayerInfo::ScoreColor { .. }) => None,
+            Some(i) => Some(i),
+            None => None
+        }?;
+        
+        
+        
+        Some(VMixInterfacer {
+            input: Some(CurrentPlayer(input)),
+            function: self.function,
+            value: self.value,
+        })
+    }
 }

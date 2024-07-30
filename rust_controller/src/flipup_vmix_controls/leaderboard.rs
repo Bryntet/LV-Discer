@@ -55,6 +55,7 @@ impl Leaderboard {
     }
 
     pub fn send_to_vmix(&self,division: &Division, queue: Arc<VMixQueue>, ) {
+        
         self.current_state()
             .map(|state| state.send_to_vmix(division,self.previous_state(), queue.clone(),self.skip))
             .expect("Should work")
@@ -207,7 +208,7 @@ impl LeaderboardState {
                 let regular_player = self.players.par_iter().find_any(|regular_player|regular_player.player_id==player.id)?;
 
 
-                Some(regular_player.results.clone().the_latest_5_holes().iter()
+                Some(regular_player.results.clone().the_latest_6_holes().iter()
                     .enumerate()
                     .flat_map(|(hole_index, result)| {
                         result.to_leaderboard_top_6(player.index, hole_index)
@@ -223,10 +224,10 @@ impl LeaderboardState {
 #[derive(Debug, Clone)]
 pub struct LeaderboardPlayer {
     id: String,
-    index: usize,
+    pub index: usize,
     pub position: usize,
-    movement: LeaderboardMovement,
-    hot_round: bool,
+    pub movement: LeaderboardMovement,
+    pub hot_round: bool,
     name: String,
     round_score: isize,
     total_score: isize,
@@ -380,7 +381,7 @@ impl LeaderboardPlayer {
 }
 
 #[derive(Debug, Clone)]
-enum LeaderboardMovement {
+pub enum LeaderboardMovement {
     Up(usize),
     Down(usize),
     Same,
