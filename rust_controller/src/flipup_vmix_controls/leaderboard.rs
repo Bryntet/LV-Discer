@@ -301,8 +301,7 @@ impl LeaderboardPlayer {
     }
 
     fn set_round_score(&self) -> VMixInterfacer<LeaderBoardProperty> {
-        VMixInterfacer::set_text(
-            format!("({})", fix_score(self.round_score)),
+        VMixInterfacer::set_text(fix_score(self.round_score),
             LeaderBoardProperty::RoundScore(self.index).into(),
         )
     }

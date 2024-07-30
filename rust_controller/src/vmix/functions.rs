@@ -46,6 +46,16 @@ impl VMixInterfacer<LeaderBoardProperty> {
     }
 }
 
+impl VMixInterfacer<VMixHoleInfo> {
+    pub fn set_hole_text(input: VMixHoleInfo) -> Self {
+        Self {
+            value: None,
+            input: Some(input),
+            function: VMixFunction::SetText
+        }
+    }
+}
+
 // Functions initialisers
 impl<InputEnum: VMixSelectionTrait> VMixInterfacer<InputEnum> {
     pub fn set_text(value: String, input: InputEnum) -> Self {
@@ -55,6 +65,7 @@ impl<InputEnum: VMixSelectionTrait> VMixInterfacer<InputEnum> {
             function: VMixFunction::SetText,
         }
     }
+    
     pub fn set_color(value: &str, input: InputEnum) -> Self {
         Self {
             value: Some(format!("#{}", value)),

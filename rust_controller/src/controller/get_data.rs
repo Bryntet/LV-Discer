@@ -256,25 +256,21 @@ impl PlayerRound {
         let mut r_vec: Vec<VMixInterfacer<VMixHoleInfo>> = vec![];
         let hole = self.current_result(hole).unwrap();
 
-        r_vec.push(VMixInterfacer::set_text(
-            "".to_string(),
-            VMixHoleInfo::Hole(hole.hole).into(),
+        r_vec.push(VMixInterfacer::set_hole_text(
+            VMixHoleInfo::Hole(hole.hole),
         ));
 
-        r_vec.push(VMixInterfacer::set_text(
-            "".to_string(),
-            VMixHoleInfo::HolePar(hole.hole_representation.par).into(),
+        r_vec.push(VMixInterfacer::set_hole_text(
+            VMixHoleInfo::HolePar(hole.hole_representation.par),
         ));
 
-        r_vec.push(VMixInterfacer::set_text(
-            "".to_string(),
-            VMixHoleInfo::HoleMeters(hole.hole_representation.length).into(),
+        r_vec.push(VMixInterfacer::set_hole_text(
+            VMixHoleInfo::HoleMeters(hole.hole_representation.length),
         ));
 
         let feet = (hole.hole_representation.length as f32 * 3.28084) as u16;
-        r_vec.push(VMixInterfacer::set_text(
-            "".to_string(),
-            VMixHoleInfo::HoleFeet(feet).into(),
+        r_vec.push(VMixInterfacer::set_hole_text(
+            VMixHoleInfo::HoleFeet(feet),
         ));
         r_vec
     }
