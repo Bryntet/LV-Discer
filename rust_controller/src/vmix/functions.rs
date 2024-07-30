@@ -1,6 +1,7 @@
 use crate::flipup_vmix_controls::{LeaderBoardProperty, LeaderboardTop6};
 use crate::vmix::functions::VMixFunction::OverlayInput4Off;
 use std::sync::Arc;
+use itertools::Itertools;
 
 pub trait VMixSelectionTrait {
     fn get_selection(&self) -> String {
@@ -37,13 +38,24 @@ pub struct VMixInterfacer<InputEnum: VMixSelectionTrait> {
 
 impl VMixInterfacer<LeaderBoardProperty> {
     pub fn to_top_6(self) -> Option<VMixInterfacer<LeaderboardTop6>> {
-        let input = LeaderboardTop6::from_prop(self.input?)?;
-
-        Some(VMixInterfacer {
-            value: self.value,
-            function: self.function,
-            input: Some(input),
-        })
+        let input = LeaderboardTop6::from_prop(self.input.clone()?)?;
+        match self.input {
+            Some(LeaderBoardProperty::Name(n)) => { 
+                let name = self.value.unwrap();
+                let name = name.split(" ").collect_vec();
+                let name = format!("{}. {}",name[0].chars().next().unwrap(), name[1]);
+                Some(VMixInterfacer {
+                    value: Some(name),
+                    function: self.function,
+                    input: Some(LeaderboardTop6::Name{pos:n})
+            })
+            },
+            _ =>Some(VMixInterfacer{
+                value:self.value,
+                function:self.function,
+                input: Some(input)
+            })
+        }
     }
 }
 
