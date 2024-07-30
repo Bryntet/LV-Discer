@@ -150,6 +150,10 @@ impl Score {
             },
         )
     }
+    
+    pub fn get_score_colour(&self) -> &'static str {
+        self.readable_score.to_colour()
+    }
     pub fn update_score(&self, player: usize) -> [VMixInterfacer<VMixPlayerInfo>; 3] {
         [
             self.update_total_score_text(player),

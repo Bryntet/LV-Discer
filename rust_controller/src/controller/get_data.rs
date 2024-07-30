@@ -167,12 +167,12 @@ impl HoleResult {
         self.to_score().play_mov_vmix(player, false)
     }
 
-    pub fn to_leaderboard_top_6(&self, pos: usize, hole: usize) -> VMixInterfacer<LeaderboardTop6> {
+    pub fn to_leaderboard_top_6(&self, pos: usize, hole: usize) -> [VMixInterfacer<LeaderboardTop6>;2] {
         
-        VMixInterfacer::set_text(
+        [VMixInterfacer::set_text(
             fix_score(self.actual_score() as isize),
             LeaderboardTop6::LastScore { pos, hole },
-        )
+        ),VMixInterfacer::set_color(self.to_score().get_score_colour(),LeaderboardTop6::LastScoreColour {pos,hole})]
     }
 }
 

@@ -172,7 +172,7 @@ impl LeaderboardState {
                     .the_latest_6_holes()
                     .into_iter()
                     .enumerate()
-                    .map(move |(hole_num, hole)| hole.to_leaderboard_top_6(self.leaderboard_players(other).iter().find(|lb_player|lb_player.id == player.player_id).unwrap().position, hole_num))
+                    .flat_map(move |(hole_num, hole)| hole.to_leaderboard_top_6(self.leaderboard_players(other).iter().find(|lb_player|lb_player.id == player.player_id).unwrap().position, hole_num))
             })
             .collect_vec();
         second_batch.extend(v);
@@ -424,15 +424,17 @@ mod prop {
             match self {
                 Position { pos, .. } => format!("pos{pos}"),
                 Name { pos } => format!("name{pos}"),
-                LastScore { pos, hole } => format!("p{pos}ls{hole}",),
-                LastScoreColour { .. } => unreachable!("not implemented yet"),
+                LastScore { pos, hole } | LastScoreColour {pos,hole} => format!("p{pos}ls{hole}",),
                 RoundScore { pos } => format!("p{pos}scorernd"),
                 TotalScore { pos } => format!("p{pos}scoretot"),
                 Thru { pos } => format!("p{pos}thru"),
             }
         }
         fn data_extension(&self) -> &'static str {
-            "Text"
+            match self {
+                LeaderboardTop6::LastScoreColour {..} => "Fill.Color",
+                _ => "Text"
+            }
         }
         fn value(&self) -> Option<String> {
             None
