@@ -19,7 +19,9 @@ pub fn focused_player_changer<'r>(
     ws: ws::WebSocket,
     coordinator: Coordinator,
     metadata: Metadata<'r>,
-    updater: &'r State<GeneralChannel<PlayerManagerUpdate>>,
+    player_updater: &'r GeneralChannel<PlayerManagerUpdate>,
+    division_updater: &'r GeneralChannel<DivisionUpdate>
+    
 ) -> ws::Stream!['r] {
     let ws = ws.config(ws::Config {
         ..Default::default()
@@ -28,7 +30,7 @@ pub fn focused_player_changer<'r>(
     ws::Stream! { ws =>
         for await message in ws {
             let message = message?;
-            if interpret_message(message.clone(), &coordinator,updater).await.is_ok() {
+            if interpret_message(message.clone(), &coordinator,player_updater,division_updater).await.is_ok() {
                 if let Some(html) = make_html_response::<PlayerManagerUpdate>(&coordinator,&metadata).await {
                     info!("Sending html response");
                     yield Message::from(html);

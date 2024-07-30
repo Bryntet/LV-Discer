@@ -65,7 +65,7 @@ impl<InputEnum: VMixSelectionTrait> VMixInterfacer<InputEnum> {
             function: VMixFunction::SetText,
         }
     }
-    
+
     pub fn set_color(value: &str, input: InputEnum) -> Self {
         Self {
             value: Some(format!("#{}", value)),

@@ -1,3 +1,4 @@
+use std::ops::Deref;
 use crate::api::guard::CoordinatorLoader;
 use crate::api::{Coordinator, Error, GeneralChannel, PlayerManagerUpdate};
 use crate::dto;
@@ -10,17 +11,20 @@ use rocket_dyn_templates::Template;
 use rocket_okapi::openapi;
 use serde_json::json;
 use crate::api::websocket::channels::DivisionUpdate;
+use crate::api::websocket::htmx::division_updater;
 
 #[openapi(tag = "Config")]
 #[post("/player/focused/set/<focused_player>")]
 pub async fn set_focus(
     focused_player: usize,
     coordinator: Coordinator,
-    updater: &GeneralChannel<PlayerManagerUpdate>,
+    player_updater: &GeneralChannel<PlayerManagerUpdate>,
+    division_updater: &GeneralChannel<DivisionUpdate>
+    
 ) -> Result<Json<dto::Player>, Error> {
     let mut coordinator = coordinator.lock().await;
 
-    coordinator.set_focused_player(dbg!(focused_player), Some(updater))?;
+    coordinator.set_focused_player(dbg!(focused_player), player_updater,division_updater)?;
 
     let player = coordinator.focused_player().clone();
 
@@ -39,12 +43,15 @@ pub async fn load(loader: &State<CoordinatorLoader>, builder: Json<CoordinatorBu
 pub async fn set_group(
     coordinator: Coordinator,
     group_id: &str,
-    updater: &State<GeneralChannel<PlayerManagerUpdate>>,
-) -> Result<(), &'static str> {
+    updater: &GeneralChannel<PlayerManagerUpdate>,
+    division_updater: &GeneralChannel<DivisionUpdate>
+) -> Result<(), Error> {
     let mut coordinator = coordinator.lock().await;
     coordinator
-        .set_group(group_id, Some(updater))
-        .ok_or("Unable to set group")
+        .set_group(group_id, updater)?;
+    coordinator.leaderboard_division = coordinator.focused_player().division.clone();
+    division_updater.send(coordinator.deref());
+    Ok(())
 }
 
 #[openapi(tag = "Live Update")]

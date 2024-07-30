@@ -68,7 +68,7 @@ impl RankUpDown {
             RankUpDown::Same => "".to_string(),
         };
 
-        VMixInterfacer::set_text(movement, LeaderBoardProperty::Move { pos }.into())
+        VMixInterfacer::set_text(movement, LeaderBoardProperty::Move { pos })
     }
 
     fn make_arrow(&self, pos: usize) -> VMixInterfacer<LeaderBoardProperty> {
@@ -488,11 +488,12 @@ impl Player {
         OverarchingScore::from(self)
     }
 
-    pub fn set_all_values(&self) -> Result<Vec<VMixInterfacer<VMixPlayerInfo>>, Error> {
+    pub fn set_all_values(&self, lb: &Leaderboard) -> Result<Vec<VMixInterfacer<VMixPlayerInfo>>, Error> {
         let mut return_vec = vec![];
         return_vec.extend(self.set_name());
-        if let Some(set_pos) = self.set_pos() {
+        if let Some(set_pos) = self.set_pos(lb) {
             return_vec.push(set_pos);
+            return_vec.extend(self.show_pos())
         }
         return_vec.push(self.set_tot_score());
         return_vec.push(self.set_round_score());
@@ -594,50 +595,48 @@ impl Player {
         )
     }
 
-    pub fn set_pos(&self) -> Option<VMixInterfacer<VMixPlayerInfo>> {
-        let value_string = if self.lb_even {
+    pub fn set_pos(&self,lb: &Leaderboard) -> Option<VMixInterfacer<VMixPlayerInfo>> {
+        let lb_player = lb.get_lb_player(self);
+        let value_string = if lb_player.tied.is_some() {
             "T".to_string()
         } else {
             "".to_string()
-        } + &self.lb_pos.to_string();
+        } + &lb_player.position.to_string();
 
-        if self.visible_player {
+        
+        
             Some(VMixInterfacer::set_text(
                 value_string,
-                VMixPlayerInfo::PlayerPosition(self.ind as u16).into(),
+                VMixPlayerInfo::PlayerPosition(0),
             ))
-        } else {
-            None
-        }
     }
 
     pub fn hide_pos(&mut self) -> [VMixInterfacer<VMixPlayerInfo>; 3] {
         self.pos_visible = false;
         [
             VMixInterfacer::set_text_visible_off(
-                VMixPlayerInfo::PlayerPosition(self.ind as u16).into(),
+                VMixPlayerInfo::PlayerPosition(0).into(),
             ),
             VMixInterfacer::set_color(
                 "00000000",
-                VMixPlayerInfo::PosRightTriColor(self.ind).into(),
+                VMixPlayerInfo::PosRightTriColor(0).into(),
             ),
-            VMixInterfacer::set_color("00000000", VMixPlayerInfo::PosSquareColor(self.ind).into()),
+            VMixInterfacer::set_color("00000000", VMixPlayerInfo::PosSquareColor(0).into()),
         ]
     }
 
-    pub fn show_pos(&mut self) -> [VMixInterfacer<VMixPlayerInfo>; 3] {
-        self.pos_visible = true;
+    pub fn show_pos(&self) -> [VMixInterfacer<VMixPlayerInfo>; 3] {
         [
             VMixInterfacer::set_text_visible_on(
-                VMixPlayerInfo::PlayerPosition(self.ind as u16).into(),
+                VMixPlayerInfo::PlayerPosition(0).into(),
             ),
             VMixInterfacer::set_color(
                 DEFAULT_BACKGROUND_COL,
-                VMixPlayerInfo::PosRightTriColor(self.ind).into(),
+                VMixPlayerInfo::PosRightTriColor(0).into(),
             ),
             VMixInterfacer::set_color(
                 DEFAULT_BACKGROUND_COL,
-                VMixPlayerInfo::PosSquareColor(self.ind).into(),
+                VMixPlayerInfo::PosSquareColor(0).into(),
             ),
         ]
     }

@@ -18,12 +18,13 @@ pub use channels::{ChannelAttributes, PlayerManagerUpdate,DivisionUpdate};
 async fn interpret_message(
     message: Message,
     coordinator: &Coordinator,
-    updater: &GeneralChannel<PlayerManagerUpdate>,
+    player_updater: &GeneralChannel<PlayerManagerUpdate>,
+    division_updater: &GeneralChannel<DivisionUpdate>
 ) -> Result<Interpreter, serde_json::Error> {
     let interpreter: Interpreter = serde_json::from_str(&message.to_string())?;
     if let Ok(num) = interpreter.message.parse::<usize>() {
         let mut c = coordinator.lock().await;
-        c.set_focused_player(num, Some(updater));
+        c.set_focused_player(num, player_updater,division_updater);
     }
     Ok(interpreter)
 }

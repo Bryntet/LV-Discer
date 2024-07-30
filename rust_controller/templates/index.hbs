@@ -361,7 +361,8 @@
             const formData = new FormData(e.target);
 
             queuePlayer(playerId, formData);
-            e.target.style.display = 'none';
+
+            e.target.reset();
         }
     });
 
@@ -370,7 +371,7 @@
             method: 'POST',
             body: formData
         })
-                .then(response => response.json())
+                .then(response => response)
                 .then(data => {
                     console.log('Player queued successfully:', data);
                     // Update the UI as needed

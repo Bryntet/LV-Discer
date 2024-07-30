@@ -1,6 +1,6 @@
 use super::super::dto;
 use crate::api::guard::CoordinatorLoader;
-use crate::api::{mutation, query, Coordinator, Error, GeneralChannel, PlayerManagerUpdate};
+use crate::api::{mutation, query, Coordinator, Error, GeneralChannel, PlayerManagerUpdate, DivisionUpdate};
 use crate::dto::CoordinatorBuilder;
 use itertools::Itertools;
 use rocket::form::Form;
@@ -23,8 +23,9 @@ pub async fn set_group(
     coordinator: Coordinator,
     group_id: &str,
     updater: &State<GeneralChannel<PlayerManagerUpdate>>,
-) -> Result<Template, &'static str> {
-    mutation::set_group(coordinator.clone(), group_id, updater).await?;
+    division_updater: &GeneralChannel<DivisionUpdate>
+) -> Result<Template, Error> {
+    mutation::set_group(coordinator.clone(), group_id, updater,division_updater).await?;
 
     let players = coordinator.lock().await.dto_players();
     Ok(Template::render(

@@ -69,6 +69,10 @@ impl Leaderboard {
         }
         self.states.push(state)
     }
+    
+    pub fn get_lb_player(&self, player: &Player) -> LeaderboardPlayer {
+        self.current_state().unwrap().leaderboard_players(&player.division,self.previous_state()).into_iter().find(|lb_player|lb_player.id==player.player_id).unwrap()
+    }
 }
 impl LeaderboardState {
     pub fn new(
@@ -99,9 +103,9 @@ impl LeaderboardState {
             players: current_round_players,
         }
     }
-}
 
-impl LeaderboardState {
+    
+    
     fn sort_players(players: &mut [Player]) {
         players.sort_by(|player_a, player_b| player_a.total_score.cmp(&player_b.total_score))
     }
@@ -217,17 +221,17 @@ impl LeaderboardState {
 }
 
 #[derive(Debug, Clone)]
-struct LeaderboardPlayer {
+pub struct LeaderboardPlayer {
     id: String,
     index: usize,
-    position: usize,
+    pub position: usize,
     movement: LeaderboardMovement,
     hot_round: bool,
     name: String,
     round_score: isize,
     total_score: isize,
     thru: u8,
-    tied: Option<u8>,
+    pub tied: Option<u8>,
 }
 
 impl LeaderboardPlayer {
