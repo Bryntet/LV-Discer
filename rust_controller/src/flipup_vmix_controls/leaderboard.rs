@@ -424,7 +424,7 @@ mod prop {
             match self {
                 Position { pos, .. } => format!("pos{pos}"),
                 Name { pos } => format!("name{pos}"),
-                LastScore { pos, hole }  => format!("p{pos}ls{hole}",),LastScoreColour {pos,hole} => format!("p{pos}h{hole}"),
+                LastScore { pos, hole }  => format!("p{pos}ls{hole}",),LastScoreColour {pos,hole} => format!("p{pos}lh{hole}"),
                 RoundScore { pos } => format!("p{pos}scorernd"),
                 TotalScore { pos } => format!("p{pos}scoretot"),
                 Thru { pos } => format!("p{pos}thru"),
