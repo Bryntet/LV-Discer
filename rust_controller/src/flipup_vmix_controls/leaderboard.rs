@@ -191,12 +191,12 @@ impl LeaderboardState {
     ) {
         let lb_players = self.leaderboard_players(division,other);
 
-        
+
         let mut second_batch: Vec<_> = first_batch
             .into_par_iter()
             .flat_map(VMixInterfacer::to_top_6)
             .collect();
-        
+
         let v = lb_players.into_iter()
             .take(6)
             .flat_map(|player|{
@@ -210,7 +210,7 @@ impl LeaderboardState {
                     }).collect_vec())
             }).flatten()
             .collect_vec();
-        
+
         second_batch.extend(v);
         queue.add(&second_batch);
     }
@@ -265,6 +265,7 @@ impl LeaderboardPlayer {
         let tie = {
             let tie_count = all_other_players
                 .iter()
+                .filter(|lb_player|lb_player.division.id==player.division.id)
                 .filter(|lb_player| lb_player.total_score == player.total_score)
                 .count();
             if tie_count > 1 {
