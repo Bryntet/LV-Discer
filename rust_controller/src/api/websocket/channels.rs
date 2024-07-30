@@ -1,22 +1,20 @@
-use crate::controller::coordinator::FlipUpVMixCoordinator;
-use crate::dto;
+use std::fmt::Debug;
+use std::marker::PhantomData;
+
+use itertools::Itertools;
 use rocket::serde::Serialize;
 use rocket_dyn_templates::Metadata;
 use rocket_ws::Message;
 use serde_json::json;
-use std::fmt::Debug;
-use std::marker::PhantomData;
-use itertools::Itertools;
+
+use crate::controller::coordinator::FlipUpVMixCoordinator;
+use crate::dto;
 use crate::dto::Division;
 
-pub struct GeneralChannel<
-    T: ChannelAttributes
-> {
+pub struct GeneralChannel<T: ChannelAttributes> {
     sender: tokio::sync::broadcast::Sender<T>,
 }
-impl<T: ChannelAttributes>
-    GeneralChannel<T>
-{
+impl<T: ChannelAttributes> GeneralChannel<T> {
     pub fn send(&self, coordinator: &FlipUpVMixCoordinator) {
         let t = T::from(coordinator);
         match self.sender.send(t) {
@@ -30,9 +28,7 @@ impl<T: ChannelAttributes>
     }
 }
 
-impl<T: ChannelAttributes>
-    From<tokio::sync::broadcast::Sender<T>> for GeneralChannel<T>
-{
+impl<T: ChannelAttributes> From<tokio::sync::broadcast::Sender<T>> for GeneralChannel<T> {
     fn from(sender: tokio::sync::broadcast::Sender<T>) -> Self {
         Self { sender }
     }
@@ -43,7 +39,9 @@ pub struct PlayerManagerUpdate {
     players: Vec<dto::Player>,
 }
 
-pub trait ChannelAttributes: for<'a> From<&'a FlipUpVMixCoordinator> + Send + Clone + Debug {
+pub trait ChannelAttributes:
+    for<'a> From<&'a FlipUpVMixCoordinator> + Send + Clone + Debug
+{
     fn try_into_message(self) -> Option<Message>;
     fn make_html(self, metadata: &Metadata) -> Option<Message>;
 }
@@ -93,12 +91,9 @@ impl From<&FlipUpVMixCoordinator> for HoleUpdate {
     }
 }
 
-
-
-
 #[derive(Debug, Clone, Serialize)]
 pub struct DivisionUpdate {
-    divisions: Vec<dto::Division>
+    divisions: Vec<dto::Division>,
 }
 
 impl ChannelAttributes for DivisionUpdate {
@@ -115,23 +110,24 @@ impl ChannelAttributes for DivisionUpdate {
 
 impl From<&FlipUpVMixCoordinator> for DivisionUpdate {
     fn from(coordinator: &FlipUpVMixCoordinator) -> Self {
-        
         Self {
-            divisions: coordinator.all_divs.iter().map(|div|{
-                if div.id == coordinator.leaderboard_division.id {
-                    Division {
-                        name: div.name.clone(),
-                        focused: true,
+            divisions: coordinator
+                .all_divs
+                .iter()
+                .map(|div| {
+                    if div.id == coordinator.leaderboard_division.id {
+                        Division {
+                            name: div.name.clone(),
+                            focused: true,
+                        }
+                    } else {
+                        Division {
+                            name: div.name.clone(),
+                            focused: false,
+                        }
                     }
-                }  else { 
-                    Division {
-                        name: div.name.clone(),
-                        focused: false,
-                    }
-                }
-            }).collect_vec(),
+                })
+                .collect_vec(),
         }
     }
 }
-
-

@@ -1,15 +1,5 @@
-mod coordinator_wrapper;
-mod guard;
-mod mutation;
-mod query;
-mod update_loop;
-mod vmix_calls;
-mod webpage_responses;
-mod websocket;
-
-use crate::controller::coordinator::FlipUpVMixCoordinator;
-use guard::*;
-use mutation::*;
+use std::net::IpAddr;
+use std::sync::Arc;
 
 use rocket::log::LogLevel;
 use rocket::tokio::sync::broadcast::channel;
@@ -19,14 +9,25 @@ use rocket_okapi::openapi_get_routes;
 use rocket_okapi::rapidoc::{make_rapidoc, GeneralConfig, RapiDocConfig};
 use rocket_okapi::settings::UrlObject;
 use rocket_okapi::swagger_ui::{make_swagger_ui, SwaggerUIConfig};
-use std::net::IpAddr;
-use std::sync::Arc;
 use tokio::sync::{Mutex, MutexGuard};
-pub use websocket::channels::{HoleUpdate, PlayerManagerUpdate,DivisionUpdate};
+
+pub use guard::Error;
+use guard::*;
+use mutation::*;
+pub use websocket::channels::{DivisionUpdate, HoleUpdate, PlayerManagerUpdate};
 
 pub use crate::api::websocket::channels::GeneralChannel;
-pub use guard::Error;
 use crate::api::websocket::htmx::division_updater;
+use crate::controller::coordinator::FlipUpVMixCoordinator;
+
+mod coordinator_wrapper;
+mod guard;
+mod mutation;
+mod query;
+mod update_loop;
+mod vmix_calls;
+mod webpage_responses;
+mod websocket;
 
 #[derive(Debug, Clone)]
 struct Coordinator(Arc<Mutex<FlipUpVMixCoordinator>>);
@@ -84,7 +85,7 @@ fn get_normal_routes() -> Vec<Route> {
 
 fn get_websocket_routes() -> Vec<Route> {
     use websocket::*;
-    routes![selection_watcher, hole_watcher,division_updater]
+    routes![selection_watcher, hole_watcher, division_updater]
 }
 
 fn get_websocket_htmx_routes() -> Vec<Route> {
@@ -104,8 +105,7 @@ pub fn launch() -> Rocket<Build> {
     let (hole_update_sender, _) = channel::<HoleUpdate>(1024);
     let hole_update_sender = GeneralChannel::from(hole_update_sender);
     let division_sender = GeneralChannel::from(channel::<websocket::DivisionUpdate>(1024).0);
-    
-    
+
     let conf = {
         #[cfg(windows)]
         let ip = IpAddr::V4("10.170.120.134".parse().unwrap());

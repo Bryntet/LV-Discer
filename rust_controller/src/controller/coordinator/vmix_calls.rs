@@ -15,8 +15,6 @@ impl FlipUpVMixCoordinator {
         }
     }
 
-  
-
     pub fn play_animation(&self) -> Result<(), Error> {
         let score = self.focused_player().get_current_shown_score()?;
         self.queue_add(&score.play_mov_vmix(self.focused_player_index, false));

@@ -1,7 +1,3 @@
-use super::super::dto;
-use crate::api::guard::CoordinatorLoader;
-use crate::api::{mutation, query, Coordinator, Error, GeneralChannel, PlayerManagerUpdate, DivisionUpdate};
-use crate::dto::CoordinatorBuilder;
 use itertools::Itertools;
 use rocket::form::Form;
 use rocket::response::content::RawHtml;
@@ -9,6 +5,14 @@ use rocket::State;
 use rocket_dyn_templates::Template;
 use rocket_okapi::openapi;
 use serde_json::json;
+
+use crate::api::guard::CoordinatorLoader;
+use crate::api::{
+    mutation, query, Coordinator, DivisionUpdate, Error, GeneralChannel, PlayerManagerUpdate,
+};
+use crate::dto::CoordinatorBuilder;
+
+use super::super::dto;
 
 #[openapi(tag = "HTMX")]
 #[get("/focused-players")]
@@ -23,9 +27,9 @@ pub async fn set_group(
     coordinator: Coordinator,
     group_id: &str,
     updater: &State<GeneralChannel<PlayerManagerUpdate>>,
-    division_updater: &GeneralChannel<DivisionUpdate>
+    division_updater: &GeneralChannel<DivisionUpdate>,
 ) -> Result<Template, Error> {
-    mutation::set_group(coordinator.clone(), group_id, updater,division_updater).await?;
+    mutation::set_group(coordinator.clone(), group_id, updater, division_updater).await?;
 
     let players = coordinator.lock().await.dto_players();
     Ok(Template::render(
@@ -57,4 +61,3 @@ pub async fn index(coordinator: Coordinator) -> RawHtml<Template> {
     let context = json!({"groups": groups,"divisions":divisions});
     RawHtml(Template::render("index", context))
 }
-

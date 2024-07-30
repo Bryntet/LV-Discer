@@ -1,23 +1,26 @@
-mod player_queue_system;
-mod simple_queries;
-mod vmix_calls;
+use std::sync::Arc;
 
-pub use super::*;
+use itertools::Itertools;
+
+use flipup_vmix_controls::LeaderBoardProperty;
+use flipup_vmix_controls::{Leaderboard, LeaderboardState};
+use get_data::Player;
+use player_queue_system::PlayerManager;
+use vmix::functions::VMixInterfacer;
+use vmix::functions::{VMixPlayerInfo, VMixSelectionTrait};
+use vmix::VMixQueue;
+
 use crate::api::{DivisionUpdate, Error, GeneralChannel, HoleUpdate, PlayerManagerUpdate};
 use crate::controller::get_data::RustHandler;
 use crate::controller::queries::Division;
 use crate::{api, vmix};
 use crate::{dto, flipup_vmix_controls};
-use flipup_vmix_controls::LeaderBoardProperty;
-use flipup_vmix_controls::{Leaderboard, LeaderboardState};
-use get_data::Player;
-use itertools::Itertools;
-use player_queue_system::PlayerManager;
-use rocket::State;
-use std::sync::Arc;
-use vmix::functions::VMixInterfacer;
-use vmix::functions::{VMixPlayerInfo, VMixSelectionTrait};
-use vmix::VMixQueue;
+
+pub use super::*;
+
+mod player_queue_system;
+mod simple_queries;
+mod vmix_calls;
 
 #[derive(Clone, Debug)]
 pub struct FlipUpVMixCoordinator {
@@ -82,8 +85,7 @@ impl FlipUpVMixCoordinator {
         &mut self,
         index: usize,
         player_updater: &GeneralChannel<api::PlayerManagerUpdate>,
-        division_updater: &GeneralChannel<DivisionUpdate>
-
+        division_updater: &GeneralChannel<DivisionUpdate>,
     ) -> Result<(), Error> {
         if index >= self.player_manager.players(self.available_players()).len() {
             return Err(Error::CardIndexNotFound(index));
@@ -91,7 +93,7 @@ impl FlipUpVMixCoordinator {
         self.player_manager.set_focused_by_card_index(index)?;
         self.leaderboard_division = self.focused_player().division.clone();
         self.add_state_to_leaderboard();
-        let (all_values,current) = self.focused_player().set_all_values(&self.leaderboard)?;
+        let (all_values, current) = self.focused_player().set_all_values(&self.leaderboard)?;
 
         self.queue_add(&all_values);
         self.queue_add(&current);
@@ -99,7 +101,6 @@ impl FlipUpVMixCoordinator {
         division_updater.send(self);
         Ok(())
     }
-
 
     pub fn add_to_queue(
         &mut self,
@@ -156,7 +157,8 @@ impl FlipUpVMixCoordinator {
         let groups = self.groups();
         let ids = groups
             .iter()
-            .find(|group| group.id == group_id).ok_or(Error::UnableToParse)?
+            .find(|group| group.id == group_id)
+            .ok_or(Error::UnableToParse)?
             .player_ids();
         self.player_manager.replace(ids);
         self.add_state_to_leaderboard();
@@ -207,9 +209,6 @@ impl FlipUpVMixCoordinator {
         self.current_through = self.focused_player().hole_shown_up_until as u8
     }
 
-
-
-
     pub fn find_player_mut(&mut self, player_id: &str) -> Option<&mut Player> {
         self.handler.find_player_mut(player_id)
     }
@@ -243,11 +242,7 @@ impl FlipUpVMixCoordinator {
 
     fn add_state_to_leaderboard(&mut self) {
         self.set_current_through();
-        let current_players = self
-            .available_players()
-            .into_iter()
-            .cloned()
-            .collect_vec();
+        let current_players = self.available_players().into_iter().cloned().collect_vec();
         let previous = self
             .previous_rounds_players()
             .into_iter()
@@ -264,7 +259,8 @@ impl FlipUpVMixCoordinator {
         if self.current_hole() <= 18 {
             self.add_state_to_leaderboard();
             self.queue_add(&FlipUpVMixCoordinator::clear_lb(10));
-            self.leaderboard.send_to_vmix(&self.leaderboard_division,self.vmix_queue.clone());
+            self.leaderboard
+                .send_to_vmix(&self.leaderboard_division, self.vmix_queue.clone());
         } else {
             println!("PANIC, hole > 18");
         }
@@ -277,7 +273,7 @@ impl FlipUpVMixCoordinator {
         // Previously had shift-scores here
         for x in 1..=hole {
             player.hole_shown_up_until = x;
-            let (a,b) = player.increase_score()?;
+            let (a, b) = player.increase_score()?;
             actions.extend(a);
             actions2.extend(b);
         }
@@ -295,14 +291,14 @@ impl FlipUpVMixCoordinator {
     ) -> Result<(), Error> {
         let player = self.focused_player_mut();
         if player.hole_shown_up_until <= 17 {
-            let (mut f,mut current) = player.increase_score()?;
+            let (mut f, mut current) = player.increase_score()?;
             self.add_state_to_leaderboard();
             let lb_things = self.focused_player().add_lb_things(&self.leaderboard);
 
-            let more_current = 
-
-                
-                lb_things.iter().flat_map(|interface|interface.to_owned().into_current_player()).collect_vec();
+            let more_current = lb_things
+                .iter()
+                .flat_map(|interface| interface.to_owned().into_current_player())
+                .collect_vec();
             current.extend(more_current);
             f.extend(lb_things);
             self.queue_add(&f);
@@ -311,10 +307,6 @@ impl FlipUpVMixCoordinator {
         hole_update.send(self);
         Ok(())
     }
-
-
-
-
 
     pub fn ob_anim(&mut self) -> Result<(), Error> {
         println!("ob_anim");
@@ -435,8 +427,9 @@ impl FlipUpVMixCoordinator {
 mod tests {
     //! Tests need to run with high node version otherwise it fails!
 
-    use super::*;
     use crate::dto::CoordinatorBuilder;
+
+    use super::*;
 
     async fn generate_app() -> FlipUpVMixCoordinator {
         let mut app = CoordinatorBuilder::new(

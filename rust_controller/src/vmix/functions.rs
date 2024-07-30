@@ -1,7 +1,8 @@
-use crate::flipup_vmix_controls::{LeaderBoardProperty, LeaderboardTop6};
-use crate::vmix::functions::VMixFunction::OverlayInput4Off;
 use std::sync::Arc;
+
 use itertools::Itertools;
+
+use crate::flipup_vmix_controls::{LeaderBoardProperty, LeaderboardTop6};
 
 pub trait VMixSelectionTrait {
     fn get_selection(&self) -> String {
@@ -40,21 +41,21 @@ impl VMixInterfacer<LeaderBoardProperty> {
     pub fn to_top_6(self) -> Option<VMixInterfacer<LeaderboardTop6>> {
         let input = LeaderboardTop6::from_prop(self.input.clone()?)?;
         match self.input {
-            Some(LeaderBoardProperty::Name(n)) => { 
+            Some(LeaderBoardProperty::Name(n)) => {
                 let name = self.value.unwrap();
                 let name = name.split(" ").collect_vec();
-                let name = format!("{}. {}",name[0].chars().next().unwrap(), name[1]);
+                let name = format!("{}. {}", name[0].chars().next().unwrap(), name[1]);
                 Some(VMixInterfacer {
                     value: Some(name),
                     function: self.function,
-                    input: Some(LeaderboardTop6::Name{pos:n})
-            })
-            },
-            _ =>Some(VMixInterfacer{
-                value:self.value,
-                function:self.function,
-                input: Some(input)
-            })
+                    input: Some(LeaderboardTop6::Name { pos: n }),
+                })
+            }
+            _ => Some(VMixInterfacer {
+                value: self.value,
+                function: self.function,
+                input: Some(input),
+            }),
         }
     }
 }
@@ -64,7 +65,7 @@ impl VMixInterfacer<VMixHoleInfo> {
         Self {
             value: None,
             input: Some(input),
-            function: VMixFunction::SetText
+            function: VMixFunction::SetText,
         }
     }
 }
@@ -192,7 +193,7 @@ pub enum VMixPlayerInfo {
     PlayerPosition(u16),
     PositionArrow(usize),
     PositionMove(usize),
-    HotRound(usize)
+    HotRound(usize),
 }
 
 impl VMixSelectionTrait for VMixPlayerInfo {
@@ -217,7 +218,7 @@ impl VMixSelectionTrait for VMixPlayerInfo {
             VMixPlayerInfo::RoundScore(ind) => format!("p{}scorernd", ind + 1),
             VMixPlayerInfo::Throw(ind) => format!("p{}throw", ind + 1),
             VMixPlayerInfo::PlayerPosition(pos) => format!("p{}pos", pos + 1),
-            VMixPlayerInfo::HotRound(pos) => format!("p{}hotrnd",pos+1)
+            VMixPlayerInfo::HotRound(pos) => format!("p{}hotrnd", pos + 1),
         }
     }
 
@@ -230,9 +231,10 @@ impl VMixSelectionTrait for VMixPlayerInfo {
             | RoundScore(_)
             | Surname(_)
             | Score { .. }
-            | TotalScore(_) | PositionMove(_) => "Text",
+            | TotalScore(_)
+            | PositionMove(_) => "Text",
             ScoreColor { .. } => "Fill.Color",
-            PositionArrow(_) | HotRound(_) => "Source"
+            PositionArrow(_) | HotRound(_) => "Source",
         }
     }
     fn value(&self) -> Option<String> {
@@ -314,9 +316,7 @@ impl VMixSelectionTrait for VMixHoleInfo {
     const INPUT_ID: &'static str = "d9806a48-8766-40e0-b7fe-b217f9b1ef5b";
 }
 
-
 pub struct CurrentPlayer(pub VMixPlayerInfo);
-
 
 impl VMixSelectionTrait for CurrentPlayer {
     fn get_selection_name(&self) -> String {
@@ -336,15 +336,12 @@ impl VMixSelectionTrait for CurrentPlayer {
 
 impl VMixInterfacer<VMixPlayerInfo> {
     pub fn into_current_player(self) -> Option<VMixInterfacer<CurrentPlayer>> {
-        
         let input = match self.input {
             Some(VMixPlayerInfo::Score { .. } | VMixPlayerInfo::ScoreColor { .. }) => None,
             Some(i) => Some(i),
-            None => None
+            None => None,
         }?;
-        
-        
-        
+
         Some(VMixInterfacer {
             input: Some(CurrentPlayer(input)),
             function: self.function,

@@ -1,7 +1,8 @@
-use crate::api::{Coordinator, Error, GeneralChannel, HoleUpdate};
-use crate::vmix::functions::{VMixFunction, VMixInterfacer, VMixPlayerInfo};
 use rocket::State;
 use rocket_okapi::openapi;
+
+use crate::api::{Coordinator, Error, GeneralChannel, HoleUpdate};
+use crate::vmix::functions::{VMixFunction, VMixInterfacer, VMixPlayerInfo};
 
 /// # Play animation
 /// Play the animation that corresponds with the upcoming score of the currently focused player
@@ -11,11 +12,6 @@ pub async fn play_animation(co: Coordinator) -> Result<(), Error> {
     co.lock().await.play_animation()
 }
 
-
-
-
-
-
 /// # Update leaderboard
 /// Set the leaderboard to the current state
 #[openapi(tag = "VMix")]
@@ -23,7 +19,6 @@ pub async fn play_animation(co: Coordinator) -> Result<(), Error> {
 pub async fn update_leaderboard(co: Coordinator) -> Result<(), Error> {
     let mut co = co.lock().await;
 
-    
     co.set_leaderboard(None);
     Ok(())
 }
