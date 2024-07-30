@@ -34,15 +34,7 @@ impl<'r> FromRequest<'r> for Coordinator {
 }
 
 #[rocket::async_trait]
-impl<
-        'r,
-        T: for<'a> From<&'a FlipUpVMixCoordinator>
-            + ChannelAttributes
-            + Send
-            + Clone
-            + Debug
-            + 'static,
-    > FromRequest<'r> for &'r GeneralChannel<T>
+impl< 'r,T:ChannelAttributes + 'static> FromRequest<'r> for &'r GeneralChannel<T>
 {
     type Error = ();
 
@@ -53,12 +45,7 @@ impl<
 
 impl<
         'r,
-        T: for<'a> From<&'a FlipUpVMixCoordinator>
-            + ChannelAttributes
-            + Send
-            + Clone
-            + Debug
-            + 'static,
+        T: ChannelAttributes + 'static, 
     > OpenApiFromRequest<'r> for &'r GeneralChannel<T>
 {
     fn from_request_input(

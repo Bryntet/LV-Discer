@@ -1,14 +1,15 @@
-use rocket::form::Form;
 use crate::api::guard::CoordinatorLoader;
 use crate::api::{Coordinator, Error, GeneralChannel, PlayerManagerUpdate};
 use crate::dto;
 use crate::dto::{CoordinatorBuilder, HoleSetting};
+use rocket::form::Form;
 use rocket::response::content::RawHtml;
 use rocket::serde::json::Json;
 use rocket::State;
 use rocket_dyn_templates::Template;
 use rocket_okapi::openapi;
 use serde_json::json;
+use crate::api::websocket::channels::DivisionUpdate;
 
 #[openapi(tag = "Config")]
 #[post("/player/focused/set/<focused_player>")]
@@ -76,7 +77,7 @@ pub async fn set_score_ready(coordinator: Coordinator, player_id: &str) -> Resul
 }
 
 #[openapi(tag = "Queue")]
-#[post("/player/<player_id>/add-to-queue", data="<hole_setting>")]
+#[post("/player/<player_id>/add-to-queue", data = "<hole_setting>")]
 pub async fn add_to_queue(
     coordinator: Coordinator,
     channel: &GeneralChannel<PlayerManagerUpdate>,
@@ -87,7 +88,7 @@ pub async fn add_to_queue(
     coordinator
         .lock()
         .await
-        .add_to_queue(player_id.to_string(), hole,throws,channel);
+        .add_to_queue(player_id.to_string(), hole, throws, channel);
     Ok(())
 }
 
@@ -100,6 +101,22 @@ pub async fn next_queue(
     coordinator.lock().await.next_queued(channel)?;
     Ok(())
 }
+
+
+#[openapi(tag = "Division")]
+#[post("/div/<division>/set")]
+pub async fn update_division(co: Coordinator, division: &str, channel:&GeneralChannel<DivisionUpdate>) -> Result<(), Error> {
+    let mut co = co.lock().await;
+    let div = co
+        .all_divs
+        .iter()
+        .find(|div| div.name == division)
+        .ok_or(Error::InvalidDivision(division.to_string()))?
+        .to_owned();
+    co.set_div(&div,channel);
+    Ok(())
+}
+
 
 #[catch(424)]
 pub fn make_coordinator() -> RawHtml<Template> {

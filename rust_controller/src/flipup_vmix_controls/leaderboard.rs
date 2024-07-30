@@ -9,6 +9,7 @@ use std::sync::Arc;
 #[derive(Debug, Clone, Default)]
 pub struct Leaderboard {
     states: Vec<LeaderboardState>,
+    skip: usize
 }
 #[derive(Debug, Clone)]
 pub struct LeaderboardState {
@@ -26,6 +27,7 @@ impl Leaderboard {
     pub fn new(state: LeaderboardState) -> Self {
         Self {
             states: vec![state],
+            skip: 0
         }
     }
     fn current_state(&self) -> Option<&LeaderboardState> {
@@ -34,7 +36,7 @@ impl Leaderboard {
 
     /// Returns the previous state of the leaderboard if it exists
     fn previous_state(&self) -> Option<&LeaderboardState> {
-        if self.states.is_empty() {
+        if self.states.len() <= 1 {
             return None;
         }
         self.states.get(self.states.len() - 2)
@@ -52,9 +54,9 @@ impl Leaderboard {
         }
     }
 
-    pub fn send_to_vmix(&self, queue: Arc<VMixQueue>) {
+    pub fn send_to_vmix(&self,division: &Division, queue: Arc<VMixQueue>, ) {
         self.current_state()
-            .map(|state| state.send_to_vmix(self.previous_state(), queue.clone()))
+            .map(|state| state.send_to_vmix(division,self.previous_state(), queue.clone(),self.skip))
             .expect("Should work")
     }
 
@@ -74,7 +76,8 @@ impl LeaderboardState {
         mut current_round_players: Vec<Player>,
         mut all_previous_rounds_players: Vec<Player>,
     ) -> Self {
-        current_round_players.iter_mut().for_each(|player| {
+        current_round_players.iter_mut()
+            .for_each(|player| {
             let previous_instances = all_previous_rounds_players
                 .iter_mut()
                 .filter(|previous_round_player| previous_round_player.player_id == player.player_id)
@@ -103,15 +106,15 @@ impl LeaderboardState {
         players.sort_by(|player_a, player_b| player_a.total_score.cmp(&player_b.total_score))
     }
 
-    fn leaderboard_players(&self, other: Option<&Self>) -> Vec<LeaderboardPlayer> {
+    fn leaderboard_players(&self,division: &Division, other: Option<&Self>) -> Vec<LeaderboardPlayer> {
         let min_score = self
             .players
             .iter()
             .map(|p| p.round_score)
             .min()
             .unwrap_or_default();
-        let other = other.map(|state| state.leaderboard_players(None));
-        let players_with_pos = Self::players_with_positions(self.players.iter().collect_vec());
+        let other = other.map(|state| state.leaderboard_players(division,None));
+        let players_with_pos = Self::players_with_positions(self.players.iter().filter(|player|player.division.id==division.id).collect_vec());
 
         players_with_pos
             .into_iter()
@@ -150,37 +153,70 @@ impl LeaderboardState {
             .collect_vec()
     }
 
-    pub fn send_to_vmix(&self, other: Option<&Self>, queue: Arc<VMixQueue>) {
-        let players = self.leaderboard_players(other);
-        let first_batch = players
-            .iter()
-            .flat_map(LeaderboardPlayer::combine)
-            .collect_vec();
-
+    pub fn send_to_vmix(&self,division: &Division, other: Option<&Self>, queue: Arc<VMixQueue>, skip: usize) {
+        let first_batch = self.big_leaderboard_funcs(division,other, skip);
         queue.add(&first_batch);
-        let mut second_batch = first_batch
-            .into_iter()
-            .flat_map(VMixInterfacer::to_top_6)
-            .collect_vec();
-        let v: Vec<_> = self
-            .players
-            .clone()
-            .into_iter()
-            .flat_map(|( player)| {
-                player
-                    .results
-                    .the_latest_6_holes()
-                    .into_iter()
-                    .enumerate()
-                    .flat_map(move |(hole_num, hole)| hole.to_leaderboard_top_6(self.leaderboard_players(other).iter().find(|lb_player|lb_player.id == player.player_id).unwrap().position, hole_num))
+        if skip > 0 {
+            self.update_little_leaderboard(division,self.big_leaderboard_funcs(division,other,0),other,queue)
+        } else {
+            self.update_little_leaderboard(division,first_batch,other,queue);
+        }
+    }
+
+    pub fn big_leaderboard_funcs(
+        &self,
+        division: &Division,
+        other: Option<&Self>,
+        skip: usize
+    ) -> Vec<VMixInterfacer<LeaderBoardProperty>> {
+        let mut players = self.leaderboard_players(division,other);
+        players
+            .iter_mut()
+            .skip(skip*10)
+            .take(10)
+            .map(|player|{
+                player.index-=skip*10;
+                &*player
             })
+            .flat_map(LeaderboardPlayer::combine)
+            .collect_vec()
+    }
+
+    pub fn update_little_leaderboard(
+        &self,
+        division: &Division,
+        first_batch: Vec<VMixInterfacer<LeaderBoardProperty>>,
+        other: Option<&Self>,
+        queue: Arc<VMixQueue>,
+    ) {
+        let lb_players = self.leaderboard_players(division,other);
+
+        
+        let mut second_batch: Vec<_> = first_batch
+            .into_par_iter()
+            .flat_map(VMixInterfacer::to_top_6)
+            .collect();
+        
+        let v = lb_players.into_iter()
+            .take(6)
+            .flat_map(|player|{
+                let regular_player = self.players.par_iter().find_any(|regular_player|regular_player.player_id==player.id)?;
+
+
+                Some(regular_player.results.clone().the_latest_5_holes().iter()
+                    .enumerate()
+                    .flat_map(|(hole_index, result)| {
+                        result.to_leaderboard_top_6(player.index, hole_index)
+                    }).collect_vec())
+            }).flatten()
             .collect_vec();
+        
         second_batch.extend(v);
         queue.add(&second_batch);
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct LeaderboardPlayer {
     id: String,
     index: usize,
@@ -339,7 +375,7 @@ impl LeaderboardPlayer {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 enum LeaderboardMovement {
     Up(usize),
     Down(usize),
@@ -424,7 +460,8 @@ mod prop {
             match self {
                 Position { pos, .. } => format!("pos{pos}"),
                 Name { pos } => format!("name{pos}"),
-                LastScore { pos, hole }  => format!("p{pos}ls{hole}",),LastScoreColour {pos,hole} => format!("p{pos}lh{hole}"),
+                LastScore { pos, hole } => format!("p{pos}ls{hole}",),
+                LastScoreColour { pos, hole } => format!("p{pos}lh{hole}"),
                 RoundScore { pos } => format!("p{pos}scorernd"),
                 TotalScore { pos } => format!("p{pos}scoretot"),
                 Thru { pos } => format!("p{pos}thru"),
@@ -432,8 +469,8 @@ mod prop {
         }
         fn data_extension(&self) -> &'static str {
             match self {
-                LeaderboardTop6::LastScoreColour {..} => "Fill.Color",
-                _ => "Text"
+                LeaderboardTop6::LastScoreColour { .. } => "Fill.Color",
+                _ => "Text",
             }
         }
         fn value(&self) -> Option<String> {

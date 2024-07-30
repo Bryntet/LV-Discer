@@ -11,20 +11,20 @@ pub async fn play_animation(co: Coordinator) -> Result<(), Error> {
     co.lock().await.play_animation()
 }
 
+
+
+
+
+
 /// # Update leaderboard
 /// Set the leaderboard to the current state
 #[openapi(tag = "VMix")]
-#[post("/vmix/update/leaderboard/<division>")]
-pub async fn update_leaderboard(co: Coordinator, division: &str) -> Result<(), Error> {
+#[post("/vmix/update/leaderboard")]
+pub async fn update_leaderboard(co: Coordinator) -> Result<(), Error> {
     let mut co = co.lock().await;
 
-    let div = co
-        .all_divs
-        .iter()
-        .find(|div| div.name == division)
-        .ok_or(Error::InvalidDivision(division.to_string()))?
-        .to_owned();
-    co.set_leaderboard(&div, None);
+    
+    co.set_leaderboard(None);
     Ok(())
 }
 

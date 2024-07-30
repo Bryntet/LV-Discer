@@ -3,7 +3,7 @@ mod simple_queries;
 mod vmix_calls;
 
 pub use super::*;
-use crate::api::{Error, GeneralChannel, HoleUpdate, PlayerManagerUpdate};
+use crate::api::{DivisionUpdate, Error, GeneralChannel, HoleUpdate, PlayerManagerUpdate};
 use crate::controller::get_data::RustHandler;
 use crate::controller::queries::Division;
 use crate::{api, vmix};
@@ -22,13 +22,12 @@ use vmix::VMixQueue;
 #[derive(Clone, Debug)]
 pub struct FlipUpVMixCoordinator {
     pub all_divs: Vec<Arc<queries::Division>>,
-    selected_div_index: usize,
+    pub leaderboard_division: Arc<Division>,
     leaderboard: Leaderboard,
     focused_player_index: usize,
     ip: String,
     handler: RustHandler,
     round_ind: usize,
-    lb_div_ind: usize,
     current_through: u8,
     pub vmix_queue: Arc<VMixQueue>,
     player_manager: PlayerManager,
@@ -44,18 +43,18 @@ impl FlipUpVMixCoordinator {
     ) -> Result<Self, Error> {
         let queue = VMixQueue::new(ip.clone())?;
         let handler = RustHandler::new(&event_id, round).await?;
-
+        
+        let all_divs = handler.get_divisions();
         let first_group = handler.groups.first().unwrap().first().unwrap();
         let mut coordinator = FlipUpVMixCoordinator {
-            all_divs: handler.get_divisions(),
-            selected_div_index: 0,
+            leaderboard_division: all_divs.first().unwrap().clone(),
+            all_divs,
             focused_player_index: focused_player,
             ip,
             player_manager: PlayerManager::new(first_group.player_ids()),
             leaderboard: handler.get_previous_leaderboards(),
             handler,
             round_ind: round,
-            lb_div_ind: 0,
             current_through: 0,
             vmix_queue: Arc::new(queue),
             event_id,
@@ -110,7 +109,6 @@ impl FlipUpVMixCoordinator {
                     player.throws = throw;
                 }
             }
-            
         }
         self.player_manager.add_to_queue(player_id);
         channel.send(self);
@@ -197,14 +195,7 @@ impl FlipUpVMixCoordinator {
         self.current_through = self.focused_player().hole_shown_up_until as u8
     }
 
-    fn make_checkin_text(&self) -> VMixInterfacer<LeaderBoardProperty> {
-        let value = self.get_div_names()[self.selected_div_index]
-            .to_string()
-            .to_uppercase()
-            + " "
-            + "LEADERBOARD CHECK-IN";
-        VMixInterfacer::set_text(value, LeaderBoardProperty::CheckinText)
-    }
+    
 
     pub fn toggle_pos(&mut self) {
         let f = self.focused_player_mut().toggle_pos();
@@ -218,11 +209,11 @@ impl FlipUpVMixCoordinator {
             .player(self.available_players())
             .unwrap()
     }
-    pub fn set_div(&mut self, div: &Division) {
-        if let Some((idx, _)) = self.all_divs.iter().find_position(|d| d.id == div.id) {
-            self.selected_div_index = idx;
-            self.handler.set_chosen_by_ind(idx);
+    pub fn set_div(&mut self, div: &Division, channel: &GeneralChannel<DivisionUpdate>) {
+        if let Some(div) = self.all_divs.iter().find(|d| d.id == div.id) {
+            self.leaderboard_division = dbg!(div.clone());
         }
+        channel.send(self);
     }
 
     pub fn find_division(&self, div_id: &str) -> Option<Arc<Division>> {
@@ -241,29 +232,26 @@ impl FlipUpVMixCoordinator {
             .map(Arc::clone)
     }
 
-    pub fn set_leaderboard(&mut self, division: &Division, lb_start_ind: Option<usize>) {
-        self.queue_add(&FlipUpVMixCoordinator::clear_lb(10));
+    pub fn set_leaderboard(&mut self, lb_start_ind: Option<usize>) {
         self.set_current_through();
         if self.current_hole() <= 18 {
             let current_players = self
                 .available_players()
                 .into_iter()
-                .filter(|player| player.division.id == division.id)
                 .cloned()
                 .collect_vec();
             let previous = self
                 .previous_rounds_players()
                 .into_iter()
-                .filter(|player| player.division.id == division.id)
                 .cloned()
                 .collect_vec();
             self.leaderboard.add_state(LeaderboardState::new(
                 self.round_ind,
                 current_players,
                 previous,
-            ));
+                ));
 
-            self.leaderboard.send_to_vmix(self.vmix_queue.clone());
+            self.leaderboard.send_to_vmix(&self.leaderboard_division,self.vmix_queue.clone());
         } else {
             println!("PANIC, hole > 18");
         }

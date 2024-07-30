@@ -5,13 +5,16 @@ use rocket_dyn_templates::Metadata;
 use rocket_ws::Message;
 use serde_json::json;
 use std::fmt::Debug;
+use std::marker::PhantomData;
+use itertools::Itertools;
+use crate::dto::Division;
 
 pub struct GeneralChannel<
-    T: for<'a> From<&'a FlipUpVMixCoordinator> + ChannelAttributes + Send + Clone + Debug,
+    T: ChannelAttributes
 > {
     sender: tokio::sync::broadcast::Sender<T>,
 }
-impl<T: for<'a> From<&'a FlipUpVMixCoordinator> + ChannelAttributes + Send + Clone + Debug>
+impl<T: ChannelAttributes>
     GeneralChannel<T>
 {
     pub fn send(&self, coordinator: &FlipUpVMixCoordinator) {
@@ -27,7 +30,7 @@ impl<T: for<'a> From<&'a FlipUpVMixCoordinator> + ChannelAttributes + Send + Clo
     }
 }
 
-impl<T: for<'a> From<&'a FlipUpVMixCoordinator> + ChannelAttributes + Send + Clone + Debug>
+impl<T: ChannelAttributes>
     From<tokio::sync::broadcast::Sender<T>> for GeneralChannel<T>
 {
     fn from(sender: tokio::sync::broadcast::Sender<T>) -> Self {
@@ -40,7 +43,7 @@ pub struct PlayerManagerUpdate {
     players: Vec<dto::Player>,
 }
 
-pub trait ChannelAttributes {
+pub trait ChannelAttributes: for<'a> From<&'a FlipUpVMixCoordinator> + Send + Clone + Debug {
     fn try_into_message(self) -> Option<Message>;
     fn make_html(self, metadata: &Metadata) -> Option<Message>;
 }
@@ -89,3 +92,46 @@ impl From<&FlipUpVMixCoordinator> for HoleUpdate {
         }
     }
 }
+
+
+
+
+#[derive(Debug, Clone, Serialize)]
+pub struct DivisionUpdate {
+    divisions: Vec<dto::Division>
+}
+
+impl ChannelAttributes for DivisionUpdate {
+    fn try_into_message(self) -> Option<Message> {
+        Some(Message::from(serde_json::to_string(&self.divisions).ok()?))
+    }
+
+    fn make_html(self, metadata: &Metadata) -> Option<Message> {
+        metadata
+            .render("divisions", json!({"divisions": self.divisions}))
+            .map(|(_, b)| Message::from(b))
+    }
+}
+
+impl From<&FlipUpVMixCoordinator> for DivisionUpdate {
+    fn from(coordinator: &FlipUpVMixCoordinator) -> Self {
+        
+        Self {
+            divisions: coordinator.all_divs.iter().map(|div|{
+                if div.id == coordinator.leaderboard_division.id {
+                    Division {
+                        name: div.name.clone(),
+                        focused: true,
+                    }
+                }  else { 
+                    Division {
+                        name: div.name.clone(),
+                        focused: false,
+                    }
+                }
+            }).collect_vec(),
+        }
+    }
+}
+
+

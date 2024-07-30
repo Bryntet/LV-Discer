@@ -15,6 +15,7 @@
             margin: 0 auto;
             padding: 20px;
             background-color: #f4f4f4;
+            position: relative;
         }
         .round-selector {
             margin-bottom: 20px;
@@ -215,14 +216,37 @@
             color: blue;
         }
 
+        #division-selector {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;  /* Ensure it's above other elements */
+        }
 
+        #division-selector select {
+            padding: 10px;
+            font-size: 16px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+        }
 
-
+        /* Adjust the main content to avoid overlap */
+        h1 {
+            padding-right: 200px;  /* Make space for the dropdown */
+        }
 
 
     </style>
 </head>
 <body>
+
+<div id="division-selector" hx-ext="ws" ws-connect="/ws/division">
+    <select id="division-dropdown">
+        <option value="">Select Division</option>
+
+    </select>
+</div>
+
 <h1>Groups and Players by Round</h1>
 
 
@@ -257,23 +281,6 @@
                     <button class="select-group" hx-post="/htmx/group/{{group.id}}" hx-trigger="click" hx-target="#selected-players-list">
                         Select Group
                     </button>
-                    <button class="group-menu-btn">Group Actions</button>
-                </div>
-                <div class="popup-menu">
-                    {{#each group.players as |player|}}
-                        <div class="player-item" data-player-id="{{player.id}}">
-                            <div class="player-info">
-                                <span class="player-name">{{player.name}}</span>
-                                <span class="throw-count">Throws: <span class="count">0</span></span>
-                            </div>
-                            <div class="player-actions">
-                                <button class="throw-plus">+</button>
-                                <button class="throw-minus">-</button>
-                                <button class="in-basket">In</button>
-                                <button class="ob">OB</button>
-                            </div>
-                        </div>
-                    {{/each}}
                 </div>
                 <div class="group-content">
                     {{#each group.players as |player|}}
@@ -372,6 +379,10 @@
                     console.error('Error queuing player:', error);
                 });
     }
+
+
+
+
 </script>
 </body>
 </html>

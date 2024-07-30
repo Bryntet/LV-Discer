@@ -167,12 +167,21 @@ impl HoleResult {
         self.to_score().play_mov_vmix(player, false)
     }
 
-    pub fn to_leaderboard_top_6(&self, pos: usize, hole: usize) -> [VMixInterfacer<LeaderboardTop6>;2] {
-        
-        [VMixInterfacer::set_text(
-            fix_score(self.actual_score() as isize),
-            LeaderboardTop6::LastScore { pos, hole },
-        ),VMixInterfacer::set_color(self.to_score().get_score_colour(),LeaderboardTop6::LastScoreColour {pos,hole})]
+    pub fn to_leaderboard_top_6(
+        &self,
+        pos: usize,
+        hole: usize,
+    ) -> [VMixInterfacer<LeaderboardTop6>; 2] {
+        [
+            VMixInterfacer::set_text(
+                fix_score(self.actual_score() as isize),
+                LeaderboardTop6::LastScore { pos, hole },
+            ),
+            VMixInterfacer::set_color(
+                self.to_score().get_score_colour(),
+                LeaderboardTop6::LastScoreColour { pos, hole },
+            ),
+        ]
     }
 }
 
@@ -277,14 +286,14 @@ impl PlayerRound {
             .count() as u8
     }
 
-    pub fn the_latest_6_holes(self) -> Vec<HoleResult> {
-        dbg!(self.results
+    pub fn the_latest_5_holes(self) -> Vec<HoleResult> {
+        self.results
             .into_iter()
             .sorted_by_key(|result| result.hole)
             .rev()
-            .take(6)
+            .take(5)
             .rev()
-            .collect_vec())
+            .collect_vec()
     }
 }
 
@@ -336,8 +345,10 @@ impl Player {
         divisions: Vec<Arc<Division>>,
         starts_at_hole: u8,
     ) -> Result<Self, Error> {
-        let first_name = player.user.first_name.unwrap();
-        let surname = player.user.last_name.unwrap();
+        let mut first_name = player.user.first_name.unwrap();
+        let mut surname = player.user.last_name.unwrap();
+        first_name.retain(char::is_alphabetic);
+        surname.retain(char::is_alphabetic);
         let image_id: Option<String> = player
             .user
             .profile
@@ -359,6 +370,7 @@ impl Player {
             round,
             starts_at_hole,
         );
+
         Ok(Self {
             player_id: player.id.into_inner(),
             image_url: image_id,
@@ -934,11 +946,10 @@ impl RustHandler {
             return lb;
         }
 
+
         let previous_players = self
-            .get_previous_rounds_players()
-            .into_iter()
-            .filter(|player| player.division.name == "Mixed Amateur 1")
-            .collect_vec();
+            .get_previous_rounds_players();
+            
         for round in 0..self.round_ind {
             let state = LeaderboardState::new(
                 round,
@@ -951,7 +962,7 @@ impl RustHandler {
                 previous_players
                     .clone()
                     .into_iter()
-                    .filter(|player| player.round_ind < round)
+                    .filter(|player| player.round_ind == round.checked_sub(1).unwrap_or(1000))
                     .cloned()
                     .collect_vec(),
             );
@@ -969,8 +980,6 @@ impl RustHandler {
         for player in players.iter_mut() {
             player.fix_round_score(None);
         }
-
-        
     }
     pub async fn get_event(
         event_id: &str,

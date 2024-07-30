@@ -22,10 +22,11 @@ use rocket_okapi::swagger_ui::{make_swagger_ui, SwaggerUIConfig};
 use std::net::IpAddr;
 use std::sync::Arc;
 use tokio::sync::{Mutex, MutexGuard};
-pub use websocket::channels::{HoleUpdate, PlayerManagerUpdate};
+pub use websocket::channels::{HoleUpdate, PlayerManagerUpdate,DivisionUpdate};
 
 pub use crate::api::websocket::channels::GeneralChannel;
 pub use guard::Error;
+use crate::api::websocket::htmx::division_updater;
 
 #[derive(Debug, Clone)]
 struct Coordinator(Arc<Mutex<FlipUpVMixCoordinator>>);
@@ -65,6 +66,7 @@ fn get_normal_routes() -> Vec<Route> {
         get_groups,
         index,
         update_leaderboard,
+        update_division,
         increase_score,
         focused_players,
         focused_player,
@@ -82,7 +84,7 @@ fn get_normal_routes() -> Vec<Route> {
 
 fn get_websocket_routes() -> Vec<Route> {
     use websocket::*;
-    routes![selection_watcher, hole_watcher]
+    routes![selection_watcher, hole_watcher,division_updater]
 }
 
 fn get_websocket_htmx_routes() -> Vec<Route> {
@@ -101,7 +103,9 @@ pub fn launch() -> Rocket<Build> {
     let group_selection_sender = GeneralChannel::from(group_selection_sender);
     let (hole_update_sender, _) = channel::<HoleUpdate>(1024);
     let hole_update_sender = GeneralChannel::from(hole_update_sender);
-
+    let division_sender = GeneralChannel::from(channel::<websocket::DivisionUpdate>(1024).0);
+    
+    
     let conf = {
         #[cfg(windows)]
         let ip = IpAddr::V4("10.170.120.134".parse().unwrap());
@@ -120,6 +124,7 @@ pub fn launch() -> Rocket<Build> {
         .manage(CoordinatorLoader(Mutex::new(None)))
         .manage(group_selection_sender)
         .manage(hole_update_sender)
+        .manage(division_sender)
         .mount("/", get_normal_routes())
         .mount("/htmx/", get_webpage_routes())
         .mount("/ws", get_websocket_routes())

@@ -15,10 +15,10 @@ pub struct Player {
     pub index: usize,
     pub queue: Option<usize>,
 }
-#[derive(Debug, JsonSchema,Clone,FromForm,Deserialize)]
+#[derive(Debug, JsonSchema, Clone, FromForm, Deserialize)]
 pub struct HoleSetting {
     pub hole: Option<u8>,
-    pub throws: Option<u8>
+    pub throws: Option<u8>,
 }
 
 impl Player {

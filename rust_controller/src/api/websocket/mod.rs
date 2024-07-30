@@ -12,7 +12,7 @@ use std::fmt::Debug;
 
 use crate::api::websocket::channels::{GeneralChannel, HoleUpdate};
 use crate::controller::coordinator::FlipUpVMixCoordinator;
-pub use channels::{ChannelAttributes, PlayerManagerUpdate};
+pub use channels::{ChannelAttributes, PlayerManagerUpdate,DivisionUpdate};
 
 #[inline(always)]
 async fn interpret_message(

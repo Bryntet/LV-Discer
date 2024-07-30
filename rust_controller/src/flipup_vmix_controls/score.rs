@@ -150,7 +150,7 @@ impl Score {
             },
         )
     }
-    
+
     pub fn get_score_colour(&self) -> &'static str {
         self.readable_score.to_colour()
     }
