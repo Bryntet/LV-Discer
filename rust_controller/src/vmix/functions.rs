@@ -377,5 +377,5 @@ impl VMixSelectionTrait for Featured {
         self.0.value()
     }
 
-    const INPUT_ID: &'static str = "65d64465-3756-43a3-89f4-12d12b692027";
+    const INPUT_ID: &'static str = "2994000d-afe5-44fc-a2c1-fc0993de21da";
 }

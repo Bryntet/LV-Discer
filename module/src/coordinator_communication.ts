@@ -137,20 +137,20 @@ export class ApiClient {
     async rewindLb() {
         await this.post(`/leaderboard/rewind-pos`)
     }
-    
-    
+
+
     async updateFeaturedHoleCard() {
         await this.post(`/featured-hole/update-card`)
     }
-    
+
     async nextFeaturedHoleCard() {
         await this.post(`/featured-hole/next-card`)
     }
-    
+
     async rewindFeaturedHoleCard() {
-        await this.post(`/featured-hole/rewind-cardz`)
+        await this.post(`/featured-hole/rewind-card`)
     }
-    
+
 
 }
 

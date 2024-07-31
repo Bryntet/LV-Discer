@@ -3,6 +3,7 @@ use std::sync::Arc;
 
 use cynic::{GraphQlResponse, QueryBuilder};
 use itertools::Itertools;
+use rayon::prelude::*;
 use tokio::sync::Mutex;
 
 use crate::controller;
@@ -123,14 +124,13 @@ pub async fn update_loop(coordinator: Arc<Mutex<FlipUpVMixCoordinator>>) {
                         .collect_vec(),
                 ) {
                     let mut coordinator = coordinator.lock().await;
-                    for player in coordinator.available_players_mut() {
-                        tjing_result_map.update_mut_player(player)
-                    }
-                    if let Some(div) = coordinator.find_division_by_name("Mixed Amateur 1") {
-                        //coordinator.set_leaderboard(&div, None);
-                        let queue = coordinator.vmix_queue.clone();
-                        coordinator.leaderboard.update_little_lb(&div, queue);
-                    }
+                    coordinator
+                        .available_players_mut()
+                        .into_par_iter()
+                        .for_each(|player| tjing_result_map.update_mut_player(player));
+                    let div = coordinator.focused_player().division.clone();
+                    let queue = coordinator.vmix_queue.clone();
+                    coordinator.leaderboard.update_little_lb(&div, queue);
                 }
             }
         }

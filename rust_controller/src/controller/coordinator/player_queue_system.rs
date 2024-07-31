@@ -78,7 +78,11 @@ impl PlayerManager {
         new_whole_list.reverse();
         self.managed_players = new_whole_list;
         if self.focused >= self.managed_players.len() {
-            self.focused = self.managed_players.len() - 1;
+            self.focused = if !self.managed_players.is_empty() {
+                self.managed_players.len() - 1
+            } else {
+                0
+            };
         }
     }
     pub fn player<'a>(&self, players: Vec<&'a Player>) -> Option<&'a Player> {

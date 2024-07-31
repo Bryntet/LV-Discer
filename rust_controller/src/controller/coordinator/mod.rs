@@ -109,7 +109,8 @@ impl FlipUpVMixCoordinator {
         self.handler.get_previous_rounds_players()
     }
 
-    pub fn update_featured_card(&self) {
+    pub fn update_featured_card(&mut self) {
+        self.add_state_to_leaderboard();
         self.queue_add(
             &self
                 .featured_card
@@ -118,9 +119,9 @@ impl FlipUpVMixCoordinator {
                 .enumerate()
                 .flat_map(|(i, player)| {
                     player
-                        .set_all_compare_2x2_values(i, &self.leaderboard)
+                        .set_all_compare_2x2_values(i, &self.leaderboard, false)
+                        .unwrap()
                         .into_iter()
-                        .flatten()
                         .map(|res| res.into_featured())
                 })
                 .collect_vec(),
@@ -128,15 +129,17 @@ impl FlipUpVMixCoordinator {
     }
 
     pub fn next_featured_card(&mut self) {
-        if let Some(group) = self.groups().into_iter().find(|group| {
-            ((group.start_at + self.groups_featured_so_far) % 18 + 1) == self.featured_hole
-        }) {
-            self.featured_card.replace(group.player_ids());
-            self.update_featured_card();
-            self.groups_featured_so_far += 1;
-        } else if self.groups_featured_so_far < 20 {
-            self.groups_featured_so_far += 1;
-            self.next_featured_card()
+        if !self.groups_featured_so_far >= 18 {
+            if let Some(group) = self.groups().into_iter().find(|group| {
+                ((group.start_at + self.groups_featured_so_far) % 18 + 1) == self.featured_hole
+            }) {
+                self.featured_card.replace(group.player_ids());
+                self.update_featured_card();
+                self.groups_featured_so_far += 1;
+            } else if self.groups_featured_so_far < 18 {
+                self.groups_featured_so_far += 1;
+                self.next_featured_card()
+            }
         }
     }
 
@@ -276,7 +279,7 @@ impl FlipUpVMixCoordinator {
             .enumerate()
             .flat_map(|(index, player)| {
                 player
-                    .set_all_compare_2x2_values(index, &self.leaderboard)
+                    .set_all_compare_2x2_values(index, &self.leaderboard, false)
                     .expect("Should work due to set all values already passing")
             })
             .collect::<Vec<_>>();
