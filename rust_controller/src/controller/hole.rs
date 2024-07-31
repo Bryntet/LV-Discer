@@ -1,3 +1,5 @@
+use std::cmp::Ordering;
+
 use itertools::Itertools;
 use rayon::prelude::*;
 
@@ -17,16 +19,32 @@ impl HoleStats {
             player_results,
         }
     }
-    pub fn average_score(&self) -> f64 {
-        (self
+    pub fn average_score(&self) -> (isize, std::cmp::Ordering) {
+        let avg_result = self
             .player_results
             .par_iter()
             .map(|res| res.score)
             .sum::<f64>()
-            / (self.player_results.len() as f64)
-            * 10.)
-            .round()
-            / 10.
+            / (self.player_results.len() as f64);
+        let cmp = avg_result.total_cmp(&0.);
+        (
+            (self
+                .player_results
+                .par_iter()
+                .map(|res| res.score)
+                .sum::<f64>()
+                / (self.player_results.len() as f64)
+                * 10.)
+                .round() as isize
+                - self
+                    .player_results
+                    .first()
+                    .map(|res| res.hole.par)
+                    .unwrap()
+                    .unwrap() as isize
+                    * 10,
+            cmp,
+        )
     }
 }
 #[derive(Clone, Debug)]
@@ -35,7 +53,10 @@ pub enum VMixHoleInfo {
     HolePar(u8),
     HoleMeters(u16),
     HoleFeet(u16),
-    AverageResult(f64),
+    AverageResult {
+        score: isize,
+        cmp: std::cmp::Ordering,
+    },
     Difficulty {
         hole: usize,
         difficulty: HoleDifficulty,
@@ -56,7 +77,7 @@ impl HoleDifficulty {
                 .map(|hole| {
                     holes
                         .iter()
-                        .filter(|other_hole| hole.average_score() <= other_hole.average_score())
+                        .filter(|other_hole| hole.average_score().0 <= other_hole.average_score().0)
                         .count() as u8
                 })
                 .collect(),
@@ -87,7 +108,7 @@ impl VMixSelectionTrait for VMixHoleInfo {
             HolePar(_) => "parnr",
             HoleMeters(_) => "meternr",
             HoleFeet(_) => "feetnr",
-            AverageResult(_) => "avgresult",
+            AverageResult { .. } => "avgresult",
             Difficulty { .. } => "difficulty",
             Elevation(_) => "elevation",
         }
@@ -105,7 +126,20 @@ impl VMixSelectionTrait for VMixHoleInfo {
             Hole(number) | HolePar(number) => number.to_string(),
             HoleMeters(meters) => format!("{meters}M"),
             HoleFeet(feet) => format!("{feet}FT"),
-            AverageResult(number) => number.to_string(),
+            AverageResult { score, cmp } => {
+                let score = score.to_string();
+                let mut all_nums = score.chars().rev();
+                let decimal = all_nums.next().unwrap();
+                let mut rest: String = all_nums.rev().collect();
+                if rest.is_empty() || rest.contains("-") && rest.len() == 1 {
+                    rest.push('0');
+                }
+                (match cmp {
+                    Ordering::Less => format!("{rest}.{decimal}"),
+                    Ordering::Equal => "E".to_string(),
+                    Ordering::Greater => format!("%2B{rest}.{decimal}"),
+                }) + " avg"
+            }
             Difficulty { difficulty, hole } => difficulty.hole_difficulty_text(*hole).unwrap(),
             Elevation(elevation) => {
                 let sign = if elevation.is_positive() { "+" } else { "" };
@@ -114,4 +148,33 @@ impl VMixSelectionTrait for VMixHoleInfo {
         })
     }
     const INPUT_ID: &'static str = "d9806a48-8766-40e0-b7fe-b217f9b1ef5b";
+}
+
+pub enum DroneHoleInfo {
+    Standard(VMixHoleInfo),
+    HoleMap,
+}
+impl VMixSelectionTrait for DroneHoleInfo {
+    fn get_selection_name(&self) -> String {
+        match self {
+            DroneHoleInfo::Standard(s) => s.get_selection_name(),
+            DroneHoleInfo::HoleMap => "holemap".to_string(),
+        }
+    }
+
+    fn data_extension(&self) -> &'static str {
+        match self {
+            DroneHoleInfo::Standard(s) => s.data_extension(),
+            DroneHoleInfo::HoleMap => "Source",
+        }
+    }
+
+    fn value(&self) -> Option<String> {
+        match self {
+            DroneHoleInfo::Standard(s) => s.value(),
+            DroneHoleInfo::HoleMap => None,
+        }
+    }
+
+    const INPUT_ID: &'static str = "d135d6d1-11ee-4169-9700-4c743d729218";
 }

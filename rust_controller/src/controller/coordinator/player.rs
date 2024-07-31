@@ -8,7 +8,7 @@ use hole::VMixHoleInfo;
 
 use crate::api::Error;
 use crate::controller::get_data::{HoleResult, DEFAULT_FOREGROUND_COL_ALPHA};
-use crate::controller::hole::{HoleDifficulty, HoleStats};
+use crate::controller::hole::{DroneHoleInfo, HoleDifficulty, HoleStats};
 use crate::controller::queries::layout::Holes;
 use crate::controller::queries::Division;
 use crate::controller::{hole, queries};
@@ -102,27 +102,47 @@ impl PlayerRound {
         let mut r_vec: Vec<VMixInterfacer<VMixHoleInfo>> = vec![];
         let hole = self.current_result(hole).unwrap();
 
-        r_vec.push(VMixInterfacer::set_hole_text(VMixHoleInfo::Hole(hole.hole)));
+        r_vec.push(VMixInterfacer::set_only_input(VMixHoleInfo::Hole(
+            hole.hole,
+        )));
 
-        r_vec.push(VMixInterfacer::set_hole_text(VMixHoleInfo::HolePar(
+        r_vec.push(VMixInterfacer::set_only_input(VMixHoleInfo::HolePar(
             hole.hole_representation.par,
         )));
 
-        r_vec.push(VMixInterfacer::set_hole_text(VMixHoleInfo::HoleMeters(
+        r_vec.push(VMixInterfacer::set_only_input(VMixHoleInfo::HoleMeters(
             hole.hole_representation.length,
         )));
 
         let feet = (hole.hole_representation.length as f32 * 3.28084) as u16;
-        r_vec.push(VMixInterfacer::set_hole_text(VMixHoleInfo::HoleFeet(feet)));
+        r_vec.push(VMixInterfacer::set_only_input(VMixHoleInfo::HoleFeet(feet)));
         let stat = &hole_stats[(hole.hole - 1) as usize];
-        r_vec.push(VMixInterfacer::set_hole_text(VMixHoleInfo::AverageResult(
-            stat.average_score(),
-        )));
-        r_vec.push(VMixInterfacer::set_hole_text(VMixHoleInfo::Difficulty {
+        let (avg, cmp) = stat.average_score();
+        r_vec.push(VMixInterfacer::set_only_input(
+            VMixHoleInfo::AverageResult { score: avg, cmp },
+        ));
+        r_vec.push(VMixInterfacer::set_only_input(VMixHoleInfo::Difficulty {
             difficulty: HoleDifficulty::new(hole_stats),
             hole: hole.hole as usize,
         }));
         r_vec
+    }
+
+    pub fn get_drone_info(
+        &self,
+        hole: u8,
+        funcs: &[VMixInterfacer<VMixHoleInfo>],
+    ) -> Vec<VMixInterfacer<DroneHoleInfo>> {
+        let mut funcs = funcs
+            .into_iter()
+            .cloned()
+            .map(VMixInterfacer::into_drone_hole_info)
+            .collect_vec();
+        funcs.push(VMixInterfacer::set_image(
+            format!("C:\\livegrafik-flipup\\holemaps\\mpohole{}.png", hole + 1),
+            DroneHoleInfo::HoleMap,
+        ));
+        funcs
     }
 
     pub fn amount_of_holes_finished(&self) -> u8 {
