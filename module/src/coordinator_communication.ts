@@ -125,6 +125,18 @@ export class ApiClient {
     async setGroupFocusedPlayer() {
         await this.post(`/players/focused/set-group`)
     }
+    
+    async next10Lb() {
+        await this.post(`/leaderboard/next-10`)
+    }
+    
+    async resestLb() {
+        await this.post(`/leaderboard/reset-pos`)
+    }
+    
+    async rewindLb() {
+        await this.post(`/leaderboard/rewind-pos`)
+    }
 
 }
 

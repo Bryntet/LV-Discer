@@ -20,7 +20,10 @@ export enum ActionId {
     DoOtherLeaderboard = 'do_other_leaderboard',
     ReloadWebSockets = 'reload_websockets',
     NextQueuedPlayed = 'next_queued',
-    SetGroupToFocusedPlayer = 'set_focused_player_group'
+    SetGroupToFocusedPlayer = 'set_focused_player_group',
+    IncreaseLb = 'lb_increase',
+    ResetLb = 'lb_reset',
+    RewindLb = 'lb_rewind'
 }
 
 async function parseAuto(context: CompanionCommonCallbackContext): Promise<number> {
@@ -219,6 +222,26 @@ export const setActionDefinitions = (instance: LevandeVideoInstance): CompanionA
             await instance.coordinator.setGroupFocusedPlayer()
         }
     }
-
+    actions[ActionId.ResetLb] = {
+        name: 'Reset leaderboard state',
+        options: [],
+        callback: async () => {
+            await instance.coordinator.resestLb()
+        }
+    }
+    actions[ActionId.IncreaseLb] = {
+        name: 'Show next 10 players in leaderboard',
+        options: [],
+        callback: async () => {
+            await instance.coordinator.next10Lb()
+        }
+    }
+    actions[ActionId.RewindLb] = {
+        name: 'Rewind lb by 10 players',
+        options: [],
+        callback: async () => {
+            await instance.coordinator.rewindLb()
+        }
+    }
     return actions
 }

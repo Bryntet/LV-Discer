@@ -83,7 +83,10 @@ fn get_normal_routes() -> Vec<Route> {
         next_queue,
         add_to_queue,
         focused_card,
-        set_group_to_focused_player
+        set_group_to_focused_player,
+        next_10_lb,
+        reset_lb_pos,
+        rewind_lb_pos
     ]
 }
 

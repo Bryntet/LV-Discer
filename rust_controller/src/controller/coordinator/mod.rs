@@ -75,6 +75,23 @@ impl FlipUpVMixCoordinator {
         self.handler.get_players()
     }
 
+    pub fn increase_leaderboard_skip(&mut self) {
+        self.leaderboard.skip += 1;
+        self.set_leaderboard(None);
+    }
+
+    pub fn decrease_leaderboard_skip(&mut self) {
+        if self.leaderboard.skip > 0 {
+            self.leaderboard.skip -= 1;
+        }
+        self.set_leaderboard(None);
+    }
+
+    pub fn reset_leaderboard_skip(&mut self) {
+        self.leaderboard.skip = 0;
+        self.set_leaderboard(None);
+    }
+
     pub fn previous_rounds_players(&self) -> Vec<&Player> {
         self.handler.get_previous_rounds_players()
     }

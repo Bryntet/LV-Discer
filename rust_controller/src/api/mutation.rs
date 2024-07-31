@@ -54,6 +54,23 @@ pub async fn set_group(
     Ok(())
 }
 
+#[openapi(tag = "Leaderboard")]
+#[post("/leaderboard/next-10")]
+pub async fn next_10_lb(coordinator: Coordinator) {
+    coordinator.lock().await.increase_leaderboard_skip();
+}
+#[openapi(tag = "Leaderboard")]
+#[post("/leaderboard/reset-pos")]
+pub async fn reset_lb_pos(coordinator: Coordinator) {
+    coordinator.lock().await.reset_leaderboard_skip();
+}
+
+#[openapi(tag = "Leaderboard")]
+#[post("/leaderboard/rewind-pos")]
+pub async fn rewind_lb_pos(coordinator: Coordinator) {
+    coordinator.lock().await.decrease_leaderboard_skip();
+}
+
 #[openapi(tag = "Live Update")]
 #[post("/players/focused/set-group")]
 pub async fn set_group_to_focused_player(

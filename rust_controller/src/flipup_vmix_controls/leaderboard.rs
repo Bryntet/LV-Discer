@@ -16,7 +16,7 @@ use crate::vmix::VMixQueue;
 #[derive(Debug, Clone, Default)]
 pub struct Leaderboard {
     states: Vec<LeaderboardState>,
-    skip: usize,
+    pub skip: usize,
 }
 #[derive(Debug, Clone)]
 pub struct LeaderboardState {

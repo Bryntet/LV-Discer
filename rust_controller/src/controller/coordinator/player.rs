@@ -731,6 +731,10 @@ impl Player {
                 Image::Nothing.to_location(),
                 LeaderBoardProperty::HotRound(self.position),
             ),
+            VMixInterfacer::set_image(
+                Image::Nothing.to_location(),
+                LeaderBoardProperty::Arrow { pos: self.position },
+            ),
             self.hide_rs(),
             VMixInterfacer::set_text(
                 "".to_string(),
