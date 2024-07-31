@@ -1,6 +1,6 @@
 use itertools::Itertools;
 
-use crate::controller::hole::{DroneHoleInfo, VMixHoleInfo};
+use crate::controller::hole::{DroneHoleInfo, FeaturedHole, VMixHoleInfo};
 use crate::flipup_vmix_controls::{LeaderBoardProperty, LeaderboardTop6};
 
 pub trait VMixSelectionTrait {
@@ -318,6 +318,14 @@ impl VMixInterfacer<VMixHoleInfo> {
     pub fn into_drone_hole_info(self) -> VMixInterfacer<DroneHoleInfo> {
         VMixInterfacer {
             input: self.input.map(DroneHoleInfo::Standard),
+            function: self.function,
+            value: self.value,
+        }
+    }
+
+    pub fn into_featured_hole_card(self) -> VMixInterfacer<FeaturedHole> {
+        VMixInterfacer {
+            input: self.input.map(FeaturedHole),
             function: self.function,
             value: self.value,
         }

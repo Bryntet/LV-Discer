@@ -24,7 +24,7 @@ impl FlipUpVMixCoordinator {
         }
     }
 
-    fn make_stats(&self) -> Vec<HoleStats> {
+    pub(crate) fn make_stats(&self) -> Vec<HoleStats> {
         let mut hole_stats: HashMap<usize, Vec<queries::HoleResult>> = HashMap::new();
         self.available_players().into_iter().for_each(|player| {
             for (hole, result) in player

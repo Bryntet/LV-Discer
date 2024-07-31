@@ -125,18 +125,28 @@ impl FlipUpVMixCoordinator {
                         .map(|res| res.into_featured())
                 })
                 .collect_vec(),
-        )
+        );
+        self.queue_add(
+            &self
+                .focused_player()
+                .results
+                .get_hole_info(self.featured_hole - 1, self.make_stats())
+                .into_iter()
+                .map(VMixInterfacer::into_featured_hole_card)
+                .collect_vec(),
+        );
     }
 
     pub fn next_featured_card(&mut self) {
         if !self.groups_featured_so_far >= 18 {
             if let Some(group) = self.groups().into_iter().find(|group| {
-                ((group.start_at + self.groups_featured_so_far) % 18 + 1) == self.featured_hole
+                ((group.start_at + self.groups_featured_so_far) % 18) == self.featured_hole
+                    && !group.players.is_empty()
             }) {
                 self.featured_card.replace(group.player_ids());
                 self.update_featured_card();
                 self.groups_featured_so_far += 1;
-            } else if self.groups_featured_so_far < 18 {
+            } else {
                 self.groups_featured_so_far += 1;
                 self.next_featured_card()
             }

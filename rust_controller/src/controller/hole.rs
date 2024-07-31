@@ -150,6 +150,23 @@ impl VMixSelectionTrait for VMixHoleInfo {
     const INPUT_ID: &'static str = "d9806a48-8766-40e0-b7fe-b217f9b1ef5b";
 }
 
+pub struct FeaturedHole(pub VMixHoleInfo);
+impl VMixSelectionTrait for FeaturedHole {
+    fn get_selection_name(&self) -> String {
+        self.0.get_selection_name()
+    }
+
+    fn data_extension(&self) -> &'static str {
+        self.0.data_extension()
+    }
+
+    fn value(&self) -> Option<String> {
+        self.0.value()
+    }
+
+    const INPUT_ID: &'static str = "0e9bec31-70a9-4566-a1ea-e050434c1cd2";
+}
+
 pub enum DroneHoleInfo {
     Standard(VMixHoleInfo),
     HoleMap,
