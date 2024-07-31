@@ -14,4 +14,4 @@ schema.json
 built/*
 built
 pkg.tgz
-images
+images/*

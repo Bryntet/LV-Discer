@@ -1,6 +1,8 @@
 use std::net::IpAddr;
+use std::path::Path;
 use std::sync::Arc;
 
+use rocket::fairing::AdHoc;
 use rocket::log::LogLevel;
 use rocket::tokio::sync::broadcast::channel;
 use rocket::{Build, Rocket, Route};
@@ -19,6 +21,7 @@ pub use websocket::channels::{DivisionUpdate, HoleUpdate, PlayerManagerUpdate};
 pub use crate::api::websocket::channels::GeneralChannel;
 use crate::api::websocket::htmx::division_updater;
 use crate::controller::coordinator::FlipUpVMixCoordinator;
+use crate::util;
 
 mod coordinator_wrapper;
 mod guard;
@@ -148,4 +151,10 @@ pub fn launch() -> Rocket<Build> {
                 ..Default::default()
             }),
         )
+        .attach(AdHoc::on_shutdown("Shutdown Printer", |_| {
+            Box::pin(async move {
+                util::delete_files_in_directory(Path::new("images")).unwrap();
+                println!("...shutdown has commenced!");
+            })
+        }))
 }
