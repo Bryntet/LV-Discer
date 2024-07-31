@@ -264,7 +264,7 @@ impl VMixSelectionTrait for CurrentPlayer {
         self.0.value()
     }
 
-    const INPUT_ID: &'static str = "03a31701-8b74-46f9-a9e0-9e263d7ba0be";
+    const INPUT_ID: &'static str = "8db7c455-e05c-4e65-821b-048cd7057cb1";
 }
 
 impl VMixInterfacer<VMixPlayerInfo> {
