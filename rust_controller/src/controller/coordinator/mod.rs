@@ -191,14 +191,18 @@ impl FlipUpVMixCoordinator {
         &mut self,
         player_updater: &GeneralChannel<PlayerManagerUpdate>,
     ) -> Result<(), Error> {
-        let focused_player_id = &self.focused_player().player_id;
+        let focused_player_id = self.focused_player().player_id.to_owned();
         let group = self
             .groups()
             .into_par_iter()
-            .find_first(|group| group.player_ids().iter().contains(focused_player_id))
+            .find_first(|group| group.player_ids().iter().contains(&focused_player_id))
             .expect("Player needs to be in group");
-        self.set_group(&group.id.clone(), player_updater)?;
 
+        let group_id = group.id.to_owned();
+        self.set_group(&group_id, player_updater)?;
+
+        self.player_manager.set_focused(&focused_player_id);
+        player_updater.send(self);
         let compare_2x2 = self
             .player_manager
             .card(self.available_players())

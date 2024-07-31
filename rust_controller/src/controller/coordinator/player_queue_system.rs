@@ -191,7 +191,7 @@ impl PlayerManager {
         self.clear_all_empty();
     }
 
-    fn set_focused(&mut self, id: &str) {
+    pub fn set_focused(&mut self, id: &str) {
         self.managed_players
             .iter()
             .enumerate()

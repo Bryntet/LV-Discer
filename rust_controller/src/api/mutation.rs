@@ -55,7 +55,7 @@ pub async fn set_group(
 }
 
 #[openapi(tag = "Live Update")]
-#[post("/player/focused/set-group")]
+#[post("/players/focused/set-group")]
 pub async fn set_group_to_focused_player(
     coordinator: Coordinator,
     updater: &GeneralChannel<PlayerManagerUpdate>,
