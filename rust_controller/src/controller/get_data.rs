@@ -209,10 +209,11 @@ impl RustHandler {
 
         let holes = Self::get_holes(event_id).await?;
         let divisions = event
-            .par_iter()
+            .iter()
             .flat_map(|round| &round.event)
             .flat_map(|event| event.divisions.clone())
             .flatten()
+            .dedup_by(|a, b| a.id == b.id)
             .map(Arc::new)
             .collect::<Vec<_>>();
 
