@@ -7,7 +7,7 @@ pub enum Image {
 
 impl Image {
     pub fn to_location(&self) -> String {
-        String::from("C:\\livegrafik-flipup\\")
+        String::from("C:\\livegrafik-flipup\\images\\gfx\\")
             + match self {
                 Image::Nothing => "alpha.png",
                 Image::GreenTriUp => "greentri.png",
