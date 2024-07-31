@@ -365,6 +365,7 @@ impl FlipUpVMixCoordinator {
         self.focused_player_mut().throws += 1;
         let score = self.focused_player().get_current_shown_score()?;
         self.queue_add(&score.play_mov_vmix(self.focused_player_index, true));
+        self.queue_add(&[self.focused_player().set_throw()]);
         Ok(())
     }
     pub fn set_player(&mut self, player: &str) {

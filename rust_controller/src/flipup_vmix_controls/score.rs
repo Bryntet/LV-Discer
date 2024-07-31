@@ -1,5 +1,6 @@
 use crate::controller::fix_score;
 use crate::vmix::functions::{VMixInterfacer, VMixPlayerInfo};
+
 pub struct OverarchingScore {
     round: usize,
     round_score: isize,
@@ -202,7 +203,7 @@ impl Score {
 
     fn to_vmix_mov(&self, ob: bool) -> VMixInterfacer<VMixPlayerInfo> {
         if ob {
-            VMixInterfacer::overlay_input_4("\"00 OB.mov\"")
+            VMixInterfacer::overlay_input_4("50 ob.mov")
         } else {
             VMixInterfacer::overlay_input_4(self.readable_score.to_mov())
         }
