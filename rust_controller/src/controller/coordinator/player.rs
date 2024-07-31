@@ -4,17 +4,18 @@ use itertools::Itertools;
 use rayon::iter::{IntoParallelIterator, ParallelBridge, ParallelIterator};
 use rayon::prelude::*;
 
+use hole::VMixHoleInfo;
+
 use crate::api::Error;
 use crate::controller::get_data::{HoleResult, DEFAULT_FOREGROUND_COL_ALPHA};
-use crate::controller::queries;
+use crate::controller::hole::{HoleDifficulty, HoleStats};
 use crate::controller::queries::layout::Holes;
 use crate::controller::queries::Division;
+use crate::controller::{hole, queries};
 use crate::flipup_vmix_controls::{
     Image, LeaderBoardProperty, Leaderboard, LeaderboardMovement, OverarchingScore, Score,
 };
-use crate::vmix::functions::{
-    Compare2x2, CurrentPlayer, VMixHoleInfo, VMixInterfacer, VMixPlayerInfo,
-};
+use crate::vmix::functions::{Compare2x2, CurrentPlayer, VMixInterfacer, VMixPlayerInfo};
 use crate::{controller, util};
 
 // TODO: Refactor out
@@ -93,7 +94,11 @@ impl PlayerRound {
         }
     }
 
-    pub fn get_hole_info(&self, hole: u8) -> Vec<VMixInterfacer<VMixHoleInfo>> {
+    pub fn get_hole_info(
+        &self,
+        hole: u8,
+        hole_stats: Vec<HoleStats>,
+    ) -> Vec<VMixInterfacer<VMixHoleInfo>> {
         let mut r_vec: Vec<VMixInterfacer<VMixHoleInfo>> = vec![];
         let hole = self.current_result(hole).unwrap();
 
@@ -109,6 +114,14 @@ impl PlayerRound {
 
         let feet = (hole.hole_representation.length as f32 * 3.28084) as u16;
         r_vec.push(VMixInterfacer::set_hole_text(VMixHoleInfo::HoleFeet(feet)));
+        let stat = &hole_stats[(hole.hole - 1) as usize];
+        r_vec.push(VMixInterfacer::set_hole_text(VMixHoleInfo::AverageResult(
+            stat.average_score(),
+        )));
+        r_vec.push(VMixInterfacer::set_hole_text(VMixHoleInfo::Difficulty {
+            difficulty: HoleDifficulty::new(hole_stats),
+            hole: hole.hole as usize,
+        }));
         r_vec
     }
 

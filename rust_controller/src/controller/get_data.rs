@@ -9,6 +9,7 @@ use rocket::futures::{FutureExt, StreamExt};
 
 use crate::api::Error;
 use crate::controller::coordinator::player::{Player, PlayerRound};
+use crate::controller::hole::{HoleStats, VMixHoleInfo};
 use crate::controller::queries::layout::hole::Hole;
 use crate::controller::queries::layout::Holes;
 use crate::controller::queries::Division;
@@ -24,33 +25,6 @@ use super::queries;
 pub const DEFAULT_FOREGROUND_COL: &str = "3F334D";
 pub const DEFAULT_FOREGROUND_COL_ALPHA: &str = "3F334D00";
 pub const DEFAULT_BACKGROUND_COL: &str = "574B60";
-
-pub trait HoleScoreOrDefault {
-    fn hole_score(&self, hole: usize) -> isize;
-    fn score_to_hole(&self, hole: usize) -> isize;
-    fn get_hole_info(&self, hole: u8) -> Vec<VMixInterfacer<VMixHoleInfo>>;
-}
-
-impl HoleScoreOrDefault for Option<&PlayerRound> {
-    fn hole_score(&self, hole: usize) -> isize {
-        match self {
-            Some(round) => round.hole_score(hole),
-            None => isize::MAX,
-        }
-    }
-    fn score_to_hole(&self, hole: usize) -> isize {
-        match self {
-            Some(round) => round.score_to_hole(hole),
-            None => isize::MAX,
-        }
-    }
-    fn get_hole_info(&self, hole: u8) -> Vec<VMixInterfacer<VMixHoleInfo>> {
-        match self {
-            Some(round) => round.get_hole_info(hole),
-            None => vec![],
-        }
-    }
-}
 
 #[derive(Debug, Clone)]
 pub struct HoleResult {
