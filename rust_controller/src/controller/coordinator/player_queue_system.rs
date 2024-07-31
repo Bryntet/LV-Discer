@@ -1,7 +1,7 @@
 use itertools::Itertools;
 
 use crate::api::Error;
-use crate::controller::Player;
+use crate::controller::coordinator::player::Player;
 use crate::dto;
 
 #[derive(Clone, Debug)]

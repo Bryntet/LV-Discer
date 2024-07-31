@@ -6,8 +6,9 @@ use rocket::http::ext::IntoCollection;
 
 pub use prop::{LeaderBoardProperty, LeaderboardTop6};
 
+use crate::controller::fix_score;
 use crate::controller::queries::Division;
-use crate::controller::{fix_score, Player};
+use crate::controller::Player;
 use crate::flipup_vmix_controls::Image;
 use crate::vmix::functions::{VMixInterfacer, VMixSelectionTrait};
 use crate::vmix::VMixQueue;
@@ -566,7 +567,8 @@ mod test {
     use fake::{Dummy, Fake, Faker};
     use itertools::Itertools;
 
-    use crate::controller::get_data::{HoleResult, PlayerRound};
+    use crate::controller::coordinator::player::PlayerRound;
+    use crate::controller::get_data::HoleResult;
     use crate::controller::queries::layout::hole::Hole;
     use crate::controller::queries::layout::Holes;
     use crate::controller::Player;

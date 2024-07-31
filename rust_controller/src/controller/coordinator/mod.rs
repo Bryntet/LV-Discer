@@ -4,7 +4,7 @@ use itertools::Itertools;
 
 use flipup_vmix_controls::LeaderBoardProperty;
 use flipup_vmix_controls::{Leaderboard, LeaderboardState};
-use get_data::Player;
+pub use player::Player;
 use player_queue_system::PlayerManager;
 use vmix::functions::VMixInterfacer;
 use vmix::functions::{VMixPlayerInfo, VMixSelectionTrait};
@@ -18,7 +18,7 @@ use crate::{dto, flipup_vmix_controls};
 
 pub use super::*;
 
-mod player;
+pub mod player;
 mod player_queue_system;
 mod simple_queries;
 mod vmix_calls;
@@ -220,7 +220,7 @@ impl FlipUpVMixCoordinator {
         self.player_manager.players(self.available_players())
     }
     fn clear_lb(idx: usize) -> Vec<VMixInterfacer<LeaderBoardProperty>> {
-        let mut new_player = get_data::Player::null_player();
+        let mut new_player = Player::null_player();
 
         let mut r_v: Vec<VMixInterfacer<LeaderBoardProperty>> = vec![];
         for i in 0..=idx {

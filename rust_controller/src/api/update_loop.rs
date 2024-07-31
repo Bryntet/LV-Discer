@@ -1,14 +1,13 @@
-use crate::controller;
-use crate::controller::coordinator::FlipUpVMixCoordinator;
-use crate::controller::queries::{
-    Division, HoleResult, RoundResultsQuery, RoundResultsQueryVariables,
-};
-use crate::controller::Player;
-use cynic::{GraphQlResponse, QueryBuilder};
-use itertools::Itertools;
 use std::collections::HashMap;
 use std::sync::Arc;
+
+use cynic::{GraphQlResponse, QueryBuilder};
+use itertools::Itertools;
 use tokio::sync::Mutex;
+
+use crate::controller;
+use crate::controller::coordinator::FlipUpVMixCoordinator;
+use crate::controller::queries::{HoleResult, RoundResultsQuery, RoundResultsQueryVariables};
 
 #[derive(Debug)]
 struct TjingResultMap {
@@ -16,7 +15,7 @@ struct TjingResultMap {
 }
 
 impl TjingResultMap {
-    pub fn new(players: Vec<&Player>) -> Self {
+    pub fn new(players: Vec<&controller::Player>) -> Self {
         Self {
             results: players
                 .into_iter()
