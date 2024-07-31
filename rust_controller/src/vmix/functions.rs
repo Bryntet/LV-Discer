@@ -194,6 +194,8 @@ pub enum VMixPlayerInfo {
     PositionArrow(usize),
     PositionMove(usize),
     HotRound(usize),
+    InsidePutt(usize),
+    CircleHit(usize),
 }
 
 impl VMixSelectionTrait for VMixPlayerInfo {
@@ -219,6 +221,8 @@ impl VMixSelectionTrait for VMixPlayerInfo {
             VMixPlayerInfo::Throw(ind) => format!("p{}throw", ind + 1),
             VMixPlayerInfo::PlayerPosition(pos) => format!("p{}pos", pos + 1),
             VMixPlayerInfo::HotRound(pos) => format!("p{}hotrnd", pos + 1),
+            VMixPlayerInfo::CircleHit(pos) => format!("p{}c1reg", pos + 1),
+            VMixPlayerInfo::InsidePutt(pos) => format!("p{}c1x", pos + 1),
         }
     }
 
@@ -232,7 +236,9 @@ impl VMixSelectionTrait for VMixPlayerInfo {
             | Surname(_)
             | Score { .. }
             | TotalScore(_)
-            | PositionMove(_) => "Text",
+            | PositionMove(_)
+            | InsidePutt(_)
+            | CircleHit(_) => "Text",
             ScoreColor { .. } => "Fill.Color",
             PositionArrow(_) | HotRound(_) => "Source",
         }
@@ -365,7 +371,9 @@ impl VMixInterfacer<VMixPlayerInfo> {
                 | VMixPlayerInfo::PlayerPosition(n)
                 | VMixPlayerInfo::PositionArrow(n)
                 | VMixPlayerInfo::PositionMove(n)
-                | VMixPlayerInfo::HotRound(n) => {
+                | VMixPlayerInfo::HotRound(n)
+                | VMixPlayerInfo::InsidePutt(n)
+                | VMixPlayerInfo::CircleHit(n) => {
                     *n = index;
                 }
             }

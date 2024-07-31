@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use itertools::Itertools;
 use rayon::iter::{IntoParallelIterator, ParallelBridge, ParallelIterator};
+use rayon::prelude::*;
 
 use crate::api::Error;
 use crate::controller;
@@ -337,7 +338,7 @@ impl Player {
 
         return_vec.push(self.set_throw());
         return_vec.extend(self.add_lb_things(lb));
-
+        return_vec.extend(self.set_stats());
         Ok(return_vec)
     }
 
@@ -362,19 +363,19 @@ impl Player {
         &self,
         interfaces: &[VMixInterfacer<VMixPlayerInfo>],
     ) -> Vec<VMixInterfacer<CurrentPlayer>> {
-        let mut second_values = interfaces
-            .iter()
+        let mut second_values: Vec<_> = interfaces
+            .par_iter()
             .cloned()
             .flat_map(|interface| interface.into_current_player())
-            .collect_vec();
+            .collect();
         second_values.extend(
             self.results
                 .clone()
                 .the_latest_6_holes()
-                .iter()
+                .par_iter()
                 .enumerate()
                 .flat_map(|(hole_index, result)| result.to_current_player(hole_index + 1))
-                .collect_vec(),
+                .collect::<Vec<_>>(),
         );
         second_values
     }
@@ -688,6 +689,37 @@ impl Player {
         return_vec.extend(self.set_moves());
         return_vec.push(self.set_thru());
         return_vec
+    }
+
+    fn set_stats(&self) -> [VMixInterfacer<VMixPlayerInfo>; 2] {
+        let results = self
+            .results
+            .results
+            .iter()
+            .filter_map(|result| result.tjing_result.as_ref())
+            .collect_vec();
+
+        let finished_holes = results.len() as f64;
+
+        let (circle_hit, inside_putt) = if finished_holes > 0. {
+            let circle_hit_count = results
+                .par_iter()
+                .filter(|result| result.is_circle_hit)
+                .count() as f64;
+            let circle_hit = (circle_hit_count / finished_holes * 100.).round() as usize;
+            let inside_putt_count = results
+                .par_iter()
+                .filter(|result| result.is_inside_putt)
+                .count() as f64;
+            let inside_putt = (inside_putt_count / finished_holes * 100.).round() as usize;
+            (circle_hit, inside_putt)
+        } else {
+            (0, 0)
+        };
+        [
+            VMixInterfacer::set_text(format!("{circle_hit}%"), VMixPlayerInfo::CircleHit(0)),
+            VMixInterfacer::set_text(format!("{inside_putt}%"), VMixPlayerInfo::InsidePutt(0)),
+        ]
     }
 }
 
