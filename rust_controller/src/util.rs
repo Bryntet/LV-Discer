@@ -10,7 +10,7 @@ pub fn download_image_to_file(
     img_location: String,
 ) -> Result<PathBuf, Box<dyn std::error::Error>> {
     // Create the file path
-    let file_path = PathBuf::from(format!("images/{img_location}"));
+    let file_path = PathBuf::from(img_location);
 
     // Create the file
     let mut dest = File::create_new(&file_path)?;

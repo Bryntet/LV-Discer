@@ -197,7 +197,7 @@ impl Player {
 
         let image_location = image_id.clone().map(|image| {
             format!(
-                "{}.{}",
+                "images/{}.{}",
                 player.id.clone().into_inner(),
                 image.split(".").last().unwrap_or_default()
             )
