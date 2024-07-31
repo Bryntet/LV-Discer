@@ -121,6 +121,10 @@ export class ApiClient {
     async doNextQueued() {
         await this.post(`/players/queue/next`)
     }
+    
+    async setGroupFocusedPlayer() {
+        await this.post(`/players/focused/set-group`)
+    }
 
 }
 

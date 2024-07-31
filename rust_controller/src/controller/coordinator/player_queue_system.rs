@@ -252,4 +252,18 @@ impl PlayerManager {
         }
         dto_players
     }
+
+    pub fn replace_card_with_focused_player_card(&mut self, groups: &[dto::Group]) {
+        let focused_player = self.focused_player();
+        if !focused_player.inside_card {
+            self.replace(
+                groups
+                    .into_par_iter()
+                    .find_first(|group| group.player_ids().contains(&focused_player.player_id))
+                    .map(|group| group.player_ids())
+                    .unwrap()
+                    .to_owned(),
+            )
+        }
+    }
 }

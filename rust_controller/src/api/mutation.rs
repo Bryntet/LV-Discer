@@ -55,6 +55,20 @@ pub async fn set_group(
 }
 
 #[openapi(tag = "Live Update")]
+#[post("/player/focused/set-group")]
+pub async fn set_group_to_focused_player(
+    coordinator: Coordinator,
+    updater: &GeneralChannel<PlayerManagerUpdate>,
+    division_updater: &GeneralChannel<DivisionUpdate>,
+) -> Result<(), Error> {
+    let mut coordinator = coordinator.lock().await;
+    coordinator.update_group_to_focused_player_group(updater)?;
+    coordinator.leaderboard_division = coordinator.focused_player().division.clone();
+    division_updater.send(coordinator.deref());
+    Ok(())
+}
+
+#[openapi(tag = "Live Update")]
 #[post("/player/<player_id>/throw/set/<throws>")]
 pub async fn set_throws(
     coordinator: Coordinator,

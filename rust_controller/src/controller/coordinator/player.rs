@@ -152,7 +152,7 @@ pub struct Player {
     pub hot_round: bool,
     pub lb_pos: usize,
     pub old_pos: usize,
-    pub(crate) pos_visible: bool,
+    pub pos_visible: bool,
     pub lb_shown: bool,
     pub dnf: bool,
     pub first_scored: bool,

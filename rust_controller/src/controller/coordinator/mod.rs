@@ -180,6 +180,25 @@ impl FlipUpVMixCoordinator {
         let player = self.focused_player();
         let all = player.set_all_values(&self.leaderboard, false)?;
         let current = player.set_all_current_player_values(&all);
+
+        self.queue_add(&all);
+        self.queue_add(&current);
+        updater.send(self);
+        Ok(())
+    }
+
+    pub fn update_group_to_focused_player_group(
+        &mut self,
+        player_updater: &GeneralChannel<PlayerManagerUpdate>,
+    ) -> Result<(), Error> {
+        let focused_player_id = &self.focused_player().player_id;
+        let group = self
+            .groups()
+            .into_par_iter()
+            .find_first(|group| group.player_ids().iter().contains(focused_player_id))
+            .expect("Player needs to be in group");
+        self.set_group(&group.id.clone(), player_updater)?;
+
         let compare_2x2 = self
             .player_manager
             .card(self.available_players())
@@ -191,11 +210,7 @@ impl FlipUpVMixCoordinator {
                     .expect("Should work due to set all values already passing")
             })
             .collect::<Vec<_>>();
-
-        self.queue_add(&all);
-        self.queue_add(&current);
         self.queue_add(&compare_2x2);
-        updater.send(self);
         Ok(())
     }
 
@@ -358,7 +373,6 @@ impl FlipUpVMixCoordinator {
             .unwrap();
 
         self.focused_player_index = index;
-        let round = self.round_ind;
         let player = self.focused_player_mut();
 
         player.ind = 0;

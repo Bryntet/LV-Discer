@@ -1,11 +1,9 @@
 import {CompanionActionDefinitions, CompanionActionEvent} from "@companion-module/base";
-import { Config } from "./config";
-import { InstanceBaseExt } from "./util";
-import { CompanionCommonCallbackContext } from "@companion-module/base/dist/module-api/common";
+import {Config} from "./config";
+import {InstanceBaseExt} from "./util";
+import {CompanionCommonCallbackContext} from "@companion-module/base/dist/module-api/common";
 import {Player} from "./coordinator_communication";
 import {LevandeVideoInstance} from "./index";
-
-
 
 
 export enum ActionId {
@@ -21,7 +19,8 @@ export enum ActionId {
     SetHoleInfo = 'set_hole_info',
     DoOtherLeaderboard = 'do_other_leaderboard',
     ReloadWebSockets = 'reload_websockets',
-    NextQueuedPlayed = 'next_queued'
+    NextQueuedPlayed = 'next_queued',
+    SetGroupToFocusedPlayer = 'set_focused_player_group'
 }
 
 async function parseAuto(context: CompanionCommonCallbackContext): Promise<number> {
@@ -210,6 +209,14 @@ export const setActionDefinitions = (instance: LevandeVideoInstance): CompanionA
         options: [],
         callback: async () => {
             await instance.coordinator.doNextQueued()
+        }
+    }
+
+    actions[ActionId.SetGroupToFocusedPlayer] = {
+        name: 'Set group to focused player\'s group',
+        options: [],
+        callback: async () => {
+            await instance.coordinator.setGroupFocusedPlayer()
         }
     }
 

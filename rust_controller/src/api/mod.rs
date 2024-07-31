@@ -82,7 +82,8 @@ fn get_normal_routes() -> Vec<Route> {
         update_other_leaderboard,
         next_queue,
         add_to_queue,
-        focused_card
+        focused_card,
+        set_group_to_focused_player
     ]
 }
 
