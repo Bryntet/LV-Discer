@@ -126,9 +126,11 @@ pub async fn update_loop(coordinator: Arc<Mutex<FlipUpVMixCoordinator>>) {
                     for player in coordinator.available_players_mut() {
                         tjing_result_map.update_mut_player(player)
                     }
-                    /*if let Some(div) = coordinator.find_division_by_name("Mixed Amateur 1") {
-                        coordinator.set_leaderboard(&div, None);
-                    }*/
+                    if let Some(div) = coordinator.find_division_by_name("Mixed Amateur 1") {
+                        //coordinator.set_leaderboard(&div, None);
+                        let queue = coordinator.vmix_queue.clone();
+                        coordinator.leaderboard.update_little_lb(&div, queue);
+                    }
                 }
             }
         }

@@ -28,7 +28,7 @@ mod vmix_calls;
 pub struct FlipUpVMixCoordinator {
     pub all_divs: Vec<Arc<queries::Division>>,
     pub leaderboard_division: Arc<Division>,
-    leaderboard: Leaderboard,
+    pub leaderboard: Leaderboard,
     focused_player_index: usize,
     ip: String,
     handler: RustHandler,

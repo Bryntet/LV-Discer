@@ -99,6 +99,13 @@ impl Leaderboard {
     fn find_state_by_round(&self, round: usize) -> Option<&LeaderboardState> {
         self.states.iter().find(|state| state.round == round)
     }
+
+    pub fn update_little_lb(&self, div: &Division, queue: Arc<VMixQueue>) {
+        let current = self.current_state().unwrap();
+        let previous = self.previous_state();
+        let previous_batch = current.big_leaderboard_funcs(div, previous, 0);
+        current.update_little_leaderboard(div, previous_batch, previous, queue);
+    }
 }
 impl LeaderboardState {
     pub fn new(
