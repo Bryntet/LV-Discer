@@ -158,6 +158,24 @@ pub async fn update_division(
     Ok(())
 }
 
+#[openapi(tag = "Featured hole")]
+#[post("/featured-hole/update-card")]
+pub async fn update_featured_hole_group(co: Coordinator) {
+    co.lock().await.update_featured_card();
+}
+
+#[openapi(tag = "Featured hole")]
+#[post("/featured-hole/next-card")]
+pub async fn next_featured_hole_card(coordinator: Coordinator) {
+    coordinator.lock().await.next_featured_card();
+}
+
+#[openapi(tag = "Featured hole")]
+#[post("/featured-hole/rewind-card")]
+pub async fn rewind_featured_hole_card(coordinator: Coordinator) {
+    coordinator.lock().await.rewind_card();
+}
+
 #[catch(424)]
 pub fn make_coordinator() -> RawHtml<Template> {
     RawHtml(Template::render("new_coordinator", json!({})))

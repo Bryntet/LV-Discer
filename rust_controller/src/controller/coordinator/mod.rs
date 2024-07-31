@@ -38,6 +38,8 @@ pub struct FlipUpVMixCoordinator {
     player_manager: PlayerManager,
     pub event_id: String,
     featured_card: PlayerManager,
+    featured_hole: u8,
+    groups_featured_so_far: u8,
 }
 
 impl FlipUpVMixCoordinator {
@@ -72,6 +74,8 @@ impl FlipUpVMixCoordinator {
             current_through: 0,
             vmix_queue: Arc::new(queue),
             event_id,
+            groups_featured_so_far: 1,
+            featured_hole,
         };
         coordinator.handler.add_total_score_to_players();
         coordinator.queue_add(&coordinator.focused_player().set_name());
@@ -123,7 +127,27 @@ impl FlipUpVMixCoordinator {
         )
     }
 
-    fn next_featured_card(&mut self) {}
+    pub fn next_featured_card(&mut self) {
+        if let Some(group) = self.groups().into_iter().find(|group| {
+            ((group.start_at + self.groups_featured_so_far) % 18 + 1) == self.featured_hole
+        }) {
+            self.featured_card.replace(group.player_ids());
+            self.update_featured_card();
+            self.groups_featured_so_far += 1;
+        } else if self.groups_featured_so_far < 20 {
+            self.groups_featured_so_far += 1;
+            self.next_featured_card()
+        }
+    }
+
+    pub fn rewind_card(&mut self) {
+        if self.groups_featured_so_far < 2 {
+            self.groups_featured_so_far = 0
+        } else {
+            self.groups_featured_so_far -= 2;
+        }
+        self.next_featured_card();
+    }
 
     pub fn available_players_mut(&mut self) -> Vec<&mut Player> {
         self.handler.get_players_mut()

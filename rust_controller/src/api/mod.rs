@@ -86,7 +86,10 @@ fn get_normal_routes() -> Vec<Route> {
         set_group_to_focused_player,
         next_10_lb,
         reset_lb_pos,
-        rewind_lb_pos
+        rewind_lb_pos,
+        next_featured_hole_card,
+        update_featured_hole_group,
+        rewind_featured_hole_card
     ]
 }
 

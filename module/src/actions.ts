@@ -23,7 +23,10 @@ export enum ActionId {
     SetGroupToFocusedPlayer = 'set_focused_player_group',
     IncreaseLb = 'lb_increase',
     ResetLb = 'lb_reset',
-    RewindLb = 'lb_rewind'
+    RewindLb = 'lb_rewind',
+    UpdateFeaturedHoleCard = 'update_featured_hole_card',
+    NextFeaturedHoleCard = 'next_featured_hole_card',
+    RewindFeaturedHoleCard = 'rewind_featured_hole_card'
 }
 
 async function parseAuto(context: CompanionCommonCallbackContext): Promise<number> {
@@ -241,6 +244,27 @@ export const setActionDefinitions = (instance: LevandeVideoInstance): CompanionA
         options: [],
         callback: async () => {
             await instance.coordinator.rewindLb()
+        }
+    }
+    actions[ActionId.UpdateFeaturedHoleCard] = {
+        name: 'Update featured hole card',
+        options: [],
+        callback: async () => {
+            await instance.coordinator.updateFeaturedHoleCard()
+        }
+    }
+    actions[ActionId.NextFeaturedHoleCard] = {
+        name: 'Next featured hole card',
+        options: [],
+        callback: async () => {
+            await instance.coordinator.nextFeaturedHoleCard()
+        }
+    }
+    actions[ActionId.RewindFeaturedHoleCard] = {
+        name: 'Rewind featured hole card',
+        options: [],
+        callback: async () => {
+            await instance.coordinator.rewindFeaturedHoleCard()
         }
     }
     return actions
