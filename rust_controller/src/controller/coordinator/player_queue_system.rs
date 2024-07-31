@@ -1,4 +1,5 @@
 use itertools::Itertools;
+use rayon::prelude::*;
 
 use crate::api::Error;
 use crate::controller::coordinator::player::Player;
@@ -83,15 +84,15 @@ impl PlayerManager {
     pub fn player<'a>(&self, players: Vec<&'a Player>) -> Option<&'a Player> {
         let queue = &self.managed_players[self.focused];
         players
-            .into_iter()
-            .find(|player| player.player_id == queue.player_id)
+            .into_par_iter()
+            .find_any(|player| player.player_id == queue.player_id)
     }
 
     pub fn player_mut<'a>(&'a self, players: Vec<&'a mut Player>) -> Option<&'a mut Player> {
         let queue = &self.managed_players[self.focused];
         players
-            .into_iter()
-            .find(|player| player.player_id == queue.player_id)
+            .into_par_iter()
+            .find_any(|player| player.player_id == queue.player_id)
     }
 
     fn internal_card(&self) -> Vec<&PlayerWithQueue> {

@@ -209,11 +209,11 @@ impl PlayerContainer {
 
     pub fn previous_rounds_players(&self) -> Vec<&Player> {
         self.rounds_with_players
-            .iter()
+            .par_iter()
             .enumerate()
-            .take_while(|(i, _)| i < &self.round)
+            .filter(|(round, _)| round < &self.round)
             .flat_map(|(_, player)| player)
-            .collect_vec()
+            .collect()
     }
 
     pub fn players_mut(&mut self) -> Vec<&mut Player> {
@@ -232,27 +232,26 @@ impl RustHandler {
         let event = Self::get_event(event_id, round_ids.clone()).await;
         let groups = Self::get_groups(event_id).await;
         warn!("Time taken to get event: {:?}", time.elapsed());
-        let mut divisions: Vec<Arc<queries::Division>> = vec![];
 
         let holes = Self::get_holes(event_id).await?;
-        event
-            .iter()
+        let divisions = event
+            .par_iter()
             .flat_map(|round| &round.event)
             .flat_map(|event| event.divisions.clone())
             .flatten()
-            .unique_by(|division| division.id.clone())
-            .for_each(|division| divisions.push(Arc::new(division)));
+            .map(Arc::new)
+            .collect::<Vec<_>>();
 
         let mut container = PlayerContainer::new(
             event
-                .into_iter()
+                .into_par_iter()
                 .enumerate()
                 .flat_map(|(round_num, round)| Some((round_num, round.event?)))
                 .map(|(round_num, event)| {
                     let holes = holes.get(round_num).expect("hole should exist");
                     event
                         .players
-                        .into_iter()
+                        .into_par_iter()
                         .flat_map(|player| {
                             let id = player.id.clone().into_inner();
                             Player::from_query(
@@ -273,14 +272,14 @@ impl RustHandler {
                                     .unwrap_or(0),
                             )
                         })
-                        .collect_vec()
+                        .collect()
                 })
-                .collect_vec(),
+                .collect(),
             round,
         );
 
         for (i, round) in container.rounds_with_players.iter_mut().enumerate() {
-            round.iter_mut().for_each(|player| {
+            round.par_iter_mut().for_each(|player| {
                 if let Some(group_index) = groups[i]
                     .iter()
                     .flat_map(|group| &group.players)

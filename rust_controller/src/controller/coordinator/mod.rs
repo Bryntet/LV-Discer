@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use itertools::Itertools;
+use rayon::prelude::*;
 
 use flipup_vmix_controls::LeaderBoardProperty;
 use flipup_vmix_controls::{Leaderboard, LeaderboardState};
@@ -182,14 +183,14 @@ impl FlipUpVMixCoordinator {
         let compare_2x2 = self
             .player_manager
             .card(self.available_players())
-            .into_iter()
+            .into_par_iter()
             .enumerate()
             .flat_map(|(index, player)| {
                 player
                     .set_all_compare_2x2_values(index, &self.leaderboard)
                     .expect("Should work due to set all values already passing")
             })
-            .collect_vec();
+            .collect::<Vec<_>>();
 
         self.queue_add(&all);
         self.queue_add(&current);
