@@ -134,7 +134,7 @@ impl PlayerRound {
         funcs: &[VMixInterfacer<VMixHoleInfo>],
     ) -> Vec<VMixInterfacer<DroneHoleInfo>> {
         let mut funcs = funcs
-            .into_iter()
+            .iter()
             .cloned()
             .map(VMixInterfacer::into_drone_hole_info)
             .collect_vec();
@@ -408,7 +408,7 @@ impl Player {
             self.image_url.clone()
         };
         output.push(VMixInterfacer::set_image(
-            img.unwrap_or_default(),
+            img.unwrap_or("C:\\livegrafik-flipup\\_conf\\placeholder.png".to_string()),
             Compare2x2::PlayerImage { index },
         ));
         Ok(output)
