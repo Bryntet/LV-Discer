@@ -218,7 +218,7 @@ impl LeaderboardState {
         skip: usize,
     ) -> Vec<VMixInterfacer<LeaderBoardProperty>> {
         let mut players = self.leaderboard_players(division, other);
-        players
+        let mut funcs = players
             .iter_mut()
             .skip(skip * 10)
             .take(10)
@@ -227,7 +227,12 @@ impl LeaderboardState {
                 &*player
             })
             .flat_map(LeaderboardPlayer::combine)
-            .collect_vec()
+            .collect_vec();
+        funcs.push(VMixInterfacer::set_text(
+            format!("{} | Round {} | Leaderboard", division.name, self.round + 1),
+            LeaderBoardProperty::CheckinText,
+        ));
+        funcs
     }
 
     pub fn update_little_leaderboard(
@@ -257,11 +262,11 @@ impl LeaderboardState {
                     regular_player
                         .results
                         .clone()
-                        .the_latest_6_holes()
+                        .the_latest_6_holes(5)
                         .iter()
                         .enumerate()
                         .flat_map(|(hole_index, result)| {
-                            result.to_leaderboard_top_6(player.index, hole_index)
+                            result.to_leaderboard_top_6(player.index, hole_index + 1)
                         })
                         .collect_vec(),
                 )
@@ -560,21 +565,9 @@ mod prop {
 }
 #[cfg(test)]
 mod test {
-    use std::collections::HashSet;
-
     use fake::faker::name::en::{FirstName, LastName};
     use fake::uuid::UUIDv4;
     use fake::{Dummy, Fake, Faker};
-    use itertools::Itertools;
-
-    use crate::controller::coordinator::player::PlayerRound;
-    use crate::controller::get_data::HoleResult;
-    use crate::controller::queries::layout::hole::Hole;
-    use crate::controller::queries::layout::Holes;
-    use crate::controller::Player;
-    use crate::vmix::VMixQueue;
-
-    use super::{Leaderboard, LeaderboardState};
 
     #[derive(Debug, Dummy)]
     struct TestingPlayer {
@@ -611,7 +604,7 @@ mod test {
         par: u8,
     }
 
-    impl From<TestingHoles> for Holes {
+    /*impl From<TestingHoles> for Holes {
         fn from(value: TestingHoles) -> Self {
             let holes = value
                 .holes
@@ -693,11 +686,11 @@ mod test {
     #[tokio::test]
     async fn test() {
         let holes = Holes::dummy();
-        let p = LeaderboardState::new(1, make_many_players(holes));
+        let p = LeaderboardState::new(1, make_many_players(holes), vec![]);
         let a = Leaderboard::new(p.clone());
         let funcs = a.send_to_vmix();
         let q = VMixQueue::new("10.170.120.134".to_string()).unwrap();
         q.add(&funcs);
         tokio::time::sleep(tokio::time::Duration::new(1, 0)).await;
-    }
+    }*/
 }

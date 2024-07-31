@@ -491,32 +491,4 @@ impl FlipUpVMixCoordinator {
 #[cfg(test)]
 mod tests {
     //! Tests need to run with high node version otherwise it fails!
-
-    use crate::dto::CoordinatorBuilder;
-
-    use super::*;
-
-    async fn generate_app() -> FlipUpVMixCoordinator {
-        let mut app = CoordinatorBuilder::new(
-            "10.170.120.134".to_string(),
-            "d8f93dfb-f560-4f6c-b7a8-356164b9e4be".to_string(),
-        )
-        .into_coordinator()
-        .await
-        .unwrap();
-
-        app.set_div(&app.all_divs[0].clone());
-        let players = app.get_player_ids();
-        players
-            .iter()
-            .enumerate()
-            .take(4 + 1)
-            .skip(1)
-            .for_each(|(i, player)| {
-                app.set_player(player);
-                //send(&handle_js_vec(test));
-            });
-        app.set_focused_player(1, None);
-        app
-    }
 }

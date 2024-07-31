@@ -152,14 +152,54 @@ impl PlayerRound {
             .count() as u8
     }
 
-    pub fn the_latest_6_holes(self) -> Vec<HoleResult> {
+    pub fn the_latest_6_holes(self, take_amount: usize) -> Vec<HoleResult> {
+        let amount_finished = self
+            .results
+            .iter()
+            .filter(|hole| hole.finished || hole.tjing_result.is_some())
+            .count();
         self.results
             .into_iter()
-            .sorted_by_key(|result| result.hole)
+            .filter(|result| result.finished || result.tjing_result.is_some())
+            .sorted_by_key(|result| {
+                if amount_finished == 18 {
+                    result.hole
+                } else {
+                    let hole_in_order = (result.hole - 1 + self.start_at_hole) % 19;
+                    hole_in_order
+                }
+            })
             .rev()
-            .take(6)
+            .take(take_amount)
             .rev()
             .collect_vec()
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use itertools::Itertools;
+
+    fn the_latest_6_holes_test(results: Vec<u8>, start_at_hole: u8) -> Vec<u8> {
+        results
+            .into_iter()
+            .map(|hole| {
+                let hole_in_order = (hole + start_at_hole) % 18;
+                ((18 - hole_in_order) % 18, hole) // This gives us a descending order
+            })
+            .sorted_by_key(|(hole_sorted, _)| hole_sorted.to_owned())
+            .rev()
+            .map(|(_, hole)| hole)
+            .take(6)
+            .collect_vec()
+    }
+    #[test]
+    fn test() {
+        dbg!(the_latest_6_holes_test(
+            vec![10, 11, 12, 13, 14, 15, 16, 17, 0, 1],
+            10
+        ));
+        panic!()
     }
 }
 
@@ -426,7 +466,7 @@ impl Player {
         second_values.extend(
             self.results
                 .clone()
-                .the_latest_6_holes()
+                .the_latest_6_holes(6)
                 .par_iter()
                 .enumerate()
                 .flat_map(|(hole_index, result)| result.to_current_player(hole_index + 1))
