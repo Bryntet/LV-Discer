@@ -1,7 +1,8 @@
+use itertools::Itertools;
+
 use crate::api::Error;
 use crate::controller::Player;
 use crate::dto;
-use itertools::Itertools;
 
 #[derive(Clone, Debug)]
 pub struct PlayerWithQueue {
@@ -93,15 +94,27 @@ impl PlayerManager {
             .find(|player| player.player_id == queue.player_id)
     }
 
-    fn card(&self) -> Vec<&PlayerWithQueue> {
+    fn internal_card(&self) -> Vec<&PlayerWithQueue> {
         self.managed_players
             .iter()
             .filter(|queue| queue.inside_card)
             .collect_vec()
     }
 
+    pub fn card<'a>(&self, players: Vec<&'a Player>) -> Vec<&'a Player> {
+        let ids = self
+            .internal_card()
+            .into_iter()
+            .map(|player| player.player_id.to_owned())
+            .collect_vec();
+        players
+            .into_iter()
+            .filter(|player| ids.contains(&player.player_id))
+            .collect_vec()
+    }
+
     fn get_card_index(&self, index: usize) -> Option<&PlayerWithQueue> {
-        let card = self.card();
+        let card = self.internal_card();
         card.get(index).copied()
     }
 
@@ -189,7 +202,7 @@ impl PlayerManager {
     }
 
     pub fn set_focused_by_card_index(&mut self, index: usize) -> Result<(), Error> {
-        let card = self.card();
+        let card = self.internal_card();
         let focused_player = card.get(index).ok_or(Error::PlayerInCardNotFound(index))?;
         self.set_focused(&focused_player.player_id.to_owned());
         Ok(())

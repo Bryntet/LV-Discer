@@ -503,44 +503,64 @@ impl Player {
     pub fn set_all_values(
         &self,
         lb: &Leaderboard,
-    ) -> Result<
-        (
-            Vec<VMixInterfacer<VMixPlayerInfo>>,
-            Vec<VMixInterfacer<CurrentPlayer>>,
-        ),
-        Error,
-    > {
+        max_all: bool,
+    ) -> Result<Vec<VMixInterfacer<VMixPlayerInfo>>, Error> {
         let mut return_vec = vec![];
         return_vec.extend(self.set_name());
         if let Some(set_pos) = self.set_pos(lb) {
             return_vec.push(set_pos);
         }
-        return_vec.push(self.set_tot_score());
-        return_vec.push(self.set_round_score());
-        if self.hole_shown_up_until != 0 {
+        if max_all {
+            let player_with_correct = lb.find_player_in_current_state(self);
+            return_vec.push(player_with_correct.set_tot_score());
+            return_vec.push(player_with_correct.set_round_score())
+        } else {
+            return_vec.push(self.set_tot_score());
+            return_vec.push(self.set_round_score());
+        }
+        if max_all {
+            for result in &self.results.results {
+                return_vec.extend(result.to_score().update_score(0))
+            }
+        } else if self.hole_shown_up_until != 0 {
             let funcs: Vec<_> = (0..self.hole_shown_up_until)
                 .par_bridge()
-                .flat_map(|hole| self.get_score(hole).unwrap().update_score(1))
+                .flat_map(|hole| self.get_score(hole).unwrap().update_score(0))
                 .collect();
             return_vec.extend(funcs);
         }
-        return_vec.extend(self.delete_all_scores_after_current());
+        return_vec.extend(self.delete_all_scores_after_current(max_all));
 
         return_vec.push(self.set_throw());
         return_vec.extend(self.add_lb_things(lb));
 
-        let current_player = self.add_current_player_thing(&return_vec);
-
-        Ok((return_vec, current_player))
+        Ok(return_vec)
     }
 
-    fn add_current_player_thing(
+    pub fn set_all_compare_2x2_values(
+        &self,
+        index: usize,
+        lb: &Leaderboard,
+    ) -> Result<Vec<VMixInterfacer<Compare2x2>>, Error> {
+        let mut output: Vec<VMixInterfacer<Compare2x2>> = self
+            .set_all_values(lb, true)?
+            .into_par_iter()
+            .map(|val| val.into_compare_2x2_player(index))
+            .collect();
+        output.push(VMixInterfacer::set_image(
+            self.image_url.to_owned().unwrap_or_default(),
+            Compare2x2::PlayerImage { index },
+        ));
+        Ok(output)
+    }
+
+    pub fn set_all_current_player_values(
         &self,
         interfaces: &[VMixInterfacer<VMixPlayerInfo>],
     ) -> Vec<VMixInterfacer<CurrentPlayer>> {
         let mut second_values = interfaces
-            .to_owned()
-            .into_iter()
+            .iter()
+            .cloned()
             .flat_map(|interface| interface.into_current_player())
             .collect_vec();
         second_values.extend(
@@ -564,15 +584,7 @@ impl Player {
         self.total_score += self.round_score
     }
 
-    pub fn increase_score(
-        &mut self,
-    ) -> Result<
-        (
-            Vec<VMixInterfacer<VMixPlayerInfo>>,
-            Vec<VMixInterfacer<CurrentPlayer>>,
-        ),
-        Error,
-    > {
+    pub fn increase_score(&mut self) -> Result<Vec<VMixInterfacer<VMixPlayerInfo>>, Error> {
         let mut return_vec: Vec<VMixInterfacer<VMixPlayerInfo>> = vec![];
 
         if !self.first_scored {
@@ -611,8 +623,7 @@ impl Player {
         self.hole_shown_up_until += 1;
         self.throws = 0;
         return_vec.push(self.set_throw());
-        let current_player = self.add_current_player_thing(&return_vec);
-        Ok((return_vec, current_player))
+        Ok(return_vec)
     }
 
     pub fn add_lb_things(&self, lb: &Leaderboard) -> [VMixInterfacer<VMixPlayerInfo>; 3] {
@@ -670,14 +681,14 @@ impl Player {
     fn set_tot_score(&self) -> VMixInterfacer<VMixPlayerInfo> {
         VMixInterfacer::set_text(
             fix_score(self.total_score),
-            VMixPlayerInfo::TotalScore(self.ind).into(),
+            VMixPlayerInfo::TotalScore(0).into(),
         )
     }
 
     fn set_round_score(&self) -> VMixInterfacer<VMixPlayerInfo> {
         VMixInterfacer::set_text(
             format!("({})", fix_score(self.round_score)),
-            VMixPlayerInfo::RoundScore(self.ind),
+            VMixPlayerInfo::RoundScore(0),
         )
     }
 
@@ -741,15 +752,9 @@ impl Player {
     }*/
 
     fn del_score(&self, hole: usize) -> [VMixInterfacer<VMixPlayerInfo>; 3] {
-        let score_prop = VMixPlayerInfo::Score {
-            hole,
-            player: self.ind,
-        };
+        let score_prop = VMixPlayerInfo::Score { hole, player: 0 };
 
-        let col_prop = VMixPlayerInfo::ScoreColor {
-            hole,
-            player: self.ind,
-        };
+        let col_prop = VMixPlayerInfo::ScoreColor { hole, player: 0 };
         [
             VMixInterfacer::set_text("".to_string(), score_prop.clone().into()),
             VMixInterfacer::set_color(DEFAULT_FOREGROUND_COL_ALPHA, col_prop.into()),
@@ -761,16 +766,28 @@ impl Player {
         self.del_score(self.hole_shown_up_until + 1)
     }
 
-    fn delete_all_scores_after_current(&self) -> Vec<VMixInterfacer<VMixPlayerInfo>> {
-        ((self.hole_shown_up_until + 1)..=18)
-            .par_bridge()
-            .flat_map(|hole| self.del_score(hole))
-            .collect()
+    fn delete_all_scores_after_current(
+        &self,
+        show_max: bool,
+    ) -> Vec<VMixInterfacer<VMixPlayerInfo>> {
+        if show_max {
+            self.results
+                .results
+                .iter()
+                .filter(|result| !result.finished && !result.tjing_result.is_some())
+                .flat_map(|result| self.del_score(result.hole as usize))
+                .collect_vec()
+        } else {
+            ((self.hole_shown_up_until + 1)..=18)
+                .par_bridge()
+                .flat_map(|hole| self.del_score(hole))
+                .collect()
+        }
     }
 
     pub fn reset_scores(&mut self) -> Vec<VMixInterfacer<VMixPlayerInfo>> {
         let mut return_vec: Vec<VMixInterfacer<VMixPlayerInfo>> = vec![];
-        return_vec.extend(self.delete_all_scores_after_current());
+        return_vec.extend(self.delete_all_scores_after_current(false));
         self.hole_shown_up_until = 0;
         self.round_score = 0;
         self.total_score = self.score_before_round();

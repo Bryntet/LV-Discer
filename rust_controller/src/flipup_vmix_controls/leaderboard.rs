@@ -86,6 +86,19 @@ impl Leaderboard {
             .find(|lb_player| lb_player.id == player.player_id)
             .unwrap()
     }
+
+    pub fn find_player_in_current_state(&self, player: &Player) -> &Player {
+        self.find_state_by_round(player.round_ind)
+            .unwrap()
+            .players
+            .iter()
+            .find(|p| p.player_id == player.player_id)
+            .unwrap()
+    }
+
+    fn find_state_by_round(&self, round: usize) -> Option<&LeaderboardState> {
+        self.states.iter().find(|state| state.round == round)
+    }
 }
 impl LeaderboardState {
     pub fn new(
@@ -268,8 +281,8 @@ pub struct LeaderboardPlayer {
     pub movement: LeaderboardMovement,
     pub hot_round: bool,
     name: String,
-    round_score: isize,
-    total_score: isize,
+    pub round_score: isize,
+    pub total_score: isize,
     thru: u8,
     pub tied: Option<u8>,
 }

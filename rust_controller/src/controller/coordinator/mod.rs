@@ -18,6 +18,7 @@ use crate::{dto, flipup_vmix_controls};
 
 pub use super::*;
 
+mod player;
 mod player_queue_system;
 mod simple_queries;
 mod vmix_calls;
@@ -93,10 +94,19 @@ impl FlipUpVMixCoordinator {
         self.player_manager.set_focused_by_card_index(index)?;
         self.leaderboard_division = self.focused_player().division.clone();
         self.add_state_to_leaderboard();
-        let (all_values, current) = self.focused_player().set_all_values(&self.leaderboard)?;
+        let all_values = self
+            .focused_player()
+            .set_all_values(&self.leaderboard, false)?;
 
+        let current = self
+            .focused_player()
+            .set_all_current_player_values(&all_values);
+        let comp = self
+            .focused_player()
+            .set_all_compare_2x2_values(0, &self.leaderboard)?;
         self.queue_add(&all_values);
         self.queue_add(&current);
+        self.queue_add(&comp);
         player_updater.send(self);
         division_updater.send(self);
         Ok(())
@@ -128,8 +138,12 @@ impl FlipUpVMixCoordinator {
         self.player_manager.next_queued();
         self.add_state_to_leaderboard();
 
-        let (all, current) = &self.focused_player().set_all_values(&self.leaderboard)?;
+        let all = self
+            .focused_player()
+            .set_all_values(&self.leaderboard, false)?;
         self.queue_add(&all);
+        let current = self.focused_player().set_all_current_player_values(&all);
+
         self.queue_add(&current);
         channel.send(self);
         Ok(())
@@ -162,9 +176,24 @@ impl FlipUpVMixCoordinator {
             .player_ids();
         self.player_manager.replace(ids);
         self.add_state_to_leaderboard();
-        let (all, current) = self.focused_player().set_all_values(&self.leaderboard)?;
+        let player = self.focused_player();
+        let all = player.set_all_values(&self.leaderboard, false)?;
+        let current = player.set_all_current_player_values(&all);
+        let compare_2x2 = self
+            .player_manager
+            .card(self.available_players())
+            .into_iter()
+            .enumerate()
+            .flat_map(|(index, player)| {
+                player
+                    .set_all_compare_2x2_values(index, &self.leaderboard)
+                    .expect("Should work due to set all values already passing")
+            })
+            .collect_vec();
+
         self.queue_add(&all);
         self.queue_add(&current);
+        self.queue_add(&compare_2x2);
         updater.send(self);
         Ok(())
     }
@@ -268,18 +297,19 @@ impl FlipUpVMixCoordinator {
 
     pub fn set_to_hole(&mut self, hole: usize) -> Result<(), Error> {
         let player = self.focused_player_mut();
-        let mut actions = vec![];
-        let mut actions2 = vec![];
+        let mut player_interfaces = vec![];
+        let mut current_player_interfaces = vec![];
         // Previously had shift-scores here
         for x in 1..=hole {
             player.hole_shown_up_until = x;
-            let (a, b) = player.increase_score()?;
-            actions.extend(a);
-            actions2.extend(b);
+            let all_values = player.increase_score()?;
+            let current = player.set_all_current_player_values(&all_values);
+            player_interfaces.extend(all_values);
+            current_player_interfaces.extend(current);
         }
 
-        self.queue_add(&actions);
-        self.queue_add(&actions2);
+        self.queue_add(&player_interfaces);
+        self.queue_add(&current_player_interfaces);
         Ok(())
     }
 
@@ -291,10 +321,12 @@ impl FlipUpVMixCoordinator {
     ) -> Result<(), Error> {
         let player = self.focused_player_mut();
         if player.hole_shown_up_until <= 17 {
-            let (mut f, mut current) = player.increase_score()?;
+            let mut f = player.increase_score()?;
             self.add_state_to_leaderboard();
-            let lb_things = self.focused_player().add_lb_things(&self.leaderboard);
+            let player = self.focused_player();
+            let lb_things = player.add_lb_things(&self.leaderboard);
 
+            let mut current = player.set_all_current_player_values(&f);
             let more_current = lb_things
                 .iter()
                 .flat_map(|interface| interface.to_owned().into_current_player())

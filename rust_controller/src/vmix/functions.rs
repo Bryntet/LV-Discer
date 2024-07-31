@@ -190,7 +190,7 @@ pub enum VMixPlayerInfo {
     TotalScore(usize),
     RoundScore(usize),
     Throw(usize),
-    PlayerPosition(u16),
+    PlayerPosition(usize),
     PositionArrow(usize),
     PositionMove(usize),
     HotRound(usize),
@@ -199,12 +199,12 @@ pub enum VMixPlayerInfo {
 impl VMixSelectionTrait for VMixPlayerInfo {
     fn get_selection_name(&self) -> String {
         match self {
-            VMixPlayerInfo::Score { hole, .. } => {
-                format!("p{}s{}", 1, hole)
+            VMixPlayerInfo::Score { hole, player } => {
+                format!("p{}s{}", player + 1, hole)
             }
 
-            VMixPlayerInfo::ScoreColor { hole, .. } => {
-                format!("p{}h{}", 1, hole)
+            VMixPlayerInfo::ScoreColor { hole, player } => {
+                format!("p{}h{}", player + 1, hole)
             }
             VMixPlayerInfo::PositionArrow(n) => {
                 format!("p{}posarw", n + 1)
@@ -348,4 +348,61 @@ impl VMixInterfacer<VMixPlayerInfo> {
             value: self.value,
         })
     }
+
+    pub fn into_compare_2x2_player(mut self, index: usize) -> VMixInterfacer<Compare2x2> {
+        if let Some(input) = &mut self.input {
+            match input {
+                VMixPlayerInfo::Score { player, .. }
+                | VMixPlayerInfo::ScoreColor { player, .. } => {
+                    *player = index;
+                }
+
+                VMixPlayerInfo::Name(n)
+                | VMixPlayerInfo::Surname(n)
+                | VMixPlayerInfo::TotalScore(n)
+                | VMixPlayerInfo::RoundScore(n)
+                | VMixPlayerInfo::Throw(n)
+                | VMixPlayerInfo::PlayerPosition(n)
+                | VMixPlayerInfo::PositionArrow(n)
+                | VMixPlayerInfo::PositionMove(n)
+                | VMixPlayerInfo::HotRound(n) => {
+                    *n = index;
+                }
+            }
+        }
+
+        VMixInterfacer {
+            input: self.input.map(Compare2x2::Standard),
+            function: self.function,
+            value: self.value,
+        }
+    }
+}
+
+pub enum Compare2x2 {
+    Standard(VMixPlayerInfo),
+    PlayerImage { index: usize },
+}
+
+impl VMixSelectionTrait for Compare2x2 {
+    fn get_selection_name(&self) -> String {
+        match self {
+            Compare2x2::Standard(s) => s.get_selection_name(),
+            Compare2x2::PlayerImage { index } => format!("pimg{}", index + 1),
+        }
+    }
+    fn data_extension(&self) -> &'static str {
+        match self {
+            Compare2x2::Standard(s) => s.data_extension(),
+            Compare2x2::PlayerImage { .. } => "Source",
+        }
+    }
+    fn value(&self) -> Option<String> {
+        match self {
+            Compare2x2::Standard(s) => s.value(),
+            Compare2x2::PlayerImage { .. } => None,
+        }
+    }
+
+    const INPUT_ID: &'static str = "a4f106c7-db2c-4aa8-895b-076ba55de8a7";
 }
