@@ -5,7 +5,6 @@ use rayon::iter::{IntoParallelIterator, ParallelBridge, ParallelIterator};
 use rayon::prelude::*;
 
 use crate::api::Error;
-use crate::controller;
 use crate::controller::get_data::{HoleResult, DEFAULT_FOREGROUND_COL_ALPHA};
 use crate::controller::queries;
 use crate::controller::queries::layout::Holes;
@@ -16,6 +15,7 @@ use crate::flipup_vmix_controls::{
 use crate::vmix::functions::{
     Compare2x2, CurrentPlayer, VMixHoleInfo, VMixInterfacer, VMixPlayerInfo,
 };
+use crate::{controller, util};
 
 // TODO: Refactor out
 #[derive(Debug, Clone, Default)]
@@ -194,6 +194,12 @@ impl Player {
             starts_at_hole,
         );
 
+        if let Some(image) = image_id.to_owned() {
+            let id = player.id.clone().into_inner();
+            std::thread::spawn(|| {
+                let _ = util::download_image_to_file(image, id);
+            });
+        }
         Ok(Self {
             player_id: player.id.into_inner(),
             image_url: image_id,

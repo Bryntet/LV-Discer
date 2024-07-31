@@ -251,7 +251,7 @@ impl RustHandler {
                     let holes = holes.get(round_num).expect("hole should exist");
                     event
                         .players
-                        .into_par_iter()
+                        .into_iter()
                         .flat_map(|player| {
                             let id = player.id.clone().into_inner();
                             Player::from_query(

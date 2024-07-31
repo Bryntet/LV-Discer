@@ -7,6 +7,7 @@ mod api;
 pub mod controller;
 mod dto;
 pub mod flipup_vmix_controls;
+mod util;
 pub mod vmix;
 
 #[launch]
