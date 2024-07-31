@@ -115,7 +115,7 @@ pub fn launch() -> Rocket<Build> {
 
     let conf = {
         #[cfg(windows)]
-        let ip = IpAddr::V4("10.170.120.134".parse().unwrap());
+        let ip = IpAddr::V4("10.170.121.243".parse().unwrap());
         #[cfg(not(windows))]
         let ip = IpAddr::V4("10.170.122.114".parse().unwrap());
         rocket::Config {

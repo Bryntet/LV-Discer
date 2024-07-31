@@ -79,13 +79,12 @@ impl Leaderboard {
         self.states.push(state)
     }
 
-    pub fn get_lb_player(&self, player: &Player) -> LeaderboardPlayer {
+    pub fn get_lb_player(&self, player: &Player) -> Option<LeaderboardPlayer> {
         self.current_state()
             .unwrap()
             .leaderboard_players(&player.division, self.previous_state())
             .into_iter()
             .find(|lb_player| lb_player.id == player.player_id)
-            .unwrap()
     }
 
     pub fn find_player_in_current_state(&self, player: &Player) -> &Player {

@@ -351,3 +351,31 @@ impl VMixSelectionTrait for Compare2x2 {
 
     const INPUT_ID: &'static str = "a4f106c7-db2c-4aa8-895b-076ba55de8a7";
 }
+
+pub struct Featured(Compare2x2);
+
+impl VMixInterfacer<Compare2x2> {
+    pub fn into_featured(self) -> VMixInterfacer<Featured> {
+        VMixInterfacer {
+            function: self.function,
+            value: self.value,
+            input: self.input.map(Featured),
+        }
+    }
+}
+
+impl VMixSelectionTrait for Featured {
+    fn get_selection_name(&self) -> String {
+        self.0.get_selection_name()
+    }
+
+    fn data_extension(&self) -> &'static str {
+        self.0.data_extension()
+    }
+
+    fn value(&self) -> Option<String> {
+        self.0.value()
+    }
+
+    const INPUT_ID: &'static str = "65d64465-3756-43a3-89f4-12d12b692027";
+}

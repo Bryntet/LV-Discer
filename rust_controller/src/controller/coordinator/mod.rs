@@ -37,6 +37,7 @@ pub struct FlipUpVMixCoordinator {
     pub vmix_queue: Arc<VMixQueue>,
     player_manager: PlayerManager,
     pub event_id: String,
+    featured_card: PlayerManager,
 }
 
 impl FlipUpVMixCoordinator {
@@ -45,12 +46,19 @@ impl FlipUpVMixCoordinator {
         event_id: String,
         focused_player: usize,
         round: usize,
+        featured_hole: u8,
     ) -> Result<Self, Error> {
         let queue = VMixQueue::new(ip.clone())?;
         let handler = RustHandler::new(&event_id, round).await?;
 
         let all_divs = handler.get_divisions();
         let first_group = handler.groups.first().unwrap().first().unwrap();
+        let card_starts_at_hole = handler
+            .groups
+            .get(round)
+            .unwrap()
+            .iter()
+            .find(|group| group.start_at == featured_hole);
         let mut coordinator = FlipUpVMixCoordinator {
             leaderboard_division: all_divs.first().unwrap().clone(),
             all_divs,
@@ -58,6 +66,7 @@ impl FlipUpVMixCoordinator {
             ip,
             player_manager: PlayerManager::new(first_group.player_ids()),
             leaderboard: handler.get_previous_leaderboards(),
+            featured_card: PlayerManager::new(card_starts_at_hole.unwrap().player_ids()),
             handler,
             round_ind: round,
             current_through: 0,
@@ -95,6 +104,26 @@ impl FlipUpVMixCoordinator {
     pub fn previous_rounds_players(&self) -> Vec<&Player> {
         self.handler.get_previous_rounds_players()
     }
+
+    pub fn update_featured_card(&self) {
+        self.queue_add(
+            &self
+                .featured_card
+                .players(self.available_players())
+                .into_iter()
+                .enumerate()
+                .flat_map(|(i, player)| {
+                    player
+                        .set_all_compare_2x2_values(i, &self.leaderboard)
+                        .into_iter()
+                        .flatten()
+                        .map(|res| res.into_featured())
+                })
+                .collect_vec(),
+        )
+    }
+
+    fn next_featured_card(&mut self) {}
 
     pub fn available_players_mut(&mut self) -> Vec<&mut Player> {
         self.handler.get_players_mut()
@@ -216,7 +245,7 @@ impl FlipUpVMixCoordinator {
 
         self.player_manager.set_focused(&focused_player_id);
         player_updater.send(self);
-        let compare_2x2 = self
+        let mut compare_2x2 = self
             .player_manager
             .card(self.available_players())
             .into_par_iter()
@@ -227,6 +256,9 @@ impl FlipUpVMixCoordinator {
                     .expect("Should work due to set all values already passing")
             })
             .collect::<Vec<_>>();
+        for index in 0..(4 - self.player_manager.card(self.available_players()).len()) {
+            //compare_2x2.extend(Player::null_player().set_all_compare_2x2_values(index,&self.leaderboard)?);
+        }
         self.queue_add(&compare_2x2);
         Ok(())
     }

@@ -1,15 +1,24 @@
-import { InstanceBase, InstanceStatus, runEntrypoint, SomeCompanionConfigField, DropdownChoice, CompanionStaticUpgradeScript, CompanionVariableValues} from '@companion-module/base';
-import {Config, WebSocketSubscription, getConfigFields} from "./config";
-import { setActionDefinitions } from "./actions";
-import { setFeedbackDefinitions } from './feedbacks';
-import { ApiClient } from './coordinator_communication';
-
-
+import {
+	CompanionStaticUpgradeScript,
+	CompanionVariableValues,
+	DropdownChoice,
+	InstanceBase,
+	InstanceStatus,
+	runEntrypoint,
+	SomeCompanionConfigField
+} from '@companion-module/base';
+import {Config, getConfigFields, WebSocketSubscription} from "./config";
+import {setActionDefinitions} from "./actions";
+import {setFeedbackDefinitions} from './feedbacks';
+import {ApiClient} from './coordinator_communication';
+import {example_conversion} from './upgrades'
+import * as console from "console";
+import {WebSocketManager} from "./websocket_manager";
 
 
 export class LevandeVideoInstance extends InstanceBase<Config> {
 	public config: Config = {
-		coordinator_ip: '10.170.120.134',
+		coordinator_ip: '10.170.121.243'
 	};
 	public coordinator = new ApiClient(`http://${this.config.coordinator_ip}:8000`);
 	private webSocketSubscriptions: WebSocketSubscription[] = [{
@@ -195,9 +204,7 @@ export class LevandeVideoInstance extends InstanceBase<Config> {
 
 	
 }
-import { example_conversion } from './upgrades'
-import * as console from "console";
-import {WebSocketManager} from "./websocket_manager";
+
 const upgradeScripts: CompanionStaticUpgradeScript<Config>[] = [example_conversion]
 
 

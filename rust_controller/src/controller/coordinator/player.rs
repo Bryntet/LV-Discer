@@ -165,41 +165,13 @@ impl PlayerRound {
                 if amount_finished == 18 {
                     result.hole
                 } else {
-                    let hole_in_order = (result.hole - 1 + self.start_at_hole) % 19;
-                    hole_in_order
+                    (result.hole - 1 + self.start_at_hole) % 19
                 }
             })
             .rev()
             .take(take_amount)
             .rev()
             .collect_vec()
-    }
-}
-
-#[cfg(test)]
-mod test {
-    use itertools::Itertools;
-
-    fn the_latest_6_holes_test(results: Vec<u8>, start_at_hole: u8) -> Vec<u8> {
-        results
-            .into_iter()
-            .map(|hole| {
-                let hole_in_order = (hole + start_at_hole) % 18;
-                ((18 - hole_in_order) % 18, hole) // This gives us a descending order
-            })
-            .sorted_by_key(|(hole_sorted, _)| hole_sorted.to_owned())
-            .rev()
-            .map(|(_, hole)| hole)
-            .take(6)
-            .collect_vec()
-    }
-    #[test]
-    fn test() {
-        dbg!(the_latest_6_holes_test(
-            vec![10, 11, 12, 13, 14, 15, 16, 17, 0, 1],
-            10
-        ));
-        panic!()
     }
 }
 
@@ -527,7 +499,7 @@ impl Player {
     }
 
     pub fn add_lb_things(&self, lb: &Leaderboard) -> [VMixInterfacer<VMixPlayerInfo>; 3] {
-        let lb_player = lb.get_lb_player(self);
+        let lb_player = lb.get_lb_player(self).unwrap();
         [
             VMixInterfacer::set_image(
                 match lb_player.movement {
@@ -593,7 +565,7 @@ impl Player {
     }
 
     pub fn set_pos(&self, lb: &Leaderboard) -> Option<VMixInterfacer<VMixPlayerInfo>> {
-        let lb_player = lb.get_lb_player(self);
+        let lb_player = lb.get_lb_player(self).unwrap();
         let value_string = if lb_player.tied.is_some() {
             "T".to_string()
         } else {
