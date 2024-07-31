@@ -158,6 +158,7 @@ pub struct Player {
     pub first_scored: bool,
     pub visible_player: bool,
     pub division: Arc<Division>,
+    image_location: Option<String>,
 }
 
 impl Player {
@@ -194,12 +195,20 @@ impl Player {
             starts_at_hole,
         );
 
+        let image_location = image_id.clone().map(|image| {
+            format!(
+                "{}.{}",
+                player.id.clone().into_inner(),
+                image.split(".").last().unwrap_or_default()
+            )
+        });
         if let Some(image) = image_id.to_owned() {
-            let id = player.id.clone().into_inner();
+            let img = image_location.clone().unwrap();
             std::thread::spawn(|| {
-                let _ = util::download_image_to_file(image, id);
+                let _ = util::download_image_to_file(image, img);
             });
         }
+
         Ok(Self {
             player_id: player.id.into_inner(),
             image_url: image_id,
@@ -210,6 +219,7 @@ impl Player {
             dnf: player.dnf.is_dnf || player.dns.is_dns,
             round_ind: round,
             division,
+            image_location,
             ..Default::default()
         })
     }
@@ -358,8 +368,14 @@ impl Player {
             .into_par_iter()
             .map(|val| val.into_compare_2x2_player(index))
             .collect();
+
+        let img = if cfg!(target_os = "windows") {
+            self.image_location.clone()
+        } else {
+            self.image_url.clone()
+        };
         output.push(VMixInterfacer::set_image(
-            self.image_url.to_owned().unwrap_or_default(),
+            img.unwrap_or_default(),
             Compare2x2::PlayerImage { index },
         ));
         Ok(output)

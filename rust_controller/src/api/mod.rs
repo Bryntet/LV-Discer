@@ -154,7 +154,6 @@ pub fn launch() -> Rocket<Build> {
         .attach(AdHoc::on_shutdown("Shutdown Printer", |_| {
             Box::pin(async move {
                 util::delete_files_in_directory(Path::new("images")).unwrap();
-                println!("...shutdown has commenced!");
             })
         }))
 }

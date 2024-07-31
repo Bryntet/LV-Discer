@@ -4,12 +4,16 @@ use std::path::{Path, PathBuf};
 use std::{fs, io};
 
 use reqwest::blocking::Client;
-use reqwest::header::CONTENT_TYPE;
 
 pub fn download_image_to_file(
     url: String,
-    player_id: String,
+    img_location: String,
 ) -> Result<PathBuf, Box<dyn std::error::Error>> {
+    // Create the file path
+    let file_path = PathBuf::from(format!("images/{img_location}"));
+
+    // Create the file
+    let mut dest = File::create_new(&file_path)?;
     // Create a blocking HTTP client
     let client = Client::new();
 
@@ -20,27 +24,6 @@ pub fn download_image_to_file(
     if !response.status().is_success() {
         return Err(format!("Failed to download image: HTTP {}", response.status()).into());
     }
-
-    // Determine the file name and extension
-    let file_name = response
-        .headers()
-        .get(CONTENT_TYPE)
-        .and_then(|ct| ct.to_str().ok())
-        .and_then(|ct| ct.split('/').nth(1))
-        .map(|ext| format!("{player_id}.{}", ext))
-        .or_else(|| {
-            Path::new(&url)
-                .file_name()
-                .and_then(|os_str| os_str.to_str())
-                .map(String::from)
-        })
-        .unwrap_or_else(|| "downloaded_image.bin".to_string());
-
-    // Create the file path
-    let file_path = PathBuf::from(dbg!(format!("images/{file_name}")));
-
-    // Create the file
-    let mut dest = File::create(&file_path)?;
     dest.write_all(&response.bytes()?)?;
     Ok(file_path)
 }
