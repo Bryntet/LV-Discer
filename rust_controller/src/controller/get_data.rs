@@ -213,6 +213,7 @@ impl RustHandler {
             .flat_map(|round| &round.event)
             .flat_map(|event| event.divisions.clone())
             .flatten()
+            .sorted_by_key(|div| div.name.to_owned())
             .dedup_by(|a, b| a.id == b.id)
             .map(Arc::new)
             .collect::<Vec<_>>();
