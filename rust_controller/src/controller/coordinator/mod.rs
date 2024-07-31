@@ -343,8 +343,8 @@ impl FlipUpVMixCoordinator {
 
     pub fn ob_anim(&mut self) -> Result<(), Error> {
         println!("ob_anim");
-        self.focused_player_mut().ob = true;
-        let score = self.focused_player_mut().get_current_shown_score()?;
+        self.focused_player_mut().throws += 1;
+        let score = self.focused_player().get_current_shown_score()?;
         self.queue_add(&score.play_mov_vmix(self.focused_player_index, true));
         Ok(())
     }
