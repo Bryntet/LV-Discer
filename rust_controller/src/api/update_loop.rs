@@ -130,6 +130,7 @@ pub async fn update_loop(coordinator: Arc<Mutex<FlipUpVMixCoordinator>>) {
                         .for_each(|player| tjing_result_map.update_mut_player(player));
                     let div = coordinator.focused_player().division.clone();
                     let queue = coordinator.vmix_queue.clone();
+                    coordinator.add_state_to_leaderboard();
                     coordinator.leaderboard.update_little_lb(&div, queue);
                 }
             }

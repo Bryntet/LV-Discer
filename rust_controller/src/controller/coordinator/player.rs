@@ -451,9 +451,13 @@ impl Player {
     /// Used by leaderboard    
     pub fn fix_round_score(&mut self, up_until: Option<u8>) {
         self.round_score = 0;
-        for result in &self.results.results {
+        for (i, result) in self.results.results.iter().enumerate() {
+            if up_until.is_some_and(|up_until| i as u8 == up_until) {
+                break;
+            }
             self.round_score += result.actual_score() as isize;
         }
+
         self.total_score += self.round_score
     }
 
@@ -481,7 +485,7 @@ impl Player {
         };
         // Update score text, visibility, and colour
 
-        let score = self.get_current_shown_score()?.update_score(1);
+        let score = self.get_current_shown_score()?.update_score(0);
 
         self.round_score += s.par_score() as isize;
         self.total_score += s.par_score() as isize;

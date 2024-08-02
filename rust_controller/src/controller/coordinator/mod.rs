@@ -220,8 +220,16 @@ impl FlipUpVMixCoordinator {
         channel: &GeneralChannel<PlayerManagerUpdate>,
     ) -> Result<(), Error> {
         self.player_manager.next_queued();
+        let up_until = self.focused_player().hole_shown_up_until;
+        self.focused_player_mut().total_score = 0;
         self.add_state_to_leaderboard();
-
+        self.focused_player_mut()
+            .fix_round_score(Some(up_until as u8));
+        if let Some(player) = self.leaderboard.get_lb_player(self.focused_player()) {
+            let current_round_score = self.focused_player().round_score;
+            self.focused_player_mut().total_score =
+                player.total_score - player.round_score + current_round_score;
+        }
         let all = self
             .focused_player()
             .set_all_values(&self.leaderboard, false)?;
@@ -375,7 +383,7 @@ impl FlipUpVMixCoordinator {
             .map(Arc::clone)
     }
 
-    fn add_state_to_leaderboard(&mut self) {
+    pub fn add_state_to_leaderboard(&mut self) {
         self.set_current_through();
         let current_players = self.available_players().into_iter().cloned().collect_vec();
         let previous = self

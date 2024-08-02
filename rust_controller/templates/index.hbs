@@ -241,6 +241,7 @@
 <body>
 
 <div id="division-selector" hx-ext="ws" ws-connect="/ws/division">
+    Leaderboard
     <select id="division-dropdown">
         <option value="">Select Division</option>
 
@@ -287,7 +288,7 @@
                         <div class="player" data-player-id="{{player.id}}">
                             <span class="player-name">{{player.name}}</span>
                             <form class="queue-form">
-                                <input type="number" name="hole" placeholder="Hole number">
+                                <input type="number" name="hole" placeholder="Through">
                                 <input type="number" name="throws" placeholder="Number of throws">
                                 <button type="submit">Queue player</button>
                             </form>
