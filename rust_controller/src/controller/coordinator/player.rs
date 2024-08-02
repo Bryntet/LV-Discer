@@ -671,10 +671,7 @@ impl Player {
     }
 
     pub fn set_throw(&self) -> VMixInterfacer<VMixPlayerInfo> {
-        VMixInterfacer::set_color(
-            &self.throws.to_string(),
-            VMixPlayerInfo::Throw(self.ind).into(),
-        )
+        VMixInterfacer::set_text(self.throws.to_string(), VMixPlayerInfo::Throw(0))
     }
 
     fn set_lb_name(&self) -> VMixInterfacer<LeaderBoardProperty> {

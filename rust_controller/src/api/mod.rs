@@ -120,7 +120,7 @@ pub fn launch() -> Rocket<Build> {
         #[cfg(windows)]
         let ip = IpAddr::V4("10.170.121.243".parse().unwrap());
         #[cfg(not(windows))]
-        let ip = IpAddr::V4("10.170.122.114".parse().unwrap());
+        let ip = IpAddr::V4("10.180.121.3".parse().unwrap());
         rocket::Config {
             address: ip,
             cli_colors: true,

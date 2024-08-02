@@ -68,7 +68,11 @@ impl FlipUpVMixCoordinator {
             ip,
             player_manager: PlayerManager::new(first_group.player_ids()),
             leaderboard: handler.get_previous_leaderboards(),
-            featured_card: PlayerManager::new(card_starts_at_hole.unwrap().player_ids()),
+            featured_card: PlayerManager::new(
+                card_starts_at_hole
+                    .expect("Some group should start at the featured hole.")
+                    .player_ids(),
+            ),
             handler,
             round_ind: round,
             current_through: 0,
@@ -282,7 +286,7 @@ impl FlipUpVMixCoordinator {
 
         self.player_manager.set_focused(&focused_player_id);
         player_updater.send(self);
-        let mut compare_2x2 = self
+        let compare_2x2 = self
             .player_manager
             .card(self.available_players())
             .into_par_iter()
@@ -447,7 +451,9 @@ impl FlipUpVMixCoordinator {
         self.focused_player_mut().throws += 1;
         let score = self.focused_player().get_current_shown_score()?;
         self.queue_add(&score.play_mov_vmix(self.focused_player_index, true));
-        self.queue_add(&[self.focused_player().set_throw()]);
+        if let Some(f) = self.focused_player().set_throw().into_current_player() {
+            self.queue_add(&[f]);
+        }
         Ok(())
     }
     pub fn set_player(&mut self, player: &str) {
@@ -512,12 +518,14 @@ impl FlipUpVMixCoordinator {
     pub fn increase_throw(&mut self) {
         self.focused_player_mut().throws += 1;
         let f = [self.focused_player_mut().set_throw()];
+        self.queue_add(&self.focused_player().set_all_current_player_values(&f));
         self.queue_add(&f)
     }
 
     pub fn decrease_throw(&mut self) {
         self.focused_player_mut().throws -= 1;
         let f = &[self.focused_player_mut().set_throw()];
+        self.queue_add(&self.focused_player().set_all_current_player_values(f));
         self.queue_add(f);
     }
 

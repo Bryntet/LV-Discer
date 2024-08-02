@@ -1,3 +1,5 @@
+use tokio::sync::broadcast::{channel, Receiver, Sender};
+
 #[cfg(not(target_arch = "wasm32"))]
 use {
     std::io::{Read, Write},
@@ -6,7 +8,7 @@ use {
 };
 
 use crate::api::Error;
-use tokio::sync::broadcast::{channel, Receiver, Sender};
+use crate::vmix::functions::{VMixInterfacer, VMixSelectionTrait};
 
 #[cfg(target_arch = "wasm32")]
 #[derive(Clone)]
@@ -22,8 +24,6 @@ pub struct VMixQueue {
     functions_sender: tokio::sync::broadcast::Sender<String>,
 }
 
-use crate::vmix::functions::{VMixInterfacer, VMixSelectionTrait};
-
 impl VMixQueue {
     pub fn new(ip: String) -> Result<Self, Error> {
         let (tx, mut rx): (Sender<String>, Receiver<String>) = channel(2048);
@@ -36,6 +36,7 @@ impl VMixQueue {
         tokio::spawn(async move {
             loop {
                 if let Ok(f) = rx.recv().await {
+                    dbg!(&f);
                     match VMixQueue::send(&f.into_bytes(), &mut stream) {
                         Ok(()) => (),
                         Err(e) => {
@@ -99,11 +100,11 @@ impl VMixQueue {
 
 #[cfg(test)]
 mod test {
+    use rand::Rng;
 
-    use super::*;
     use crate::flipup_vmix_controls::Score;
 
-    use rand::Rng;
+    use super::*;
 
     fn random_score_type(hole: u8) -> Score {
         let mut rng = rand::thread_rng();
