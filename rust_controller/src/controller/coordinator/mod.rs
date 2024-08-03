@@ -130,15 +130,17 @@ impl FlipUpVMixCoordinator {
                 })
                 .collect_vec(),
         );
-        self.queue_add(
-            &self
-                .focused_player()
-                .results
-                .get_hole_info(self.featured_hole - 1, self.make_stats())
-                .into_iter()
-                .map(VMixInterfacer::into_featured_hole_card)
-                .collect_vec(),
-        );
+        let featured_hole = self.featured_hole - 1;
+        let stats = self.make_stats();
+        let holes = self.focused_player().holes.clone();
+        let out = self
+            .focused_player_mut()
+            .results
+            .get_hole_info(featured_hole, stats, &holes)
+            .into_iter()
+            .map(VMixInterfacer::into_featured_hole_card)
+            .collect_vec();
+        self.queue_add(&out);
     }
 
     pub fn next_featured_card(&mut self) {

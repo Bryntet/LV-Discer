@@ -140,7 +140,7 @@ pub mod layout {
 
         use super::super::Division;
 
-        #[derive(Debug, Clone)]
+        #[derive(Debug, Clone, Default)]
         pub struct Holes {
             holes: Vec<Arc<Hole>>,
             division: Arc<Division>,

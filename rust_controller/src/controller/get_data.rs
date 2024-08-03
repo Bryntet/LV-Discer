@@ -234,7 +234,7 @@ impl RustHandler {
                             Player::from_query(
                                 player,
                                 round_num,
-                                holes,
+                                holes.clone(),
                                 divisions.clone(),
                                 groups[round]
                                     .iter()

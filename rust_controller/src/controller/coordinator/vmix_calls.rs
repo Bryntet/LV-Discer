@@ -11,10 +11,13 @@ impl FlipUpVMixCoordinator {
     pub fn make_hole_info(&mut self) {
         self.set_current_through();
         if self.current_hole() <= 18 {
-            let result = self
-                .focused_player()
-                .results
-                .get_hole_info((self.current_hole() + 1) as u8, self.make_stats());
+            let current_hole = (self.current_hole() + 1) as u8;
+            let stats = self.make_stats();
+            let holes = self.focused_player().holes.clone();
+            let result =
+                self.focused_player_mut()
+                    .results
+                    .get_hole_info(current_hole, stats, &holes);
             let drone_result = self
                 .focused_player()
                 .results
