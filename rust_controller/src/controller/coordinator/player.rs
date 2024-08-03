@@ -9,6 +9,7 @@ use hole::VMixHoleInfo;
 use crate::api::Error;
 use crate::controller::get_data::{HoleResult, DEFAULT_FOREGROUND_COL_ALPHA};
 use crate::controller::hole::{DroneHoleInfo, HoleDifficulty, HoleStats};
+use crate::controller::queries::layout::hole::Hole;
 use crate::controller::queries::layout::Holes;
 use crate::controller::queries::Division;
 use crate::controller::{hole, queries};
@@ -158,7 +159,8 @@ impl PlayerRound {
             .iter()
             .filter(|hole| hole.finished || hole.tjing_result.is_some())
             .count();
-        self.results
+        let mut results = self
+            .results
             .into_iter()
             .filter(|result| result.finished || result.tjing_result.is_some())
             .sorted_by_key(|result| {
@@ -171,7 +173,20 @@ impl PlayerRound {
             .rev()
             .take(take_amount)
             .rev()
-            .collect_vec()
+            .collect_vec();
+        while results.len() < take_amount {
+            results.push(HoleResult {
+                hole: 0,
+                throws: 0,
+                hole_representation: Arc::new(Hole {
+                    ..Default::default()
+                }),
+                tjing_result: None,
+                ob: Default::default(),
+                finished: false,
+            });
+        }
+        results
     }
 }
 

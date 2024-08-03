@@ -167,7 +167,7 @@ pub mod layout {
             }
         }
 
-        #[derive(Debug, Clone)]
+        #[derive(Debug, Clone, Default)]
         pub struct Hole {
             pub length: u16,
             pub par: u8,
