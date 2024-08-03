@@ -180,7 +180,7 @@ impl PlayerRound {
             .collect_vec();
         while results.len() < take_amount {
             results.push(HoleResult {
-                hole: 0,
+                hole: results.len() as u8,
                 throws: 0,
                 hole_representation: Arc::new(Hole {
                     ..Default::default()

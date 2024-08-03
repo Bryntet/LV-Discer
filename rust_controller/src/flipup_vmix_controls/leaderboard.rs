@@ -127,7 +127,7 @@ impl LeaderboardState {
                 })
                 .sum::<isize>();
             player.fix_round_score(None);
-            player.total_score += total;
+            player.total_score = total + player.round_score;
         });
         Self::sort_players(&mut current_round_players);
         Self {

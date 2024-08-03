@@ -48,10 +48,11 @@ impl From<&HoleResult> for Score {
 
 impl HoleResult {
     pub fn new(hole: u8, holes: &Holes) -> Result<Self, Error> {
+        let hole_representation = holes.find_hole(hole).ok_or(Error::UnableToParse)?;
         Ok(Self {
             hole,
-            throws: 0,
-            hole_representation: holes.find_hole(hole).ok_or(Error::UnableToParse)?,
+            throws: hole_representation.par,
+            hole_representation,
             tjing_result: None,
             ob: HashSet::new(),
             finished: false,
