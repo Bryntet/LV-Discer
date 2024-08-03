@@ -107,8 +107,8 @@ impl HoleResult {
         &self,
         pos: usize,
         hole: usize,
-    ) -> [VMixInterfacer<LeaderboardTop6>; 2] {
-        [
+    ) -> Vec<VMixInterfacer<LeaderboardTop6>> {
+        vec![
             VMixInterfacer::set_text(
                 fix_score(self.actual_score() as isize),
                 LeaderboardTop6::LastScore { pos, hole },
@@ -120,8 +120,8 @@ impl HoleResult {
         ]
     }
 
-    pub fn to_current_player(&self, hole: usize) -> [VMixInterfacer<CurrentPlayer>; 2] {
-        [
+    pub fn to_current_player(&self, hole: usize) -> Vec<VMixInterfacer<CurrentPlayer>> {
+        vec![
             VMixInterfacer::set_text(
                 fix_score(self.actual_score() as isize),
                 CurrentPlayer(VMixPlayerInfo::Score { player: 0, hole }),
@@ -129,6 +129,35 @@ impl HoleResult {
             VMixInterfacer::set_color(
                 self.to_score().get_score_colour(),
                 CurrentPlayer(VMixPlayerInfo::ScoreColor { player: 0, hole }),
+            ),
+        ]
+    }
+
+    pub fn hide_current_player_score(
+        hole: usize,
+        player: usize,
+    ) -> Vec<VMixInterfacer<CurrentPlayer>> {
+        vec![
+            VMixInterfacer::set_text(
+                "".to_string(),
+                CurrentPlayer(VMixPlayerInfo::Score { hole, player }),
+            ),
+            VMixInterfacer::set_color(
+                DEFAULT_FOREGROUND_COL_ALPHA,
+                CurrentPlayer(VMixPlayerInfo::ScoreColor { hole, player }),
+            ),
+        ]
+    }
+
+    pub fn hide_hole_top_6(player: usize, hole: usize) -> Vec<VMixInterfacer<LeaderboardTop6>> {
+        vec![
+            VMixInterfacer::set_text(
+                "".to_string(),
+                LeaderboardTop6::LastScore { pos: player, hole },
+            ),
+            VMixInterfacer::set_color(
+                DEFAULT_FOREGROUND_COL_ALPHA,
+                LeaderboardTop6::LastScoreColour { hole, pos: player },
             ),
         ]
     }

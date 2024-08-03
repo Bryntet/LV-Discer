@@ -7,6 +7,7 @@ use rocket::http::ext::IntoCollection;
 pub use prop::{LeaderBoardProperty, LeaderboardTop6};
 
 use crate::controller::fix_score;
+use crate::controller::get_data::HoleResult;
 use crate::controller::queries::Division;
 use crate::controller::Player;
 use crate::flipup_vmix_controls::Image;
@@ -272,8 +273,9 @@ impl LeaderboardState {
                         .the_latest_6_holes(5)
                         .iter()
                         .enumerate()
-                        .flat_map(|(hole_index, result)| {
-                            result.to_leaderboard_top_6(player.index, hole_index + 1)
+                        .flat_map(|(hole_index, result)| match result {
+                            Some(res) => res.to_leaderboard_top_6(player.index, hole_index + 1),
+                            None => HoleResult::hide_hole_top_6(player.index, hole_index + 1),
                         })
                         .collect_vec(),
                 )

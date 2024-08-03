@@ -159,7 +159,7 @@ impl PlayerRound {
             .count() as u8
     }
 
-    pub fn the_latest_6_holes(self, take_amount: usize) -> Vec<HoleResult> {
+    pub fn the_latest_6_holes(self, take_amount: usize) -> Vec<Option<HoleResult>> {
         let amount_finished = self
             .results
             .iter()
@@ -179,18 +179,10 @@ impl PlayerRound {
             .rev()
             .take(take_amount)
             .rev()
+            .map(Some)
             .collect_vec();
         while results.len() < take_amount {
-            results.push(HoleResult {
-                hole: results.len() as u8,
-                throws: 0,
-                hole_representation: Arc::new(Hole {
-                    ..Default::default()
-                }),
-                tjing_result: None,
-                ob: Default::default(),
-                finished: false,
-            });
+            results.push(None);
         }
         results
     }
@@ -473,7 +465,10 @@ impl Player {
                 .the_latest_6_holes(6)
                 .par_iter()
                 .enumerate()
-                .flat_map(|(hole_index, result)| result.to_current_player(hole_index + 1))
+                .flat_map(|(hole_index, result)| match result {
+                    Some(res) => res.to_current_player(hole_index + 1),
+                    None => HoleResult::hide_current_player_score(hole_index + 1, 0),
+                })
                 .collect::<Vec<_>>(),
         );
         second_values
