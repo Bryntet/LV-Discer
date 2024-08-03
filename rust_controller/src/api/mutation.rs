@@ -123,6 +123,7 @@ pub async fn add_to_queue(
     hole_setting: Form<dto::HoleSetting>,
 ) -> Result<(), Error> {
     let (hole, throws) = dbg!((hole_setting.hole, hole_setting.throws));
+
     coordinator
         .lock()
         .await

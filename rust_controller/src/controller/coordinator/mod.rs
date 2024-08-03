@@ -205,14 +205,17 @@ impl FlipUpVMixCoordinator {
         throw: Option<u8>,
         channel: &GeneralChannel<PlayerManagerUpdate>,
     ) {
-        if let Some(hole) = hole {
-            if let Some(player) = self.find_player_mut(&player_id) {
-                player.hole_shown_up_until = hole as usize;
-                if let Some(throw) = throw {
-                    player.throws = throw;
-                }
+        if let Some(player) = self.find_player_mut(&player_id) {
+            let hole = match hole {
+                Some(0) | None => player.amount_of_holes_finished() as u8,
+                Some(h) => h,
+            };
+            player.hole_shown_up_until = hole as usize;
+            if let Some(throw) = throw {
+                player.throws = throw;
             }
         }
+
         self.player_manager.add_to_queue(player_id);
         channel.send(self);
     }
