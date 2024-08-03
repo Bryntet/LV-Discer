@@ -240,7 +240,6 @@ impl FlipUpVMixCoordinator {
             .set_all_values(&self.leaderboard, false)?;
         self.queue_add(&all);
         let current = self.focused_player().set_all_current_player_values(&all);
-
         self.queue_add(&current);
         channel.send(self);
         Ok(())
@@ -462,7 +461,7 @@ impl FlipUpVMixCoordinator {
     pub fn ob_anim(&mut self) -> Result<(), Error> {
         println!("ob_anim");
         self.focused_player_mut().throws += 1;
-        let score = self.focused_player().get_current_shown_score()?;
+        let score = self.focused_player_mut().get_current_shown_score();
         self.queue_add(&score.play_mov_vmix(self.focused_player_index, true));
         if let Some(f) = self.focused_player().set_throw().into_current_player() {
             self.queue_add(&[f]);

@@ -39,11 +39,13 @@ impl PlayerRound {
         }
     }
 
-    pub fn add_new_hole(&mut self, all_holes: &Holes, hole: u8) -> Result<(), Error> {
+    pub fn add_new_hole(&mut self, all_holes: &Holes, hole: u8, throws: u8) -> Result<(), Error> {
         if self.results.len() >= 18 {
             return Err(Error::TooManyHoles);
         }
-        self.results.push(HoleResult::new(hole, all_holes)?);
+        let mut result = HoleResult::new(hole, all_holes)?;
+        result.throws = throws;
+        self.results.push(result);
         Ok(())
     }
 
@@ -101,43 +103,35 @@ impl PlayerRound {
         holes: &Holes,
     ) -> Vec<VMixInterfacer<VMixHoleInfo>> {
         let mut r_vec: Vec<VMixInterfacer<VMixHoleInfo>> = vec![];
+        let hole = holes.find_hole(hole).unwrap();
 
-        let hole = match self.results.iter().find(|the_hole| the_hole.hole == hole) {
-            Some(h) => h,
-            None => {
-                self.add_new_hole(holes, hole);
-                self.results
-                    .iter()
-                    .find(|the_hole| the_hole.hole == hole)
-                    .unwrap()
-            }
-        };
         r_vec.push(VMixInterfacer::set_only_input(VMixHoleInfo::Hole(
             hole.hole,
         )));
 
         r_vec.push(VMixInterfacer::set_only_input(VMixHoleInfo::HolePar(
-            hole.hole_representation.par,
+            hole.par,
         )));
 
         r_vec.push(VMixInterfacer::set_only_input(VMixHoleInfo::HoleMeters(
-            hole.hole_representation.length,
+            hole.length,
         )));
 
-        let feet = (hole.hole_representation.length as f32 * 3.28084) as u16;
+        let feet = (hole.length as f32 * 3.28084) as u16;
         r_vec.push(VMixInterfacer::set_only_input(VMixHoleInfo::HoleFeet(feet)));
-        let stat = &hole_stats
+        if let Some(stat) = hole_stats
             .iter()
             .find(|holestat| holestat.hole_number == hole.hole)
-            .unwrap();
-        let (avg, cmp) = stat.average_score();
-        r_vec.push(VMixInterfacer::set_only_input(
-            VMixHoleInfo::AverageResult { score: avg, cmp },
-        ));
-        r_vec.push(VMixInterfacer::set_only_input(VMixHoleInfo::Difficulty {
-            difficulty: HoleDifficulty::new(hole_stats),
-            hole: hole.hole as usize,
-        }));
+        {
+            let (avg, cmp) = stat.average_score();
+            r_vec.push(VMixInterfacer::set_only_input(
+                VMixHoleInfo::AverageResult { score: avg, cmp },
+            ));
+            r_vec.push(VMixInterfacer::set_only_input(VMixHoleInfo::Difficulty {
+                difficulty: HoleDifficulty::new(hole_stats),
+                hole: hole.hole as usize,
+            }));
+        }
         r_vec
     }
 
@@ -337,16 +331,26 @@ impl Player {
         self.total_score - self.round_score
     }
 
-    pub fn get_current_shown_score(&self) -> Result<Score, Error> {
-        self.results
+    pub fn get_current_shown_score(&mut self) -> Score {
+        match self
+            .results
             .results
             .iter()
             .find(|result| result.hole as usize == (self.hole_shown_up_until + 1))
-            .ok_or(Error::NoScoreFound {
-                player: self.name.clone(),
-                hole: self.hole_shown_up_until + 1,
-            })
-            .map(Score::from)
+        {
+            Some(res) => res,
+            None => {
+                self.results
+                    .add_new_hole(
+                        &self.holes,
+                        (self.hole_shown_up_until + 1) as u8,
+                        self.throws,
+                    )
+                    .unwrap();
+                self.results.results.last().unwrap()
+            }
+        }
+        .to_score()
     }
 
     pub fn get_score(&self, hole: usize) -> Result<Score, Error> {
@@ -498,11 +502,14 @@ impl Player {
         let s = match self.get_score(self.hole_shown_up_until) {
             Ok(s) => s,
             Err(Error::NoScoreFound { .. }) => {
-                let Some(t) = self.results.current_result_mut(self.hole_shown_up_until) else {
-                    return Err(Error::NoScoreFound {
-                        player: self.name.clone(),
-                        hole: self.hole_shown_up_until,
-                    });
+                let t = match self.results.current_result_mut(self.hole_shown_up_until) {
+                    Some(t) => t,
+                    None => {
+                        self.results
+                            .add_new_hole(&self.holes, self.hole_shown_up_until as u8, self.throws)
+                            .expect("Adding hole should work");
+                        self.results.results.last_mut().unwrap()
+                    }
                 };
                 t.throws = self.throws;
                 t.finished = true;
@@ -512,7 +519,7 @@ impl Player {
         };
         // Update score text, visibility, and colour
 
-        let score = self.get_current_shown_score()?.update_score(0);
+        let score = self.get_current_shown_score().update_score(0);
 
         self.round_score += s.par_score() as isize;
         self.total_score += s.par_score() as isize;
