@@ -14,7 +14,7 @@ impl FlipUpVMixCoordinator {
             let result = self
                 .focused_player()
                 .results
-                .get_hole_info(self.current_hole() as u8, self.make_stats());
+                .get_hole_info((self.current_hole() + 1) as u8, self.make_stats());
             let drone_result = self
                 .focused_player()
                 .results
