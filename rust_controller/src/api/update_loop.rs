@@ -135,5 +135,6 @@ pub async fn update_loop(coordinator: Arc<Mutex<FlipUpVMixCoordinator>>) {
                 }
             }
         }
+        tokio::time::sleep(tokio::time::Duration::new(5, 0)).await;
     }
 }
