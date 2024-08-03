@@ -404,7 +404,7 @@ impl FlipUpVMixCoordinator {
         let lb_players = self
             .available_players()
             .into_iter()
-            .flat_map(|player| self.leaderboard.get_lb_player(&player))
+            .flat_map(|player| self.leaderboard.get_lb_player(player))
             .collect_vec();
         let mut all_players = self.available_players_mut();
         for lb_player in lb_players {

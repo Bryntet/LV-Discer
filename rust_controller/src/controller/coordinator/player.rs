@@ -402,7 +402,7 @@ impl Player {
         if max_all {
             let player_with_correct = lb.find_player_in_current_state(self);
             return_vec.push(player_with_correct.set_tot_score());
-            return_vec.push(player_with_correct.set_round_score())
+            return_vec.push(player_with_correct.set_round_score());
         } else {
             return_vec.push(self.set_tot_score());
             return_vec.push(self.set_round_score());
