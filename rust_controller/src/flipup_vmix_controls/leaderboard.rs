@@ -119,15 +119,15 @@ impl LeaderboardState {
                 .iter_mut()
                 .filter(|previous_round_player| previous_round_player.player_id == player.player_id)
                 .collect_vec();
-            let total = previous_instances
-                .into_iter()
-                .map(|player| {
-                    player.fix_round_score(None);
-                    player.round_score
-                })
-                .sum::<isize>();
+            /*let total = previous_instances
+            .into_iter()
+            .map(|player| {
+                player.fix_round_score(None);
+                player.round_score
+            })
+            .sum::<isize>();*/
             player.fix_round_score(None);
-            player.total_score = total + player.round_score;
+            player.total_score = player.round_score;
         });
         Self::sort_players(&mut current_round_players);
         Self {

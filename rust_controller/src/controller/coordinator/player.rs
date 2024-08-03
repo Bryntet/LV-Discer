@@ -254,13 +254,6 @@ impl Player {
                     .expect("Could not create HoleResult")
             })
             .collect_vec();
-        while results.len() < 18 && round == 0 {
-            if let Ok(res) = HoleResult::new(results.len() as u8, holes) {
-                results.push(res);
-            } else {
-                dbg!(results.len(), holes);
-            }
-        }
 
         let results = PlayerRound::new(results, round, starts_at_hole);
 

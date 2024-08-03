@@ -158,6 +158,24 @@ pub async fn update_division(
     Ok(())
 }
 
+#[openapi(tag = "Division")]
+#[post("/div/set", data = "<division>")]
+pub async fn update_division_form(
+    co: Coordinator,
+    division: &str,
+    channel: &GeneralChannel<DivisionUpdate>,
+) -> Result<(), Error> {
+    let mut co = co.lock().await;
+    let div = co
+        .all_divs
+        .iter()
+        .find(|div| div.name == division)
+        .ok_or(Error::InvalidDivision(division.to_string()))?
+        .to_owned();
+    co.set_div(&div, channel);
+    Ok(())
+}
+
 #[openapi(tag = "Featured hole")]
 #[post("/featured-hole/update-card")]
 pub async fn update_featured_hole_group(co: Coordinator) {
