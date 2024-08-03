@@ -127,13 +127,18 @@ pub mod round {
 }
 
 pub mod layout {
+    pub use hole::*;
+
     use super::schema;
 
     pub mod hole {
-        use super::super::Division;
-        use crate::api::Error;
-        use itertools::Itertools;
         use std::sync::Arc;
+
+        use itertools::Itertools;
+
+        use crate::api::Error;
+
+        use super::super::Division;
 
         #[derive(Debug, Clone)]
         pub struct Holes {
@@ -177,14 +182,15 @@ pub mod layout {
             ) -> Result<Self, Self::Error> {
                 let hole_number = value.number as u8;
 
-                let length = if value.measure_in_meters.is_none() {
+                /*let length = if value.measure_in_meters.is_none() {
                     value.length
                 } else if value.measure_in_meters.is_some_and(|s| s) {
                     value.length
                 } else {
                     value.length.map(|l| l * 0.9144)
                 };
-                let length = length.ok_or(Self::Error::HoleLengthNotFound(hole_number))? as u16;
+                let length = length.ok_or(Self::Error::HoleLengthNotFound(hole_number))? as u16;*/
+                let length = 0;
                 let par = value.par.ok_or(Self::Error::HoleParNotFound(hole_number))? as u8;
                 Ok(Hole {
                     length,
@@ -194,8 +200,6 @@ pub mod layout {
             }
         }
     }
-
-    pub use hole::*;
 
     #[derive(cynic::QueryVariables, Debug)]
     pub struct HoleLayoutQueryVariables {
@@ -240,9 +244,10 @@ pub mod layout {
 
 // Groups
 pub mod group {
-    use super::schema;
     use rocket_okapi::okapi::schemars;
     use schemars::JsonSchema;
+
+    use super::schema;
 
     #[derive(cynic::QueryVariables, Debug)]
     pub struct GroupsQueryVariables {
