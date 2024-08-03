@@ -39,12 +39,11 @@ impl PlayerRound {
         }
     }
 
-    pub fn add_new_hole(&mut self, all_holes: &Holes) -> Result<(), Error> {
+    pub fn add_new_hole(&mut self, all_holes: &Holes, hole: u8) -> Result<(), Error> {
         if self.results.len() >= 18 {
             return Err(Error::TooManyHoles);
         }
-        self.results
-            .push(HoleResult::new(self.results.len() as u8, all_holes)?);
+        self.results.push(HoleResult::new(hole, all_holes)?);
         Ok(())
     }
 
@@ -106,7 +105,7 @@ impl PlayerRound {
         let hole = match self.results.iter().find(|the_hole| the_hole.hole == hole) {
             Some(h) => h,
             None => {
-                self.add_new_hole(holes);
+                self.add_new_hole(holes, hole);
                 self.results
                     .iter()
                     .find(|the_hole| the_hole.hole == hole)
