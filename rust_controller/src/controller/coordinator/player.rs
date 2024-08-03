@@ -101,8 +101,12 @@ impl PlayerRound {
         hole_stats: Vec<HoleStats>,
     ) -> Vec<VMixInterfacer<VMixHoleInfo>> {
         let mut r_vec: Vec<VMixInterfacer<VMixHoleInfo>> = vec![];
-        let hole = self.current_result(hole).unwrap();
 
+        let hole = self
+            .results
+            .iter()
+            .find(|the_hole| the_hole.hole == hole)
+            .unwrap();
         r_vec.push(VMixInterfacer::set_only_input(VMixHoleInfo::Hole(
             hole.hole,
         )));
@@ -241,19 +245,22 @@ impl Player {
             .into_iter()
             .find(|div| div.id == player.division.id)
             .ok_or(Error::UnableToParse)?;
-        let results = PlayerRound::new(
-            player
-                .results
-                .unwrap_or_default()
-                .into_iter()
-                .map(|r: controller::queries::HoleResult| {
-                    HoleResult::from_tjing(r.hole.number as u8, holes, r)
-                        .expect("Could not create HoleResult")
-                })
-                .collect_vec(),
-            round,
-            starts_at_hole,
-        );
+        let mut results = player
+            .results
+            .unwrap_or_default()
+            .into_iter()
+            .map(|r: controller::queries::HoleResult| {
+                HoleResult::from_tjing(r.hole.number as u8, holes, r)
+                    .expect("Could not create HoleResult")
+            })
+            .collect_vec();
+        while results.len() < 18 {
+            if let Ok(hole) = HoleResult::new(results.len() as u8, holes) {
+                results.push(hole)
+            }
+        }
+
+        let results = PlayerRound::new(results, round, starts_at_hole);
 
         let image_location = image_id.clone().map(|image| {
             format!(
