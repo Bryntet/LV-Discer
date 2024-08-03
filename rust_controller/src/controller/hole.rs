@@ -91,7 +91,7 @@ impl HoleDifficulty {
             2 => "2nd easiest".to_string(),
             3 => "3rd easiest".to_string(),
             4..=9 => format!("{difficulty}th easiest"),
-            10..=15 => format!("{}th hardest", difficulty - 9),
+            10..=15 => format!("{}th hardest", 18 - difficulty),
             16 => "3rd hardest".to_string(),
             17 => "2nd hardest".to_string(),
             18 => "HARDEST".to_string(),
