@@ -400,6 +400,21 @@ impl FlipUpVMixCoordinator {
             current_players,
             previous,
         ));
+
+        let lb_players = self
+            .available_players()
+            .into_iter()
+            .flat_map(|player| self.leaderboard.get_lb_player(&player))
+            .collect_vec();
+        let mut all_players = self.available_players_mut();
+        for lb_player in lb_players {
+            if let Some(player) = all_players
+                .iter_mut()
+                .find(|player| player.player_id == lb_player.id)
+            {
+                player.total_score = lb_player.total_score
+            }
+        }
     }
 
     pub fn set_leaderboard(&mut self, lb_start_ind: Option<usize>) {

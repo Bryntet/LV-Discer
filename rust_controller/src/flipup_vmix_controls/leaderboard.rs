@@ -290,7 +290,7 @@ impl LeaderboardState {
 
 #[derive(Debug, Clone)]
 pub struct LeaderboardPlayer {
-    id: String,
+    pub id: String,
     pub index: usize,
     pub position: usize,
     pub movement: LeaderboardMovement,
