@@ -126,7 +126,10 @@ impl PlayerRound {
 
         let feet = (hole.hole_representation.length as f32 * 3.28084) as u16;
         r_vec.push(VMixInterfacer::set_only_input(VMixHoleInfo::HoleFeet(feet)));
-        let stat = &hole_stats[(hole.hole - 1) as usize];
+        let stat = &hole_stats
+            .iter()
+            .find(|holestat| holestat.hole_number == hole.hole)
+            .unwrap();
         let (avg, cmp) = stat.average_score();
         r_vec.push(VMixInterfacer::set_only_input(
             VMixHoleInfo::AverageResult { score: avg, cmp },

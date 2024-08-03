@@ -8,7 +8,7 @@ use crate::vmix::functions::VMixSelectionTrait;
 use super::queries::HoleResult;
 
 pub struct HoleStats {
-    hole_number: u8,
+    pub hole_number: u8,
     player_results: Vec<HoleResult>,
 }
 
