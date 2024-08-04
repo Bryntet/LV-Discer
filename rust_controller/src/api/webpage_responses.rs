@@ -45,8 +45,7 @@ pub async fn load(
     builder: Form<CoordinatorBuilder>,
 ) -> Result<Template, Error> {
     let coordinator = builder.into_inner().into_coordinator().await?;
-    let mut groups = coordinator.groups().into_iter().cloned().collect_vec();
-    groups.reverse();
+    let groups = coordinator.groups().into_iter().cloned().collect_vec();
     *loader.0.lock().await = Some(coordinator.into());
     Ok(Template::render("index", json!({"groups": groups})))
 }

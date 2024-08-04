@@ -33,21 +33,22 @@ impl TjingResultMap {
         hole_result: crate::controller::coordinator::queries::HoleResult,
     ) -> bool {
         let mut needs_update = false;
-        if let Some(results) = self.results.get_mut(player_id) {
-            for result in results {
-                if let Some(result) = result {
-                    if result.hole.number == hole_result.hole.number {
-                        *result = hole_result;
-                        needs_update = true;
-                        break;
-                    }
-                } else {
-                    *result = Some(hole_result);
-                    needs_update = true;
-                    break;
-                }
+        let results = self.results.entry(player_id.to_string()).or_default();
+
+        if let Some(res) = results
+            .iter_mut()
+            .flatten()
+            .find(|hole| hole.hole.number as u8 == hole_result.hole.number as u8)
+        {
+            if res.score != hole_result.score {
+                res.score = hole_result.score;
+                needs_update = true;
             }
+        } else {
+            results.push(Some(hole_result));
+            needs_update = true
         }
+
         needs_update
     }
 
@@ -86,7 +87,9 @@ impl TjingResultMap {
             .flatten()
             .cloned()
             .collect_vec();
-        player.results.update_tjing(&hash_player_result);
+        player
+            .results
+            .update_tjing(&hash_player_result, &player.holes);
     }
 }
 
@@ -103,7 +106,7 @@ pub async fn update_loop(coordinator: Arc<Mutex<FlipUpVMixCoordinator>>) {
     let reqwest_client = reqwest::Client::new();
     std::mem::drop(temp_coordinator);
     loop {
-        if let Ok(response) = reqwest_client
+        if let Ok(response) = reqwest::Client::new()
             .post("https://api.tjing.se/graphql")
             .json(&tjing_request)
             .send()
@@ -126,7 +129,7 @@ pub async fn update_loop(coordinator: Arc<Mutex<FlipUpVMixCoordinator>>) {
                     let mut coordinator = coordinator.lock().await;
                     coordinator
                         .available_players_mut()
-                        .into_par_iter()
+                        .into_iter()
                         .for_each(|player| tjing_result_map.update_mut_player(player));
                     let div = coordinator.focused_player().division.clone();
                     let queue = coordinator.vmix_queue.clone();

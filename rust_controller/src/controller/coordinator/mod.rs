@@ -474,13 +474,8 @@ impl FlipUpVMixCoordinator {
     }
 
     pub fn ob_anim(&mut self) -> Result<(), Error> {
-        println!("ob_anim");
-        self.focused_player_mut().throws += 1;
         let score = self.focused_player_mut().get_current_shown_score();
         self.queue_add(&score.play_mov_vmix(self.focused_player_index, true));
-        if let Some(f) = self.focused_player().set_throw().into_current_player() {
-            self.queue_add(&[f]);
-        }
         Ok(())
     }
     pub fn set_player(&mut self, player: &str) {
@@ -550,10 +545,12 @@ impl FlipUpVMixCoordinator {
     }
 
     pub fn decrease_throw(&mut self) {
-        self.focused_player_mut().throws -= 1;
-        let f = &[self.focused_player_mut().set_throw()];
-        self.queue_add(&self.focused_player().set_all_current_player_values(f));
-        self.queue_add(f);
+        if self.focused_player().throws != 0 {
+            self.focused_player_mut().throws -= 1;
+            let f = &[self.focused_player_mut().set_throw()];
+            self.queue_add(&self.focused_player().set_all_current_player_values(f));
+            self.queue_add(f);
+        }
     }
 
     pub fn get_focused_player_name(&self) -> &str {

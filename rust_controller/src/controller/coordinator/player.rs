@@ -67,14 +67,20 @@ impl PlayerRound {
             .collect()
     }
 
-    pub fn update_tjing(&mut self, results: &[queries::HoleResult]) {
-        for result in &mut self.results {
-            if let Some(tjing_result) = results
-                .iter()
-                .find(|hole| hole.hole.number as u8 == result.hole)
+    pub fn update_tjing(&mut self, results: &[queries::HoleResult], holes: &Holes) {
+        for result in results {
+            if let Some(res) = self
+                .results
+                .iter_mut()
+                .find(|hole| hole.hole == result.hole.number as u8)
             {
-                result.tjing_result = Some(tjing_result.to_owned());
-                result.finished = true;
+                res.tjing_result = Some(result.to_owned());
+                res.finished = true;
+            } else {
+                self.results.push(
+                    HoleResult::from_tjing(result.hole.number as u8, holes, result.clone())
+                        .unwrap(),
+                )
             }
         }
     }
@@ -163,12 +169,12 @@ impl PlayerRound {
         let amount_finished = self
             .results
             .iter()
-            .filter(|hole| hole.finished || hole.tjing_result.is_some())
+            .filter(|hole| hole.finished || hole.tjing_result.is_some() || hole.throws != 0)
             .count();
         let mut results = self
             .results
             .into_iter()
-            .filter(|result| result.finished || result.tjing_result.is_some())
+            .filter(|result| result.finished || result.tjing_result.is_some() || result.throws != 0)
             .sorted_by_key(|result| {
                 if amount_finished == 18 {
                     result.hole
@@ -575,6 +581,7 @@ impl Player {
             self.hole_shown_up_until -= 1;
             return_vec.extend(self.del_current_score());
             let result = self.results.hole_score(self.hole_shown_up_until);
+            self.results.results.pop();
             self.round_score -= result;
             self.total_score -= result;
             // Previously had shift-scores here
