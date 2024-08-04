@@ -55,12 +55,20 @@ impl FlipUpVMixCoordinator {
 
         let all_divs = handler.get_divisions();
         let first_group = handler.groups.first().unwrap().first().unwrap();
-        let card_starts_at_hole = handler
+        let mut feature_hole_plus = 0;
+        let mut card_starts_at_hole = handler
             .groups
             .get(round)
             .unwrap()
             .iter()
             .find(|group| group.start_at == featured_hole);
+        while card_starts_at_hole.is_none() {
+            card_starts_at_hole =
+                handler.groups.get(round).unwrap().iter().find(|group| {
+                    group.start_at == (((feature_hole_plus + featured_hole) % 19) + 1)
+                });
+            feature_hole_plus += 1;
+        }
         let mut coordinator = FlipUpVMixCoordinator {
             leaderboard_division: all_divs.first().unwrap().clone(),
             all_divs,
