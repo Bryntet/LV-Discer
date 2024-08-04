@@ -161,7 +161,7 @@ impl PlayerRound {
     pub fn amount_of_holes_finished(&self) -> u8 {
         self.results
             .iter()
-            .filter(|result| result.tjing_result.is_some() || result.finished)
+            .filter(|result| result.tjing_result.is_some() || result.finished || result.throws != 0)
             .count() as u8
     }
 
@@ -388,7 +388,7 @@ impl Player {
         self.results
             .results
             .iter()
-            .filter(|res| res.finished)
+            .filter(|res| res.finished || res.tjing_result.is_some() || res.throws != 0)
             .count()
     }
     fn overarching_score_representation(&self) -> OverarchingScore {
@@ -687,7 +687,7 @@ impl Player {
             self.results
                 .results
                 .iter()
-                .filter(|result| !result.finished && !result.tjing_result.is_some())
+                .filter(|result| !result.finished && result.tjing_result.is_none())
                 .flat_map(|result| self.del_score(result.hole as usize))
                 .collect_vec()
         } else {
