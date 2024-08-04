@@ -56,19 +56,18 @@ impl FlipUpVMixCoordinator {
         let all_divs = handler.get_divisions();
         let first_group = handler.groups.first().unwrap().first().unwrap();
         let mut feature_hole_plus = 0;
-        let mut card_starts_at_hole = handler
+
+        let card_starts_at_hole = handler
             .groups
             .get(round)
             .unwrap()
-            .iter()
-            .find(|group| group.start_at == featured_hole);
-        while card_starts_at_hole.is_none() {
-            card_starts_at_hole =
-                handler.groups.get(round).unwrap().iter().find(|group| {
-                    group.start_at == (((feature_hole_plus + featured_hole) % 19) + 1)
-                });
-            feature_hole_plus += 1;
-        }
+            .into_iter()
+            .sorted_by_key(|group| group.start_time.unwrap())
+            .collect_vec()
+            .first()
+            .unwrap()
+            .to_owned();
+
         let mut coordinator = FlipUpVMixCoordinator {
             leaderboard_division: all_divs.first().unwrap().clone(),
             all_divs,
@@ -76,11 +75,7 @@ impl FlipUpVMixCoordinator {
             ip,
             player_manager: PlayerManager::new(first_group.player_ids()),
             leaderboard: handler.get_previous_leaderboards(),
-            featured_card: PlayerManager::new(
-                card_starts_at_hole
-                    .expect("Some group should start at the featured hole.")
-                    .player_ids(),
-            ),
+            featured_card: PlayerManager::new(card_starts_at_hole.player_ids()),
             handler,
             round_ind: round,
             current_through: 0,
@@ -152,11 +147,14 @@ impl FlipUpVMixCoordinator {
     }
 
     pub fn next_featured_card(&mut self) {
-        if !self.groups_featured_so_far >= 18 {
-            if let Some(group) = self.groups().into_iter().find(|group| {
-                ((group.start_at + self.groups_featured_so_far) % 18) == self.featured_hole
-                    && !group.players.is_empty()
-            }) {
+        if !self.groups_featured_so_far as usize >= self.groups().len() {
+            if let Some(group) = self
+                .groups()
+                .into_iter()
+                .sorted_by_key(|group| group.start_time.unwrap())
+                .collect_vec()
+                .get(self.groups_featured_so_far as usize)
+            {
                 self.featured_card.replace(group.player_ids());
                 self.update_featured_card();
                 self.groups_featured_so_far += 1;

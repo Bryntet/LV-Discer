@@ -274,7 +274,7 @@ impl RustHandler {
                                             .map(|player| player.id.as_str())
                                             .contains(&id.as_str())
                                     })
-                                    .map(|group| group.start_at)
+                                    .map(|group| group.start_at_hole)
                                     .unwrap_or(0),
                             )
                         })

@@ -247,8 +247,12 @@ pub mod layout {
 
 // Groups
 pub mod group {
+    use chrono::{DateTime, NaiveDateTime, Utc};
+    use cynic::impl_scalar;
     use rocket_okapi::okapi::schemars;
     use schemars::JsonSchema;
+
+    use crate::controller;
 
     use super::schema;
 
@@ -284,8 +288,9 @@ pub mod group {
         pub position: f64,
         pub player_connections_v2: Vec<GroupPlayerConnectionTypeCombined>,
         pub start_hole: Option<super::Hole>,
+        pub starts_at: Option<DateTime<Utc>>,
     }
-
+    impl_scalar!(DateTime<Utc>, schema::DateTime);
     #[derive(cynic::InlineFragments, Debug, Clone)]
     pub enum GroupPlayerConnectionTypeCombined {
         GroupPlayerConnection(GroupPlayerConnection),
