@@ -197,6 +197,7 @@ impl PlayerRound {
 #[derive(Debug, Clone, Default)]
 pub struct Player {
     pub player_id: String,
+    pub pdga_num: Option<u32>,
     pub name: String,
     pub first_name: String,
     pub surname: String,
@@ -241,6 +242,7 @@ impl Player {
         let image_id: Option<String> = player
             .user
             .profile
+            .clone()
             .and_then(|profile| profile.profile_image_url);
         let division = divisions
             .into_iter()
@@ -275,6 +277,10 @@ impl Player {
         Ok(Self {
             player_id: player.id.into_inner(),
             image_url: image_id,
+            pdga_num: player
+                .user
+                .profile
+                .and_then(|profile| profile.pdga_number.map(|num| num as u32)),
             results,
             first_name: first_name.clone(),
             surname: surname.clone(),

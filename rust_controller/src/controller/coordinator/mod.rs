@@ -459,7 +459,8 @@ impl FlipUpVMixCoordinator {
         hole_update: &GeneralChannel<HoleUpdate>,
     ) -> Result<(), Error> {
         let player = self.focused_player_mut();
-        if player.hole_shown_up_until <= 17 {
+
+        if player.throws != 0 && player.hole_shown_up_until <= 17 {
             let mut f = player.increase_score()?;
             self.add_state_to_leaderboard();
             let player = self.focused_player();

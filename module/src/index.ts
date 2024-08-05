@@ -131,6 +131,7 @@ export class LevandeVideoInstance extends InstanceBase<Config> {
 		let focusedPlayers = await this.coordinator.chosenPlayers(this);
 		this.log("info", "HELLO");
 		this.log("info", focusedPlayers.toString())
+		this.foc_player = focusedPlayers[this.foc_player_ind].name;
 		return {
 			player_name: this.foc_player,
 			p1: focusedPlayers[0].name,

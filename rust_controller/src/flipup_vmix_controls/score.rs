@@ -84,8 +84,13 @@ impl ReadableScore {
             -1 => Self::Birdie,
             -2 => Self::Eagle,
             -3 if throws != 1 => Self::Albatross,
-            -3 => Self::Albatross,
-            ..=-3 => Self::Ace,
+            ..=-3 => {
+                if throws == 1 {
+                    Self::Ace
+                } else {
+                    Self::Albatross
+                }
+            }
             1.. => Self::Bogey(BogeyType::new(score as u8)),
         }
     }

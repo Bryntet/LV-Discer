@@ -135,9 +135,9 @@ impl VMixSelectionTrait for VMixHoleInfo {
                     rest.push('0');
                 }
                 (match cmp {
-                    Ordering::Less => format!("{rest}.{decimal}"),
+                    Ordering::Greater => format!("{rest}.{decimal}"),
                     Ordering::Equal => "E".to_string(),
-                    Ordering::Greater => format!("%2B{rest}.{decimal}"),
+                    Ordering::Less => format!("%2B{rest}.{decimal}"),
                 }) + " avg"
             }
             Difficulty { difficulty, hole } => difficulty.hole_difficulty_text(*hole).unwrap(),

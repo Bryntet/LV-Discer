@@ -139,7 +139,19 @@ impl LeaderboardState {
     }
 
     fn sort_players(players: &mut [Player]) {
-        players.sort_by(|player_a, player_b| player_a.total_score.cmp(&player_b.total_score))
+        players.sort_by(|player_a, player_b| {
+            let cmp = player_a.total_score.cmp(&player_b.total_score);
+            match cmp {
+                std::cmp::Ordering::Equal => {
+                    let cmp = player_a.name.cmp(&player_b.name);
+                    match cmp {
+                        std::cmp::Ordering::Equal => player_a.pdga_num.cmp(&player_b.pdga_num),
+                        _ => cmp,
+                    }
+                }
+                _ => cmp,
+            }
+        })
     }
 
     fn leaderboard_players(
@@ -422,7 +434,11 @@ impl LeaderboardPlayer {
 
     fn set_thru(&self) -> VMixInterfacer<LeaderBoardProperty> {
         VMixInterfacer::set_text(
-            self.thru.to_string(),
+            if self.thru == 18 {
+                "F".to_string()
+            } else {
+                self.thru.to_string()
+            },
             LeaderBoardProperty::Thru(self.index).into(),
         )
     }

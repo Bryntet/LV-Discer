@@ -67,6 +67,7 @@ pub struct User {
 #[derive(cynic::QueryFragment, Debug, Clone)]
 pub struct UserProfile {
     pub profile_image_url: Option<String>,
+    pub pdga_number: Option<f64>,
 }
 
 #[derive(cynic::QueryFragment, Debug, Clone)]
