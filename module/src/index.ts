@@ -18,7 +18,7 @@ import {WebSocketManager} from "./websocket_manager";
 
 export class LevandeVideoInstance extends InstanceBase<Config> {
 	public config: Config = {
-		coordinator_ip: '10.170.121.243'
+		coordinator_ip: '10.171.121.129/'
 	};
 	public coordinator = new ApiClient(`http://${this.config.coordinator_ip}:8000`);
 	private webSocketSubscriptions: WebSocketSubscription[] = [{

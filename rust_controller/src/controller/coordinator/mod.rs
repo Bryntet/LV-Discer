@@ -133,7 +133,7 @@ impl FlipUpVMixCoordinator {
                 })
                 .collect_vec(),
         );
-        let featured_hole = self.featured_hole - 1;
+        let featured_hole = self.featured_hole;
         let stats = self.make_stats();
         let holes = self.focused_player().holes.clone();
         let out = self
@@ -192,7 +192,7 @@ impl FlipUpVMixCoordinator {
         self.add_state_to_leaderboard();
         let all_values = self
             .focused_player()
-            .set_all_values(&self.leaderboard, false)?;
+            .set_all_values(&self.leaderboard, true)?;
 
         let current = self
             .focused_player()
