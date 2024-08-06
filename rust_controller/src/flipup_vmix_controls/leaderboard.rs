@@ -143,7 +143,7 @@ impl LeaderboardState {
             let cmp = player_a.total_score.cmp(&player_b.total_score);
             match cmp {
                 std::cmp::Ordering::Equal => {
-                    let cmp = player_a.name.cmp(&player_b.name);
+                    let cmp = player_a.round_score.cmp(&player_b.round_score);
                     match cmp {
                         std::cmp::Ordering::Equal => player_a.pdga_num.cmp(&player_b.pdga_num),
                         _ => cmp,
