@@ -55,14 +55,19 @@ impl FlipUpVMixCoordinator {
 
         let all_divs = handler.get_divisions();
         let first_group = handler.groups.first().unwrap().first().unwrap();
-        let mut feature_hole_plus = 0;
 
         let card_starts_at_hole = handler
             .groups
             .get(round)
             .unwrap()
-            .into_iter()
-            .sorted_by_key(|group| group.start_time.unwrap())
+            .iter()
+            .sorted_by_key(|group| {
+                if let Some(start_time) = group.start_time {
+                    start_time
+                } else {
+                    (group.start_at_hole % 18 + 1) as u32
+                }
+            })
             .collect_vec()
             .first()
             .unwrap()
