@@ -450,10 +450,10 @@ impl RustHandler {
                                         == division_pool_thing
                                             .iter()
                                             .find(|thing| pool.id == thing.pool_id)
-                                            .unwrap()
-                                            .division_id
+                                            .map(|div| div.division_id.clone())
+                                            .unwrap_or(cynic::Id::new(""))
                                 })
-                                .unwrap()
+                                .unwrap_or(&Arc::new(Division::default()))
                                 .clone(),
                             pool.layout_version.holes,
                         )
