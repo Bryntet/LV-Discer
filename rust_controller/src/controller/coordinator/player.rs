@@ -107,6 +107,7 @@ impl PlayerRound {
         hole: u8,
         hole_stats: Vec<HoleStats>,
         holes: &Holes,
+        division: &Division,
     ) -> Vec<VMixInterfacer<VMixHoleInfo>> {
         let mut r_vec: Vec<VMixInterfacer<VMixHoleInfo>> = vec![];
         let hole = holes.find_hole(hole).unwrap();
@@ -129,12 +130,12 @@ impl PlayerRound {
             .iter()
             .find(|holestat| holestat.hole_number == hole.hole)
         {
-            let (avg, cmp) = stat.average_score();
+            let (avg, cmp) = stat.average_score(division);
             r_vec.push(VMixInterfacer::set_only_input(
                 VMixHoleInfo::AverageResult { score: avg, cmp },
             ));
             r_vec.push(VMixInterfacer::set_only_input(VMixHoleInfo::Difficulty {
-                difficulty: HoleDifficulty::new(hole_stats),
+                difficulty: HoleDifficulty::new(hole_stats, division),
                 hole: hole.hole as usize,
             }));
         }
@@ -554,7 +555,7 @@ impl Player {
     }
 
     pub fn add_lb_things(&self, lb: &Leaderboard) -> [VMixInterfacer<VMixPlayerInfo>; 3] {
-        let lb_player = lb.get_lb_player(self).unwrap();
+        let lb_player = lb.get_lb_player(self).unwrap_or_default();
         [
             VMixInterfacer::set_image(
                 match lb_player.movement {

@@ -1,48 +1,46 @@
 use std::cmp::Ordering;
+use std::sync::Arc;
 
 use itertools::Itertools;
 use rayon::prelude::*;
 
 use crate::vmix::functions::VMixSelectionTrait;
 
-use super::queries::HoleResult;
+use super::queries::{Division, HoleResult};
 
 pub struct HoleStats {
     pub hole_number: u8,
-    player_results: Vec<HoleResult>,
+    player_results: Vec<(Arc<Division>, HoleResult)>,
 }
 
 impl HoleStats {
-    pub fn new(hole_number: u8, player_results: Vec<HoleResult>) -> Self {
+    pub fn new(hole_number: u8, player_results: Vec<(Arc<Division>, HoleResult)>) -> Self {
         Self {
             hole_number,
             player_results,
         }
     }
-    pub fn average_score(&self) -> (isize, std::cmp::Ordering) {
-        let avg_result = self
+    pub fn average_score(&self, division: &Division) -> (isize, std::cmp::Ordering) {
+        let all_used_results = self
             .player_results
             .par_iter()
-            .map(|res| res.score)
-            .sum::<f64>()
-            / (self.player_results.len() as f64);
+            .filter(|(div, _)| div.as_ref() == division)
+            .map(|(_, score)| score);
+        let amount_of_results = all_used_results.clone().count() as f64;
+        let par = all_used_results
+            .clone()
+            .find_any(|r| r.hole.par.is_some())
+            .unwrap()
+            .hole
+            .par
+            .unwrap() as isize;
+        let avg_result =
+            all_used_results.clone().map(|res| res.score).sum::<f64>() / amount_of_results;
         let cmp = avg_result.total_cmp(&0.);
         (
-            (self
-                .player_results
-                .par_iter()
-                .map(|res| res.score)
-                .sum::<f64>()
-                / (self.player_results.len() as f64)
-                * 10.)
-                .round() as isize
-                - self
-                    .player_results
-                    .first()
-                    .map(|res| res.hole.par)
-                    .unwrap()
-                    .unwrap() as isize
-                    * 10,
+            (all_used_results.map(|res| res.score).sum::<f64>() / amount_of_results * 10.).round()
+                as isize
+                - par * 10,
             cmp,
         )
     }
@@ -69,7 +67,7 @@ pub struct HoleDifficulty {
 }
 
 impl HoleDifficulty {
-    pub fn new(holes: Vec<HoleStats>) -> Self {
+    pub fn new(holes: Vec<HoleStats>, division: &Division) -> Self {
         Self {
             holes: holes
                 .iter()
@@ -77,7 +75,9 @@ impl HoleDifficulty {
                 .map(|hole| {
                     holes
                         .iter()
-                        .filter(|other_hole| hole.average_score().0 <= other_hole.average_score().0)
+                        .filter(|other_hole| {
+                            hole.average_score(division).0 <= other_hole.average_score(division).0
+                        })
                         .count() as u8
                 })
                 .collect(),

@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::sync::Arc;
 
 use itertools::Itertools;
 
@@ -6,6 +7,7 @@ use crate::api::Error;
 use crate::controller::coordinator::FlipUpVMixCoordinator;
 use crate::controller::hole::HoleStats;
 use crate::controller::queries;
+use crate::controller::queries::Division;
 
 impl FlipUpVMixCoordinator {
     pub fn make_hole_info(&mut self) {
@@ -14,10 +16,11 @@ impl FlipUpVMixCoordinator {
             let current_hole = (self.current_hole() + 1) as u8;
             let stats = self.make_stats();
             let holes = self.focused_player().holes.clone();
+            let div: &Division = &self.leaderboard_division.clone();
             let result =
                 self.focused_player_mut()
                     .results
-                    .get_hole_info(current_hole, stats, &holes);
+                    .get_hole_info(current_hole, stats, &holes, div);
             let drone_result = self.focused_player().results.get_drone_info(
                 self.current_hole() as u8,
                 &result,
@@ -29,7 +32,8 @@ impl FlipUpVMixCoordinator {
     }
 
     pub(crate) fn make_stats(&self) -> Vec<HoleStats> {
-        let mut hole_stats: HashMap<usize, Vec<queries::HoleResult>> = HashMap::new();
+        let mut hole_stats: HashMap<usize, Vec<(Arc<Division>, queries::HoleResult)>> =
+            HashMap::new();
         self.available_players().into_iter().for_each(|player| {
             for (hole, result) in player
                 .results
@@ -39,7 +43,10 @@ impl FlipUpVMixCoordinator {
                 .enumerate()
             {
                 if let Some(result) = result {
-                    hole_stats.entry(hole).or_default().push(result);
+                    hole_stats
+                        .entry(hole)
+                        .or_default()
+                        .push((player.division.clone(), result));
                 }
             }
         });

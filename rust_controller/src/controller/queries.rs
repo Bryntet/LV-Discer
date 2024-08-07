@@ -20,7 +20,7 @@ pub struct Event {
     pub divisions: Vec<Option<Division>>,
 }
 
-#[derive(cynic::QueryFragment, Debug, Clone)]
+#[derive(cynic::QueryFragment, Debug, Clone, PartialEq, Eq)]
 pub struct Division {
     pub name: String,
     pub id: cynic::Id,

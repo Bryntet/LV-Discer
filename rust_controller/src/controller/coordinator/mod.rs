@@ -141,10 +141,11 @@ impl FlipUpVMixCoordinator {
         let featured_hole = self.featured_hole;
         let stats = self.make_stats();
         let holes = self.focused_player().holes.clone();
+        let div = &self.leaderboard_division.clone();
         let out = self
             .focused_player_mut()
             .results
-            .get_hole_info(featured_hole, stats, &holes)
+            .get_hole_info(featured_hole, stats, &holes, div)
             .into_iter()
             .map(VMixInterfacer::into_featured_hole_card)
             .collect_vec();
