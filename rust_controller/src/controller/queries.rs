@@ -9,7 +9,7 @@ pub struct RoundResultsQueryVariables {
 #[derive(cynic::QueryFragment, Debug, Clone)]
 #[cynic(graphql_type = "RootQuery", variables = "RoundResultsQueryVariables")]
 pub struct RoundResultsQuery {
-    #[arguments(eventId: $event_id)]
+    #[arguments(eventId: $ event_id)]
     pub event: Option<Event>,
 }
 
@@ -42,7 +42,7 @@ pub struct Player {
     pub dnf: Dnf,
     pub dns: Dns,
     pub division: Division,
-    #[arguments(roundId: $round_id)]
+    #[arguments(roundId: $ round_id)]
     pub results: Option<Vec<HoleResult>>,
     pub id: cynic::Id,
 }
@@ -112,7 +112,7 @@ pub mod round {
     #[derive(cynic::QueryFragment, Debug)]
     #[cynic(graphql_type = "RootQuery", variables = "RoundsQueryVariables")]
     pub struct RoundsQuery {
-        #[arguments(eventId: $event_id)]
+        #[arguments(eventId: $ event_id)]
         pub event: Option<Event>,
     }
 
@@ -144,7 +144,7 @@ pub mod layout {
         #[derive(Debug, Clone, Default)]
         pub struct Holes {
             holes: Vec<Arc<Hole>>,
-            division: Arc<Division>,
+            pub division: Arc<Division>,
         }
         impl Holes {
             pub fn find_hole(&self, hole_number: u8) -> Option<Arc<Hole>> {
@@ -209,7 +209,7 @@ pub mod layout {
     #[derive(cynic::QueryFragment, Debug)]
     #[cynic(graphql_type = "RootQuery", variables = "HoleLayoutQueryVariables")]
     pub struct HoleLayoutQuery {
-        #[arguments(eventId: $event_id)]
+        #[arguments(eventId: $ event_id)]
         pub event: Option<Event>,
     }
     #[derive(cynic::QueryFragment, Debug)]
@@ -261,7 +261,7 @@ pub mod group {
     #[derive(cynic::QueryFragment, Debug)]
     #[cynic(graphql_type = "RootQuery", variables = "GroupsQueryVariables")]
     pub struct GroupsQuery {
-        #[arguments(eventId: $event_id)]
+        #[arguments(eventId: $ event_id)]
         pub event: Option<self::Event>,
     }
 

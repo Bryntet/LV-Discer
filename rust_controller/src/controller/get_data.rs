@@ -254,16 +254,20 @@ impl RustHandler {
                 .enumerate()
                 .flat_map(|(round_num, round)| Some((round_num, round.event?)))
                 .map(|(round_num, event)| {
-                    let holes = holes.get(round_num).expect("hole should exist");
                     event
                         .players
                         .into_iter()
                         .flat_map(|player| {
                             let id = player.id.clone().into_inner();
+                            let holes = holes
+                                .iter()
+                                .find(|holes| holes.division.as_ref() == &player.division)
+                                .unwrap()
+                                .clone();
                             Player::from_query(
                                 player,
                                 round_num,
-                                holes.clone(),
+                                holes,
                                 divisions.clone(),
                                 groups[round]
                                     .iter()
