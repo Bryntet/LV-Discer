@@ -237,7 +237,6 @@ impl RustHandler {
         let groups = Self::get_groups(event_id).await;
         warn!("Time taken to get event: {:?}", time.elapsed());
 
-        let holes = Self::get_holes(event_id).await?;
         let divisions = event
             .iter()
             .flat_map(|round| &round.event)
@@ -247,6 +246,7 @@ impl RustHandler {
             .dedup_by(|a, b| a.id == b.id)
             .map(Arc::new)
             .collect::<Vec<_>>();
+        let holes = Self::get_holes(event_id, &divisions).await?;
 
         let mut container = PlayerContainer::new(
             event
@@ -261,7 +261,7 @@ impl RustHandler {
                             let id = player.id.clone().into_inner();
                             let holes = holes
                                 .iter()
-                                .find(|holes| holes.division.as_ref() == &player.division)
+                                .find(|holes| holes.division.name == player.division.name)
                                 .unwrap()
                                 .clone();
                             Player::from_query(
@@ -409,7 +409,7 @@ impl RustHandler {
             .collect_vec())
     }
 
-    pub async fn get_holes(event_id: &str) -> Result<Vec<Holes>, Error> {
+    pub async fn get_holes(event_id: &str, divs: &[Arc<Division>]) -> Result<Vec<Holes>, Error> {
         use cynic::QueryBuilder;
         use queries::layout::{HoleLayoutQuery, HoleLayoutQueryVariables};
         let body = HoleLayoutQuery::build(HoleLayoutQueryVariables {
@@ -432,19 +432,38 @@ impl RustHandler {
             let Some(event) = data.event else {
                 return Err(Error::UnableToParse);
             };
+            let division_pool_thing = event.division_in_pool.into_iter().flatten().collect_vec();
+
             let mut rounds_holes = vec![];
             for round in event.rounds {
                 let Some(round) = round else {
                     return Err(Error::UnableToParse);
                 };
-                let holes = round
+                let div_holes = round
                     .pools
                     .into_iter()
-                    .flat_map(|pool| pool.layout_version.holes)
+                    .map(|pool| {
+                        (
+                            divs.iter()
+                                .find(|div| {
+                                    div.id
+                                        == division_pool_thing
+                                            .iter()
+                                            .find(|thing| pool.id == thing.pool_id)
+                                            .unwrap()
+                                            .division_id
+                                })
+                                .unwrap()
+                                .clone(),
+                            pool.layout_version.holes,
+                        )
+                    })
                     .collect_vec();
-                match Holes::from_vec_hole(holes) {
-                    Err(e) => return Err(e),
-                    Ok(holes) => rounds_holes.push(holes),
+                for (div, holes) in div_holes {
+                    match Holes::from_vec_hole(holes, div.clone()) {
+                        Err(e) => return Err(e),
+                        Ok(holes) => rounds_holes.push(holes),
+                    }
                 }
             }
             rounds_holes

@@ -154,17 +154,17 @@ pub mod layout {
                     .map(Arc::clone)
             }
 
-            pub fn from_vec_hole(holes: Vec<super::Hole>) -> Result<Self, Error> {
+            pub fn from_vec_hole(
+                holes: Vec<super::Hole>,
+                division: Arc<Division>,
+            ) -> Result<Self, Error> {
                 let mut holes: Vec<Hole> = holes
                     .into_iter()
                     .map(|hole| Hole::try_from(hole))
                     .try_collect()?;
                 holes.sort_by_key(|hole| hole.hole);
                 let holes = holes.into_iter().map(Arc::new).collect();
-                Ok(Self {
-                    holes,
-                    division: Division::default().into(),
-                })
+                Ok(Self { holes, division })
             }
         }
 
@@ -215,6 +215,13 @@ pub mod layout {
     #[derive(cynic::QueryFragment, Debug)]
     pub struct Event {
         pub rounds: Vec<Option<Round>>,
+        pub division_in_pool: Vec<Option<DivisionInPoolType>>,
+    }
+
+    #[derive(cynic::QueryFragment, Debug)]
+    pub struct DivisionInPoolType {
+        pub division_id: cynic::Id,
+        pub pool_id: cynic::Id,
     }
 
     #[derive(cynic::QueryFragment, Debug)]
@@ -225,11 +232,13 @@ pub mod layout {
     #[derive(cynic::QueryFragment, Debug)]
     pub struct Pool {
         pub layout_version: LayoutVersion,
+        pub id: cynic::Id,
     }
 
     #[derive(cynic::QueryFragment, Debug)]
     pub struct LayoutVersion {
         pub holes: Vec<Hole>,
+        pub id: cynic::Id,
     }
 
     #[derive(cynic::QueryFragment, Debug)]
