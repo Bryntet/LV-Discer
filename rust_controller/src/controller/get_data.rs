@@ -187,7 +187,7 @@ impl From<&Player> for crate::flipup_vmix_controls::OverarchingScore {
 #[derive(Clone, Debug)]
 pub struct RustHandler {
     pub chosen_division: cynic::Id,
-    round_ids: Vec<String>,
+    pub round_ids: Vec<String>,
     player_container: PlayerContainer,
     divisions: Vec<Arc<queries::Division>>,
     round_ind: usize,

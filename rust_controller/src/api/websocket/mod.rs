@@ -7,7 +7,9 @@ use rocket_ws as ws;
 use rocket_ws::Message;
 use serde::Deserialize;
 
-pub use channels::{ChannelAttributes, DivisionUpdate, PlayerManagerUpdate};
+pub use channels::{
+    ChannelAttributes, DivisionUpdate, LeaderboardRoundUpdate, PlayerManagerUpdate,
+};
 
 use crate::api::websocket::channels::{GeneralChannel, HoleUpdate};
 use crate::api::Coordinator;
@@ -29,24 +31,6 @@ async fn interpret_message(
         c.set_focused_player(num, player_updater, division_updater);
     }
     Ok(interpreter)
-}
-
-#[get("/players/selected/watch")]
-pub async fn selection_watcher<'r>(
-    ws: ws::WebSocket,
-    queue: &'r State<GeneralChannel<PlayerManagerUpdate>>,
-    shutdown: Shutdown,
-) -> ws::Channel<'r> {
-    make_watcher_websocket(ws, queue, shutdown).await
-}
-
-#[get("/hole/watch")]
-pub async fn hole_watcher(
-    ws: ws::WebSocket,
-    hole_watcher: &State<GeneralChannel<HoleUpdate>>,
-    shutdown: Shutdown,
-) -> ws::Channel {
-    make_watcher_websocket(ws, hole_watcher, shutdown).await
 }
 
 pub async fn make_watcher_websocket<
@@ -78,6 +62,32 @@ pub async fn make_watcher_websocket<
     })
 }
 
+#[get("/players/selected/watch")]
+pub async fn selection_watcher<'r>(
+    ws: ws::WebSocket,
+    queue: &'r State<GeneralChannel<PlayerManagerUpdate>>,
+    shutdown: Shutdown,
+) -> ws::Channel<'r> {
+    make_watcher_websocket(ws, queue, shutdown).await
+}
+
+#[get("/hole/watch")]
+pub async fn hole_watcher(
+    ws: ws::WebSocket,
+    hole_watcher: &State<GeneralChannel<HoleUpdate>>,
+    shutdown: Shutdown,
+) -> ws::Channel {
+    make_watcher_websocket(ws, hole_watcher, shutdown).await
+}
+
+#[get("/rounds")]
+pub async fn leaderboard_round_watcher(
+    ws: ws::WebSocket,
+    watcher: &State<GeneralChannel<LeaderboardRoundUpdate>>,
+    shutdown: Shutdown,
+) -> ws::Channel {
+    make_watcher_websocket(ws, watcher, shutdown).await
+}
 #[derive(Deserialize, Debug)]
 struct Interpreter {
     message: String,

@@ -136,3 +136,23 @@ impl From<&FlipUpVMixCoordinator> for DivisionUpdate {
 pub struct LeaderboardRoundUpdate {
     rounds: Vec<dto::SimpleRound>,
 }
+
+impl From<&FlipUpVMixCoordinator> for LeaderboardRoundUpdate {
+    fn from(coordinator: &FlipUpVMixCoordinator) -> Self {
+        Self {
+            rounds: coordinator.dto_rounds(),
+        }
+    }
+}
+
+impl ChannelAttributes for LeaderboardRoundUpdate {
+    fn try_into_message(self) -> Option<Message> {
+        Some(Message::from(serde_json::to_string(&self.rounds).ok()?))
+    }
+
+    fn make_html(self, metadata: &Metadata) -> Option<Message> {
+        metadata
+            .render("rounds", json!({"rounds":self.rounds}))
+            .map(|(_, message)| Message::from(message))
+    }
+}

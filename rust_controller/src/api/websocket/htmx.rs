@@ -9,8 +9,8 @@ use rocket_ws as ws;
 use rocket_ws::Message;
 use serde_json::json;
 
-use crate::api::websocket::channels::DivisionUpdate;
 pub use crate::api::websocket::channels::PlayerManagerUpdate;
+use crate::api::websocket::channels::{DivisionUpdate, LeaderboardRoundUpdate};
 use crate::api::websocket::{interpret_message, ChannelAttributes};
 use crate::api::{Coordinator, GeneralChannel, HoleUpdate};
 use crate::controller::coordinator::FlipUpVMixCoordinator;
@@ -52,7 +52,7 @@ pub async fn general_htmx_updater<'r, T: ChannelAttributes + 'r>(
 
     let mut receiver = queue.subscribe();
     ws.channel(move |mut stream| Box::pin(async move {
-        stream.send(make_html_response::<T>(&coordinator,&metadata).await.unwrap()).await.unwrap();
+        stream.send(make_html_response::<T>(&coordinator, &metadata).await.unwrap()).await.unwrap();
         loop {
             select! {
                 message = receiver.recv().fuse() => {
@@ -64,7 +64,6 @@ pub async fn general_htmx_updater<'r, T: ChannelAttributes + 'r>(
             }
         }
         Ok(())
-
     }))
 }
 
@@ -94,4 +93,15 @@ async fn make_html_response<'r, T: ChannelAttributes>(
     metadata: &Metadata<'r>,
 ) -> Option<Message> {
     T::from(coordinator.lock().await.deref()).make_html(metadata)
+}
+
+#[get("/rounds")]
+pub async fn leaderboard_round<'r>(
+    ws: ws::WebSocket,
+    coordinator: Coordinator,
+    watcher: &State<GeneralChannel<LeaderboardRoundUpdate>>,
+    metadata: Metadata<'r>,
+    shutdown: Shutdown,
+) -> ws::Channel<'r> {
+    general_htmx_updater(ws, coordinator, watcher, metadata, shutdown).await
 }

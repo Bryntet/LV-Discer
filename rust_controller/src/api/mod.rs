@@ -95,12 +95,17 @@ fn get_normal_routes() -> Vec<Route> {
 
 fn get_websocket_routes() -> Vec<Route> {
     use websocket::*;
-    routes![selection_watcher, hole_watcher, division_updater]
+    routes![
+        selection_watcher,
+        hole_watcher,
+        division_updater,
+        leaderboard_round_watcher
+    ]
 }
 
 fn get_websocket_htmx_routes() -> Vec<Route> {
     use websocket::htmx::*;
-    routes![selection_updater, focused_player_changer]
+    routes![selection_updater, focused_player_changer, leaderboard_round]
 }
 
 fn get_webpage_routes() -> Vec<Route> {
@@ -115,6 +120,7 @@ pub fn launch() -> Rocket<Build> {
     let (hole_update_sender, _) = channel::<HoleUpdate>(1024);
     let hole_update_sender = GeneralChannel::from(hole_update_sender);
     let division_sender = GeneralChannel::from(channel::<websocket::DivisionUpdate>(1024).0);
+    let round_sender = GeneralChannel::from(channel::<websocket::LeaderboardRoundUpdate>(1024).0);
 
     let conf = {
         #[cfg(windows)]
@@ -135,6 +141,7 @@ pub fn launch() -> Rocket<Build> {
         .manage(group_selection_sender)
         .manage(hole_update_sender)
         .manage(division_sender)
+        .manage(round_sender)
         .mount("/", get_normal_routes())
         .mount("/htmx/", get_webpage_routes())
         .mount("/ws", get_websocket_routes())

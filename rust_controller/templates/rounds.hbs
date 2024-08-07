@@ -1,6 +1,8 @@
-<select id="division-dropdown" {{#each divisions as |division|}}{{#if division.focused}}value="{{division.name}}"{{/if}}{{/each}} hx-trigger="change" hx-post="/div/set" hx-include="[division='selected']">
-    <option value="">Select Division</option>
-    {{#each divisions as |division|}}
-        <option value="{{division.name}}" {{#if division.focused}}selected{{/if}} hx-post="/div/{{division.name}}/set">{{division.name}}</option>
+<select id="round-dropdown" {{#each rounds as |round|}}{{#if round.selected}}value="{{round.number}}"{{/if}}{{/each}}
+        hx-trigger="change" hx-post="/round/set" hx-include="[round='selected']">
+    <option value="">Select Round</option>
+    {{#each rounds as |round|}}
+        <option value="{{round.number}}"
+                {{#if round.selected}}selected{{/if}} hx-post="/round/{{round.number}}/set">{{round.number}}</option>
     {{/each}}
 </select>

@@ -38,16 +38,17 @@ impl Leaderboard {
             skip: 0,
         }
     }
-    fn current_state(&self) -> Option<&LeaderboardState> {
-        self.states.last()
+    fn current_state(&self, round: usize) -> Option<&LeaderboardState> {
+        self.states.get(round)
     }
 
     /// Returns the previous state of the leaderboard if it exists
-    fn previous_state(&self) -> Option<&LeaderboardState> {
-        if self.states.len() <= 1 {
+    fn previous_state(&self, round: usize) -> Option<&LeaderboardState> {
+        if self.states.len() <= 1 || round < 1 {
             return None;
         }
-        self.states.get(self.states.len() - 2)
+
+        self.states.get(round - 1)
     }
 
     pub fn update_players(&mut self, new_state: LeaderboardState) {
@@ -62,17 +63,22 @@ impl Leaderboard {
         }
     }
 
-    pub fn send_to_vmix(&self, division: &Division, queue: Arc<VMixQueue>) {
-        self.current_state()
+    pub fn send_to_vmix(&self, division: &Division, queue: Arc<VMixQueue>, round: usize) {
+        self.current_state(round)
             .map(|state| {
-                state.send_to_vmix(division, self.previous_state(), queue.clone(), self.skip)
+                state.send_to_vmix(
+                    division,
+                    self.previous_state(round),
+                    queue.clone(),
+                    self.skip,
+                )
             })
             .expect("Should work")
     }
 
     pub fn add_state(&mut self, state: LeaderboardState) {
         if self
-            .current_state()
+            .current_state(self.states.len() - 1)
             .is_some_and(|current_state| current_state.round == state.round)
         {
             self.states.pop();
@@ -81,9 +87,9 @@ impl Leaderboard {
     }
 
     pub fn get_lb_player(&self, player: &Player) -> Option<LeaderboardPlayer> {
-        self.current_state()
+        self.current_state(self.states.len() - 1)
             .unwrap()
-            .leaderboard_players(&player.division, self.previous_state())
+            .leaderboard_players(&player.division, self.previous_state(self.states.len() - 1))
             .into_iter()
             .find(|lb_player| lb_player.id == player.player_id)
     }
@@ -102,8 +108,8 @@ impl Leaderboard {
     }
 
     pub fn update_little_lb(&self, div: &Division, queue: Arc<VMixQueue>) {
-        if let Some(current) = self.current_state() {
-            let previous = self.previous_state();
+        if let Some(current) = self.current_state(self.states.len() - 1) {
+            let previous = self.previous_state(self.states.len() - 1);
             let previous_batch = current.big_leaderboard_funcs(div, previous, 0);
             current.update_little_leaderboard(div, previous_batch, previous, queue);
         }

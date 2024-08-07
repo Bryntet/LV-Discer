@@ -7,14 +7,14 @@ use crate::controller::get_data;
 
 #[derive(Serialize, JsonSchema, Debug, Clone)]
 pub struct SimpleRound {
-    round: usize,
+    number: usize,
     id: String,
     selected: bool,
 }
 impl SimpleRound {
     pub fn new(round: usize, id: String, selected: bool) -> Self {
         Self {
-            round,
+            number: round + 1,
             id,
             selected,
         }

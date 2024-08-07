@@ -11,6 +11,7 @@ use serde_json::json;
 use crate::api::guard::CoordinatorLoader;
 use crate::api::websocket::channels::DivisionUpdate;
 use crate::api::websocket::htmx::division_updater;
+use crate::api::websocket::LeaderboardRoundUpdate;
 use crate::api::{Coordinator, Error, GeneralChannel, PlayerManagerUpdate};
 use crate::dto;
 use crate::dto::{CoordinatorBuilder, HoleSetting};
@@ -160,7 +161,7 @@ pub async fn update_division(
 }
 
 #[openapi(tag = "Division")]
-#[post("/div/set", data = "<division>")]
+#[post("/div/set?<division>")]
 pub async fn update_division_form(
     co: Coordinator,
     division: &str,
@@ -193,6 +194,21 @@ pub async fn next_featured_hole_card(coordinator: Coordinator) {
 #[post("/featured-hole/rewind-card")]
 pub async fn rewind_featured_hole_card(coordinator: Coordinator) {
     coordinator.lock().await.rewind_card();
+}
+
+#[openapi(tag = "Leaderboard")]
+#[post("/leaderboard/round?<round>")]
+pub async fn set_leaderboard_round(
+    coordinator: Coordinator,
+    round: usize,
+    watcher: &GeneralChannel<LeaderboardRoundUpdate>,
+) {
+    let round = round - 1;
+    let mut co = coordinator.lock().await;
+    co.leaderboard_round = round;
+    watcher.send(&co);
+    co.reset_leaderboard_skip();
+    co.set_leaderboard(None);
 }
 
 #[catch(424)]

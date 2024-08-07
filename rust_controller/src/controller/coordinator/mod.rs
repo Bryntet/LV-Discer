@@ -14,6 +14,7 @@ use vmix::VMixQueue;
 use crate::api::{DivisionUpdate, Error, GeneralChannel, HoleUpdate, PlayerManagerUpdate};
 use crate::controller::get_data::RustHandler;
 use crate::controller::queries::Division;
+use crate::dto::SimpleRound;
 use crate::vmix::functions::Compare2x2;
 use crate::{api, vmix};
 use crate::{dto, flipup_vmix_controls};
@@ -41,6 +42,7 @@ pub struct FlipUpVMixCoordinator {
     featured_card: PlayerManager,
     featured_hole: u8,
     groups_featured_so_far: u8,
+    pub leaderboard_round: usize,
 }
 
 impl FlipUpVMixCoordinator {
@@ -89,6 +91,7 @@ impl FlipUpVMixCoordinator {
             event_id,
             groups_featured_so_far: 1,
             featured_hole,
+            leaderboard_round: round,
         };
         coordinator.handler.add_total_score_to_players();
         coordinator.queue_add(&coordinator.focused_player().set_name());
@@ -351,6 +354,20 @@ impl FlipUpVMixCoordinator {
         Ok(())
     }
 
+    pub fn dto_rounds(&self) -> Vec<dto::SimpleRound> {
+        self.handler
+            .round_ids
+            .iter()
+            .enumerate()
+            .map(|(round, id)| {
+                dbg!(SimpleRound::new(
+                    round,
+                    id.clone(),
+                    round == self.leaderboard_round
+                ))
+            })
+            .collect()
+    }
     pub fn amount_of_rounds(&self) -> usize {
         self.handler.amount_of_rounds()
     }
@@ -456,8 +473,11 @@ impl FlipUpVMixCoordinator {
         if self.current_hole() <= 18 {
             self.add_state_to_leaderboard();
             self.queue_add(&FlipUpVMixCoordinator::clear_lb(10));
-            self.leaderboard
-                .send_to_vmix(&self.leaderboard_division, self.vmix_queue.clone());
+            self.leaderboard.send_to_vmix(
+                &self.leaderboard_division,
+                self.vmix_queue.clone(),
+                self.leaderboard_round,
+            );
         } else {
             println!("PANIC, hole > 18");
         }

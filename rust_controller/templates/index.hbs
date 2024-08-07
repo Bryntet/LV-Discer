@@ -17,48 +17,58 @@
             background-color: #f4f4f4;
             position: relative;
         }
+
         .round-selector {
             margin-bottom: 20px;
         }
+
         #groups-container {
             display: flex;
             flex-wrap: wrap;
             gap: 20px;
         }
+
         .group {
             background-color: #fff;
             border-radius: 8px;
             padding: 15px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
             flex: 1;
             min-width: 200px;
             max-width: 90%;
         }
+
         .group-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
             cursor: pointer;
         }
+
         .group-header h2 {
             margin: 0;
             font-size: 1.2em;
         }
+
         .group-content {
             display: block;
             margin-top: 15px;
         }
+
         .player {
             margin: 10px 0;
             padding: 5px 0;
             border-bottom: 1px solid #eee;
         }
+
         .player:last-child {
             border-bottom: none;
         }
+
         input[type="checkbox"] {
             margin-right: 10px;
         }
+
         button, select {
             background-color: #4CAF50;
             color: white;
@@ -68,28 +78,33 @@
             cursor: pointer;
             font-size: 16px;
         }
+
         button:hover, select:hover {
             background-color: #45a049;
         }
+
         button:disabled {
             background-color: #cccccc;
             cursor: not-allowed;
         }
+
         .toggle-icon {
             font-size: 1.2em;
         }
+
         .status-indicator {
             font-size: 0.8em;
             padding: 2px 6px;
             border-radius: 4px;
             margin-left: 10px;
         }
+
         .popup-menu {
             display: none;
             position: absolute;
             background-color: #f9f9f9;
             min-width: 300px;
-            box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+            box-shadow: 0px 8px 16px 0px rgba(0, 0, 0, 0.2);
             z-index: 1;
             border-radius: 4px;
             padding: 10px;
@@ -129,14 +144,30 @@
             opacity: 0.8;
         }
 
-        .throw-plus { background-color: #4CAF50; color: white; }
-        .throw-minus { background-color: #f44336; color: white; }
-        .in-basket { background-color: #2196F3; color: white; }
-        .ob { background-color: #FF9800; color: white; }
+        .throw-plus {
+            background-color: #4CAF50;
+            color: white;
+        }
+
+        .throw-minus {
+            background-color: #f44336;
+            color: white;
+        }
+
+        .in-basket {
+            background-color: #2196F3;
+            color: white;
+        }
+
+        .ob {
+            background-color: #FF9800;
+            color: white;
+        }
 
         .group {
             position: relative;
         }
+
         .player-item {
             display: flex;
             justify-content: space-between;
@@ -158,9 +189,22 @@
             font-weight: bold;
             margin-left: 10px;
         }
-        .status-OPEN { background-color: #4CAF50; color: white; }
-        .status-CLOSED { background-color: #f44336; color: white; }
-        .status-DONE { background-color: #2196F3; color: white; }
+
+        .status-OPEN {
+            background-color: #4CAF50;
+            color: white;
+        }
+
+        .status-CLOSED {
+            background-color: #f44336;
+            color: white;
+        }
+
+        .status-DONE {
+            background-color: #2196F3;
+            color: white;
+        }
+
         #selected-players-list {
             display: flex;
             flex-wrap: wrap;
@@ -171,11 +215,12 @@
             margin-left: auto;
             margin-right: auto;
         }
+
         #selected-players-list li {
             background-color: #fff;
             border-radius: 8px;
             padding: 5px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
             text-align: center;
             width: 20%;
             max-width: fit-content;
@@ -183,18 +228,22 @@
             margin-right: auto;
 
         }
+
         #selected-players-container li {
 
         }
+
         #selected-players-container li.focused {
             background-color: #007BFF;
         }
+
         .selected-player img {
             border-radius: 50%;
             object-fit: cover;
             width: 50%;
 
         }
+
         .selected-player h3 {
             margin: 10px 0 0;
             font-size: 1em;
@@ -220,7 +269,7 @@
             position: absolute;
             top: 20px;
             right: 20px;
-            z-index: 1000;  /* Ensure it's above other elements */
+            z-index: 1000; /* Ensure it's above other elements */
         }
 
         #division-selector select {
@@ -232,24 +281,29 @@
 
         /* Adjust the main content to avoid overlap */
         h1 {
-            padding-right: 200px;  /* Make space for the dropdown */
+            padding-right: 200px; /* Make space for the dropdown */
         }
+
         .top-selectors {
             display: flex;
             justify-content: space-between;
             align-items: center;
             margin-bottom: 20px;
         }
+
         .round-selector {
             display: flex;
             align-items: center;
         }
+
         .round-selector select {
             margin-right: 10px;
         }
+
         #division-selector {
-            position: static;  /* Remove absolute positioning */
+            position: static; /* Remove absolute positioning */
         }
+
         /* Remove the padding-right from h1 */
         h1 {
             padding-right: 0;
@@ -262,22 +316,21 @@
 
 
 <div class="top-selectors">
-    <div class="round-selector">
-        <select id="round-dropdown" hx-get="/htmx/groups" hx-target="#groups-container">
+
+    <div class="round-selector" hx-ext="ws" ws-connect="/ws/htmx/rounds">
+        Leaderboard Round
+        <select id="round-dropdown">
             <option value="">Select Round</option>
-            <!-- Round options will be populated dynamically -->
         </select>
-        <button id="load-round-btn" hx-get="/htmx/groups" hx-target="#groups-container" disabled>Load Round</button>
     </div>
 
     <div id="division-selector" hx-ext="ws" ws-connect="/ws/division">
-        Leaderboard
+        Leaderboard Division
         <select id="division-dropdown">
             <option value="">Select Division</option>
         </select>
     </div>
 </div>
-
 
 
 <h1>Groups and Players by Round</h1>
@@ -297,7 +350,7 @@
         <div id="chat_messages"></div>
     </div>
     <form id="form" ws-send>
-        <input name="message" >
+        <input name="message">
         <button type="submit">Send</button>
     </form>
 </div>
@@ -311,7 +364,8 @@
                         Group {{group.group_number}}
                         <span class="status-indicator status-{{group.status}}">{{group.status}}</span>
                     </h2>
-                    <button class="select-group" hx-post="/htmx/group/{{group.id}}" hx-trigger="click" hx-target="#selected-players-list">
+                    <button class="select-group" hx-post="/htmx/group/{{group.id}}" hx-trigger="click"
+                            hx-target="#selected-players-list">
                         Select Group
                     </button>
                 </div>
@@ -336,7 +390,7 @@
 <div id="result"></div>
 
 <script>
-    document.addEventListener('click', function(e) {
+    document.addEventListener('click', function (e) {
         if (e.target && e.target.classList.contains('group-menu-btn')) {
             const group = e.target.closest('.group');
             const menu = group.querySelector('.popup-menu');
@@ -347,7 +401,7 @@
         }
     });
 
-    document.addEventListener('click', function(e) {
+    document.addEventListener('click', function (e) {
         if (e.target && e.target.closest('.player-actions')) {
             const action = e.target.classList[0];
             const playerItem = e.target.closest('.player-item');
@@ -376,9 +430,8 @@
         });
     }
 
-    
-    
-    document.addEventListener('click', function(e) {
+
+    document.addEventListener('click', function (e) {
         if (e.target && e.target.classList.contains('queue-player')) {
             const playerElement = e.target.closest('.player');
             const form = playerElement.querySelector('.queue-form');
@@ -386,7 +439,7 @@
         }
     });
 
-    document.addEventListener('submit', function(e) {
+    document.addEventListener('submit', function (e) {
         if (e.target && e.target.classList.contains('queue-form')) {
             e.preventDefault();
             const playerElement = e.target.closest('.player');
@@ -413,8 +466,6 @@
                     console.error('Error queuing player:', error);
                 });
     }
-
-
 
 
 </script>
