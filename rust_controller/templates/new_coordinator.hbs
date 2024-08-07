@@ -17,48 +17,58 @@
             padding: 20px;
             background-color: #f4f4f4;
         }
+
         .round-selector {
             margin-bottom: 20px;
         }
+
         #groups-container {
             display: flex;
             flex-wrap: wrap;
             gap: 20px;
         }
+
         .group {
             background-color: #fff;
             border-radius: 8px;
             padding: 15px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
             flex: 1;
             min-width: 200px;
             max-width: 90%;
         }
+
         .group-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
             cursor: pointer;
         }
+
         .group-header h2 {
             margin: 0;
             font-size: 1.2em;
         }
+
         .group-content {
             display: block;
             margin-top: 15px;
         }
+
         .player {
             margin: 10px 0;
             padding: 5px 0;
             border-bottom: 1px solid #eee;
         }
+
         .player:last-child {
             border-bottom: none;
         }
+
         input[type="checkbox"] {
             margin-right: 10px;
         }
+
         button, select {
             background-color: #4CAF50;
             color: white;
@@ -68,34 +78,53 @@
             cursor: pointer;
             font-size: 16px;
         }
+
         button:hover, select:hover {
             background-color: #45a049;
         }
+
         button:disabled {
             background-color: #cccccc;
             cursor: not-allowed;
         }
+
         .toggle-icon {
             font-size: 1.2em;
         }
+
         .status-indicator {
             font-size: 0.8em;
             padding: 2px 6px;
             border-radius: 4px;
             margin-left: 10px;
         }
-        .status-OPEN { background-color: #4CAF50; color: white; }
-        .status-CLOSED { background-color: #f44336; color: white; }
-        .status-DONE { background-color: #2196F3; color: white; }
-        .htmx-indicator{
-            opacity:0;
+
+        .status-OPEN {
+            background-color: #4CAF50;
+            color: white;
+        }
+
+        .status-CLOSED {
+            background-color: #f44336;
+            color: white;
+        }
+
+        .status-DONE {
+            background-color: #2196F3;
+            color: white;
+        }
+
+        .htmx-indicator {
+            opacity: 0;
             transition: opacity 500ms ease-in;
         }
-        .htmx-request .htmx-indicator{
-            opacity:1
+
+        .htmx-request .htmx-indicator {
+            opacity: 1
         }
-        .htmx-request.htmx-indicator{
-            opacity:1
+
+        .htmx-request.htmx-indicator {
+            opacity: 1
         }
     </style>
 </head>
@@ -110,7 +139,7 @@
         </div>
         <div>
             <label for="event_id">Which event id?</label>
-            <input name="event_id" id="event_id" value="3df1d60c-ac68-4b58-8e2a-eab839471e96" required/>
+            <input name="event_id" id="event_id" value="7d46bbff-f642-411f-981b-8d0b74bf31cc/" required/>
         </div>
         <div>
             <label for="round">How many rounds have been completed before this one?</label>
@@ -122,7 +151,7 @@
         </div>
         <div>
             <button type="submit">Load</button>
-            <img  class="htmx-indicator" src="https://htmx.org/img/bars.svg"/>
+            <img class="htmx-indicator" src="https://htmx.org/img/bars.svg"/>
         </div>
     </form>
 </div>
