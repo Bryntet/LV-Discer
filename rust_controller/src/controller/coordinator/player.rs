@@ -270,13 +270,9 @@ impl Player {
 
         let results = PlayerRound::new(results, round, starts_at_hole);
 
-        let image_location = image_id.clone().map(|image| {
-            format!(
-                "images/{}.{}",
-                player.id.clone().into_inner(),
-                image.split(".").last().unwrap_or_default()
-            )
-        });
+        let image_location = image_id
+            .clone()
+            .map(|image| format!("images/{}.png", player.id.clone().into_inner(),));
         if let Some(image) = image_id.to_owned() {
             let img = image_location.clone().unwrap();
             std::thread::spawn(|| {
