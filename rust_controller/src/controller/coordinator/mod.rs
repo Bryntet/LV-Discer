@@ -138,7 +138,12 @@ impl FlipUpVMixCoordinator {
             .collect_vec();
 
         self.add_null_players(&mut instructs, &self.featured_card)?;
-        self.queue_add(&instructs);
+        self.queue_add(
+            &instructs
+                .into_par_iter()
+                .map(VMixInterfacer::into_featured)
+                .collect::<Vec<_>>(),
+        );
         let featured_hole = self.featured_hole;
         let stats = self.make_stats();
         let holes = self.focused_player().holes.clone();

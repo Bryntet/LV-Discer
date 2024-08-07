@@ -225,8 +225,8 @@ impl PlayerManager {
         let mut out_players = vec![];
         for player in &self.managed_players {
             if let Some(player) = players
-                .iter()
-                .find(|other_player| player.player_id == other_player.player_id)
+                .par_iter()
+                .find_any(|other_player| player.player_id == other_player.player_id)
             {
                 out_players.push(*player);
             }
