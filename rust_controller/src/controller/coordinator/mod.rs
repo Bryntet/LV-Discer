@@ -14,6 +14,7 @@ use vmix::VMixQueue;
 use crate::api::{DivisionUpdate, Error, GeneralChannel, HoleUpdate, PlayerManagerUpdate};
 use crate::controller::get_data::RustHandler;
 use crate::controller::queries::Division;
+use crate::vmix::functions::Compare2x2;
 use crate::{api, vmix};
 use crate::{dto, flipup_vmix_controls};
 
@@ -121,23 +122,23 @@ impl FlipUpVMixCoordinator {
         self.handler.get_previous_rounds_players()
     }
 
-    pub fn update_featured_card(&mut self) {
+    pub fn update_featured_card(&mut self) -> Result<(), Error> {
         self.add_state_to_leaderboard();
-        self.queue_add(
-            &self
-                .featured_card
-                .players(self.available_players())
-                .into_iter()
-                .enumerate()
-                .flat_map(|(i, player)| {
-                    player
-                        .set_all_compare_2x2_values(i, &self.leaderboard, false)
-                        .unwrap()
-                        .into_iter()
-                        .map(|res| res.into_featured())
-                })
-                .collect_vec(),
-        );
+
+        let mut instructs = self
+            .featured_card
+            .players(self.available_players())
+            .into_iter()
+            .enumerate()
+            .flat_map(|(i, player)| {
+                player
+                    .set_all_compare_2x2_values(i, &self.leaderboard, false)
+                    .expect("Should work due to set all values already passing")
+            })
+            .collect_vec();
+
+        self.add_null_players(&mut instructs, &self.featured_card)?;
+        self.queue_add(&instructs);
         let featured_hole = self.featured_hole;
         let stats = self.make_stats();
         let holes = self.focused_player().holes.clone();
@@ -149,7 +150,9 @@ impl FlipUpVMixCoordinator {
             .into_iter()
             .map(VMixInterfacer::into_featured_hole_card)
             .collect_vec();
+
         self.queue_add(&out);
+        Ok(())
     }
 
     pub fn next_featured_card(&mut self) {
@@ -322,14 +325,24 @@ impl FlipUpVMixCoordinator {
             })
             .collect::<Vec<_>>();
 
-        for index in self.player_manager.card(self.available_players()).len()..4 {
-            compare_2x2.extend(Player::null_player().set_all_compare_2x2_values(
+        self.add_null_players(&mut compare_2x2, &self.player_manager)?;
+
+        self.queue_add(&compare_2x2);
+        Ok(())
+    }
+
+    pub fn add_null_players(
+        &self,
+        instructions: &mut Vec<VMixInterfacer<Compare2x2>>,
+        player_manager: &PlayerManager,
+    ) -> Result<(), Error> {
+        for index in player_manager.players(self.available_players()).len()..4 {
+            instructions.extend(Player::null_player().set_all_compare_2x2_values(
                 index,
                 &self.leaderboard,
                 true,
-            )?);
+            )?)
         }
-        self.queue_add(&compare_2x2);
         Ok(())
     }
 

@@ -234,19 +234,51 @@
         h1 {
             padding-right: 200px;  /* Make space for the dropdown */
         }
+        .top-selectors {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .round-selector {
+            display: flex;
+            align-items: center;
+        }
+        .round-selector select {
+            margin-right: 10px;
+        }
+        #division-selector {
+            position: static;  /* Remove absolute positioning */
+        }
+        /* Remove the padding-right from h1 */
+        h1 {
+            padding-right: 0;
+        }
 
 
     </style>
 </head>
 <body>
 
-<div id="division-selector" hx-ext="ws" ws-connect="/ws/division">
-    Leaderboard
-    <select id="division-dropdown">
-        <option value="">Select Division</option>
 
-    </select>
+<div class="top-selectors">
+    <div class="round-selector">
+        <select id="round-dropdown" hx-get="/htmx/groups" hx-target="#groups-container">
+            <option value="">Select Round</option>
+            <!-- Round options will be populated dynamically -->
+        </select>
+        <button id="load-round-btn" hx-get="/htmx/groups" hx-target="#groups-container" disabled>Load Round</button>
+    </div>
+
+    <div id="division-selector" hx-ext="ws" ws-connect="/ws/division">
+        Leaderboard
+        <select id="division-dropdown">
+            <option value="">Select Division</option>
+        </select>
+    </div>
 </div>
+
+
 
 <h1>Groups and Players by Round</h1>
 

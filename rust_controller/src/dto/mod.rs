@@ -3,7 +3,7 @@ use serde::Serialize;
 pub use coordinator_builder::CoordinatorBuilder;
 pub use group::Group;
 pub use player::*;
-pub use rounds::{get_rounds, Rounds};
+pub use rounds::{get_rounds, Rounds, SimpleRound};
 
 mod coordinator_builder;
 mod group;

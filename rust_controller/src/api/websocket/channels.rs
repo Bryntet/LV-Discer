@@ -131,3 +131,8 @@ impl From<&FlipUpVMixCoordinator> for DivisionUpdate {
         }
     }
 }
+
+#[derive(Debug, Clone, Serialize)]
+pub struct LeaderboardRoundUpdate {
+    rounds: Vec<dto::SimpleRound>,
+}
