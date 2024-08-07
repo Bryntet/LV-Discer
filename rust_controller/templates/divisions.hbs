@@ -1,6 +1,8 @@
-<select id="division-dropdown" {{#each divisions as |division|}}{{#if division.focused}}value="{{division.name}}"{{/if}}{{/each}} hx-trigger="change" hx-post="/div/set" hx-include="[division='selected']">
+<select id="division-dropdown" {{#each divisions as |division|}}{{#if
+        division.focused}}value="{{division.name}}"{{/if}}{{/each}}>
     <option value="">Select Division</option>
-{{#each divisions as |division|}}
-        <option value="{{division.name}}" {{#if division.focused}}selected{{/if}} hx-post="/div/{{division.name}}/set">{{division.name}}</option>
-{{/each}}
+    {{#each divisions as |division|}}
+        <option value="{{division.name}}"
+                {{#if division.focused}}selected{{/if}} hx-post="/div/{{division.name}}/set">{{division.name}}</option>
+    {{/each}}
 </select>

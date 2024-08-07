@@ -272,10 +272,14 @@ impl Player {
         let results = PlayerRound::new(results, round, starts_at_hole);
 
         let image_location = image_id.clone().map(|image| {
-            format!(
-                "C:\\livegrafik-flipup\\_conf\\images\\{}.png",
-                player.id.clone().into_inner()
-            )
+            if cfg!(target_os = "windows") {
+                format!(
+                    "C:\\livegrafik-flipup\\_conf\\images\\{}.png",
+                    player.id.clone().into_inner()
+                )
+            } else {
+                format!("images/{}.png", player.id.clone().into_inner())
+            }
         });
         if let Some(image) = image_id.to_owned() {
             let img = image_location.clone().unwrap();

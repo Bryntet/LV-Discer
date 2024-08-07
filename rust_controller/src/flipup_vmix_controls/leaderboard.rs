@@ -78,7 +78,7 @@ impl Leaderboard {
 
     pub fn add_state(&mut self, state: LeaderboardState) {
         if self
-            .current_state(self.states.len() - 1)
+            .current_state(self.states.len().checked_sub(1).unwrap_or_default())
             .is_some_and(|current_state| current_state.round == state.round)
         {
             self.states.pop();

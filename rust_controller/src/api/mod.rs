@@ -89,7 +89,9 @@ fn get_normal_routes() -> Vec<Route> {
         rewind_lb_pos,
         next_featured_hole_card,
         update_featured_hole_group,
-        rewind_featured_hole_card
+        rewind_featured_hole_card,
+        set_leaderboard_round,
+        set_hole
     ]
 }
 

@@ -73,7 +73,7 @@ pub async fn play_ob_animation(co: Coordinator) -> Result<(), Error> {
 #[openapi(tag = "VMix")]
 #[post("/vmix/hole-info/set")]
 pub async fn set_hole_info(co: Coordinator) {
-    co.lock().await.make_hole_info()
+    co.lock().await.make_hole_info(None)
 }
 
 /// # Update other leaderboard

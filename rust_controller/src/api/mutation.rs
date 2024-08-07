@@ -197,7 +197,7 @@ pub async fn rewind_featured_hole_card(coordinator: Coordinator) {
 }
 
 #[openapi(tag = "Leaderboard")]
-#[post("/leaderboard/round?<round>")]
+#[post("/leaderboard/round/<round>")]
 pub async fn set_leaderboard_round(
     coordinator: Coordinator,
     round: usize,
@@ -209,6 +209,13 @@ pub async fn set_leaderboard_round(
     watcher.send(&co);
     co.reset_leaderboard_skip();
     co.set_leaderboard(None);
+}
+
+#[openapi(tag = "Hole")]
+#[post("/set-hole/<hole>")]
+pub async fn set_hole(coordinator: Coordinator, hole: usize) {
+    let mut co = coordinator.lock().await;
+    co.make_hole_info(Some(hole));
 }
 
 #[catch(424)]

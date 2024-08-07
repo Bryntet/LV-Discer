@@ -324,6 +324,12 @@
         </select>
     </div>
 
+    <form id="holeInfo">
+        <label for="hole">Enter hole:</label>
+        <input type="text" id="hole" name="Hole " required>
+        <button type="submit">Update hole info</button>
+    </form>
+
     <div id="division-selector" hx-ext="ws" ws-connect="/ws/division">
         Leaderboard Division
         <select id="division-dropdown">
@@ -344,18 +350,7 @@
 </div>
 
 
-<div hx-ext="ws" ws-connect="/ws/htmx/players/selected/set">
-
-    <div id="chat_room">
-        <div id="chat_messages"></div>
-    </div>
-    <form id="form" ws-send>
-        <input name="message">
-        <button type="submit">Send</button>
-    </form>
-</div>
-
-<div id="groups-container">
+<div id="groups-container" hx-ext="ws" ws-connect="/ws/htmx/players/selected/set">
     {{#if groups}}
         {{#each groups as |group groupIndex|}}
             <div class="group" id="{{group.id}}">
@@ -466,6 +461,19 @@
                     console.error('Error queuing player:', error);
                 });
     }
+
+    document.getElementById('holeInfo').addEventListener('submit', function (e) {
+        e.preventDefault();
+
+        const data = document.getElementById('hole').value;
+
+        fetch(`/set-hole/${data}`, {
+            method: 'POST',
+
+        }).then(response => response)
+
+
+    });
 
 
 </script>

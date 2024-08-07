@@ -359,13 +359,7 @@ impl FlipUpVMixCoordinator {
             .round_ids
             .iter()
             .enumerate()
-            .map(|(round, id)| {
-                dbg!(SimpleRound::new(
-                    round,
-                    id.clone(),
-                    round == self.leaderboard_round
-                ))
-            })
+            .map(|(round, id)| SimpleRound::new(round, id.clone(), round == self.leaderboard_round))
             .collect()
     }
     pub fn amount_of_rounds(&self) -> usize {

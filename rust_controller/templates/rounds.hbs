@@ -1,8 +1,8 @@
-<select id="round-dropdown" {{#each rounds as |round|}}{{#if round.selected}}value="{{round.number}}"{{/if}}{{/each}}
-        hx-trigger="change" hx-post="/round/set" hx-include="[round='selected']">
+<select id="round-dropdown" {{#each rounds as |round|}}{{#if round.selected}}value="{{round.number}}"{{/if}}{{/each}}>
     <option value="">Select Round</option>
     {{#each rounds as |round|}}
         <option value="{{round.number}}"
-                {{#if round.selected}}selected{{/if}} hx-post="/round/{{round.number}}/set">{{round.number}}</option>
+                {{#if round.selected}}selected{{/if}}
+                hx-post="/leaderboard/round/{{round.number}}">{{round.number}}</option>
     {{/each}}
 </select>
