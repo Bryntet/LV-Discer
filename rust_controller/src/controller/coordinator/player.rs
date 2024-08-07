@@ -139,6 +139,20 @@ impl PlayerRound {
                 hole: hole.hole as usize,
             }));
         }
+
+        if division.name == "Mixed Player Open" {
+            r_vec.push(VMixInterfacer::set_only_input(VMixHoleInfo::Elevation(
+                [
+                    -3, 10, -8, -4, 1, -10, 8, 11, -4, 3, 1, 1, -1, -6, 8, -12, 4, -6,
+                ][(hole.hole - 1) as usize],
+            )))
+        } else {
+            r_vec.push(VMixInterfacer::set_only_input(VMixHoleInfo::Elevation(
+                [
+                    -3, 10, -8, -4, 1, -10, 5, -5, -2, 3, 1, 1, -1, -6, 8, -12, 4, -6,
+                ][(hole.hole - 1) as usize],
+            )))
+        }
         r_vec
     }
 
