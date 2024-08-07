@@ -320,7 +320,7 @@ impl FlipUpVMixCoordinator {
                     .expect("Should work due to set all values already passing")
             })
             .collect::<Vec<_>>();
-        for index in 0..(4 - self.player_manager.card(self.available_players()).len()) {
+        for index in self.player_manager.card(self.available_players()).len()..4 {
             compare_2x2.extend(Player::null_player().set_all_compare_2x2_values(
                 index,
                 &self.leaderboard,
