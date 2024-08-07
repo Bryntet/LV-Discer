@@ -1,8 +1,9 @@
 use std::fs::File;
-use std::io::Write;
+use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 use std::{fs, io};
 
+use itertools::Itertools;
 use reqwest::blocking::Client;
 
 pub fn download_image_to_file(
@@ -25,7 +26,8 @@ pub fn download_image_to_file(
         return Err(format!("Failed to download image: HTTP {}", response.status()).into());
     }
     dest.write_all(&response.bytes()?)?;
-    Ok(file_path)
+    webp_to_png(&file_path);
+    Ok(file_path.with_extension("png"))
 }
 pub fn delete_files_in_directory<P: AsRef<Path>>(dir: P) -> io::Result<()> {
     // Read the directory contents
@@ -42,4 +44,18 @@ pub fn delete_files_in_directory<P: AsRef<Path>>(dir: P) -> io::Result<()> {
         }
     }
     Ok(())
+}
+
+pub fn webp_to_png<P: AsRef<Path>>(dir: P) {
+    use libwebp::WebPDecodeRGBA;
+    let test: Vec<u8> = File::open(&dir).unwrap().bytes().try_collect().unwrap();
+    let (width, height, buf) = WebPDecodeRGBA(&test).unwrap();
+
+    lodepng::encode32_file(
+        dir.as_ref().with_extension("png"),
+        &buf,
+        width as usize,
+        height as usize,
+    )
+    .unwrap();
 }

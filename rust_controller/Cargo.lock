@@ -18,6 +18,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f26201604c87b1e01bd3d98f8d5d9a8fcbb815e8cedb41ffccbeb4bf593a35fe"
 
 [[package]]
+name = "ahash"
+version = "0.8.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e89da841a80418a9b391ebaea17f5c112ffaaa96f621d2c285b5174da76b9011"
+dependencies = [
+ "cfg-if",
+ "once_cell",
+ "version_check",
+ "zerocopy 0.7.35",
+]
+
+[[package]]
 name = "aho-corasick"
 version = "1.1.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -368,6 +380,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "crc32fast"
+version = "1.4.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a97769d94ddab943e4510d138150169a2758b5ef3eb191a9ee688de3e23ef7b3"
+dependencies = [
+ "cfg-if",
+]
+
+[[package]]
 name = "crossbeam-channel"
 version = "0.5.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -662,6 +683,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "fallible_collections"
+version = "0.4.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a88c69768c0a15262df21899142bc6df9b9b823546d4b4b9a7bc2d6c448ec6fd"
+dependencies = [
+ "hashbrown 0.13.2",
+]
+
+[[package]]
 name = "fastrand"
 version = "2.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -694,6 +724,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "flate2"
+version = "1.0.31"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7f211bbe8e69bbd0cfdea405084f128ae8b4aaa6b0b522fc8f2b009084797920"
+dependencies = [
+ "crc32fast",
+ "miniz_oxide",
+]
+
+[[package]]
 name = "flipup-sm-coordinator"
 version = "0.1.0"
 dependencies = [
@@ -706,6 +746,8 @@ dependencies = [
  "fake",
  "getrandom",
  "itertools 0.13.0",
+ "libwebp",
+ "lodepng",
  "log",
  "paste",
  "quote",
@@ -931,6 +973,15 @@ name = "hashbrown"
 version = "0.12.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8a9ee70c43aaf417c914396645a0fa852624801b24ebb7ae78fe8272889ac888"
+
+[[package]]
+name = "hashbrown"
+version = "0.13.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "43a3c133739dddd0d2990f9a4bdf8eb4b21ef50e4851ca85ab661199821d510e"
+dependencies = [
+ "ahash",
+]
 
 [[package]]
 name = "hashbrown"
@@ -1300,6 +1351,28 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "97b3888a4aecf77e811145cadf6eef5901f4782c53886191b2f693f24761847c"
 
 [[package]]
+name = "libwebp"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c7792a82f95b5b2528d9fe1642231f972d2cdd73b91ccbcb6ab214c2cf1a74f4"
+dependencies = [
+ "libwebp-sys2",
+]
+
+[[package]]
+name = "libwebp-sys2"
+version = "0.1.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0e2ae528b6c8f543825990b24c00cfd8fe64dde126c8288f4972b18e3d558072"
+dependencies = [
+ "cc",
+ "cfg-if",
+ "libc",
+ "pkg-config",
+ "vcpkg",
+]
+
+[[package]]
 name = "linux-raw-sys"
 version = "0.4.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1313,6 +1386,19 @@ checksum = "07af8b9cdd281b7915f413fa73f29ebd5d55d0d3f0155584dade1ff18cea1b17"
 dependencies = [
  "autocfg",
  "scopeguard",
+]
+
+[[package]]
+name = "lodepng"
+version = "3.10.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3f161e6ea2dab22de2c1ccff915686a8014d6e136b35fa9613d18214c1f7ec4f"
+dependencies = [
+ "crc32fast",
+ "fallible_collections",
+ "flate2",
+ "libc",
+ "rgb",
 ]
 
 [[package]]
@@ -1883,7 +1969,7 @@ checksum = "8d31e63ea85be51c423e52ba8f2e68a3efd53eed30203ee029dd09947333693e"
 dependencies = [
  "rand_chacha 0.9.0-alpha.1",
  "rand_core 0.9.0-alpha.1",
- "zerocopy",
+ "zerocopy 0.8.0-alpha.6",
 ]
 
 [[package]]
@@ -1922,7 +2008,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cc89dffba8377c5ec847d12bb41492bda235dba31a25e8b695cd0fe6589eb8c9"
 dependencies = [
  "getrandom",
- "zerocopy",
+ "zerocopy 0.8.0-alpha.6",
 ]
 
 [[package]]
@@ -2069,6 +2155,15 @@ dependencies = [
  "wasm-bindgen-futures",
  "web-sys",
  "winreg",
+]
+
+[[package]]
+name = "rgb"
+version = "0.8.47"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e12bc8d2f72df26a5d3178022df33720fbede0d31d82c7291662eff89836994d"
+dependencies = [
+ "bytemuck",
 ]
 
 [[package]]
@@ -3362,11 +3457,31 @@ dependencies = [
 
 [[package]]
 name = "zerocopy"
+version = "0.7.35"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1b9b4fd18abc82b8136838da5d50bae7bdea537c574d8dc1a34ed098d6c166f0"
+dependencies = [
+ "zerocopy-derive 0.7.35",
+]
+
+[[package]]
+name = "zerocopy"
 version = "0.8.0-alpha.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "db678a6ee512bd06adf35c35be471cae2f9c82a5aed2b5d15e03628c98bddd57"
 dependencies = [
- "zerocopy-derive",
+ "zerocopy-derive 0.8.0-alpha.6",
+]
+
+[[package]]
+name = "zerocopy-derive"
+version = "0.7.35"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fa4f8080344d4671fb4e831a13ad1e68092748387dfc4f55e356242fae12ce3e"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.72",
 ]
 
 [[package]]
