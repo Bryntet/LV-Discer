@@ -149,7 +149,12 @@ impl FlipUpVMixCoordinator {
         );
         let featured_hole = self.featured_hole;
         let stats = self.make_stats();
-        let holes = self.focused_player().holes.clone();
+        let holes = self
+            .featured_card
+            .player(self.available_players())
+            .unwrap()
+            .holes
+            .clone();
         let div = &self.leaderboard_division.clone();
         let out = self
             .focused_player_mut()
