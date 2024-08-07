@@ -18,10 +18,11 @@ impl FlipUpVMixCoordinator {
                 self.focused_player_mut()
                     .results
                     .get_hole_info(current_hole, stats, &holes);
-            let drone_result = self
-                .focused_player()
-                .results
-                .get_drone_info(self.current_hole() as u8, &result);
+            let drone_result = self.focused_player().results.get_drone_info(
+                self.current_hole() as u8,
+                &result,
+                &self.leaderboard_division,
+            );
             self.queue_add(&result);
             self.queue_add(&drone_result);
         }

@@ -183,18 +183,14 @@ pub mod layout {
             ) -> Result<Self, Self::Error> {
                 let hole_number = value.number as u8;
 
-                let length = [
-                    88, 85, 188, 101, 96, 138, 93, 80, 122, 169, 101, 192, 64, 94, 167, 102, 175,
-                    110,
-                ][hole_number as usize - 1];
-                /*let length = if value.measure_in_meters.is_none() {
+                let length = if value.measure_in_meters.is_none() {
                     value.length
                 } else if value.measure_in_meters.is_some_and(|s| s) {
                     value.length
                 } else {
                     value.length.map(|l| l * 0.9144)
                 };
-                let length = length.ok_or(Self::Error::HoleLengthNotFound(hole_number))? as u16;*/
+                let length = length.ok_or(Self::Error::HoleLengthNotFound(hole_number))? as u16;
                 let par = value.par.ok_or(Self::Error::HoleParNotFound(hole_number))? as u8;
                 Ok(Hole {
                     length,

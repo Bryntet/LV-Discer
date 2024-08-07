@@ -145,14 +145,24 @@ impl PlayerRound {
         &self,
         hole: u8,
         funcs: &[VMixInterfacer<VMixHoleInfo>],
+        division: &Division,
     ) -> Vec<VMixInterfacer<DroneHoleInfo>> {
         let mut funcs = funcs
             .iter()
             .cloned()
             .map(VMixInterfacer::into_drone_hole_info)
             .collect_vec();
+        let division_name = if division.name == "Mixed Pro Open" {
+            "mpo"
+        } else {
+            "fpo"
+        };
         funcs.push(VMixInterfacer::set_image(
-            format!("C:\\livegrafik-flipup\\holemaps\\mpohole{}.png", hole + 1),
+            format!(
+                "C:\\livegrafik-flipup\\holemaps\\{}hole{}.png",
+                division_name,
+                hole + 1
+            ),
             DroneHoleInfo::HoleMap,
         ));
         funcs
