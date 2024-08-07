@@ -621,7 +621,7 @@ impl Player {
     }
 
     pub fn set_pos(&self, lb: &Leaderboard) -> Option<VMixInterfacer<VMixPlayerInfo>> {
-        let lb_player = lb.get_lb_player(self).unwrap();
+        let lb_player = lb.get_lb_player(self).unwrap_or_default();
         let value_string = if lb_player.tied.is_some() {
             "T".to_string()
         } else {

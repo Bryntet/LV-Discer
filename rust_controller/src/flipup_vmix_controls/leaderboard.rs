@@ -300,7 +300,7 @@ impl LeaderboardState {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct LeaderboardPlayer {
     pub id: String,
     pub index: usize,
@@ -464,10 +464,11 @@ impl LeaderboardPlayer {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub enum LeaderboardMovement {
     Up(usize),
     Down(usize),
+    #[default]
     Same,
 }
 
