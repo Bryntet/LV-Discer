@@ -130,7 +130,7 @@ impl FlipUpVMixCoordinator {
 
         let mut instructs = self
             .featured_card
-            .players(self.available_players())
+            .card(self.available_players())
             .into_iter()
             .enumerate()
             .flat_map(|(i, player)| {
@@ -324,7 +324,7 @@ impl FlipUpVMixCoordinator {
         let mut compare_2x2 = self
             .player_manager
             .card(self.available_players())
-            .into_iter()
+            .into_par_iter()
             .enumerate()
             .flat_map(|(index, player)| {
                 player

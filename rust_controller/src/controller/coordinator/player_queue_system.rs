@@ -107,15 +107,17 @@ impl PlayerManager {
     }
 
     pub fn card<'a>(&self, players: Vec<&'a Player>) -> Vec<&'a Player> {
-        let ids = self
-            .internal_card()
-            .into_iter()
-            .map(|player| player.player_id.to_owned())
-            .collect_vec();
-        players
-            .into_iter()
-            .filter(|player| ids.contains(&player.player_id))
-            .collect_vec()
+        // Must be done like this for sorting reasons!
+        let mut vec = vec![];
+        for player_queue in self.internal_card() {
+            if let Some(player) = players
+                .par_iter()
+                .find_any(|player| player.player_id == player_queue.player_id)
+            {
+                vec.push(*player);
+            }
+        }
+        vec
     }
 
     fn get_card_index(&self, index: usize) -> Option<&PlayerWithQueue> {
@@ -225,8 +227,8 @@ impl PlayerManager {
         let mut out_players = vec![];
         for player in &self.managed_players {
             if let Some(player) = players
-                .par_iter()
-                .find_any(|other_player| player.player_id == other_player.player_id)
+                .iter()
+                .find(|other_player| player.player_id == other_player.player_id)
             {
                 out_players.push(*player);
             }
