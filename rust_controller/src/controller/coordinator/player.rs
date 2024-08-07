@@ -294,7 +294,7 @@ impl Player {
             dnf: player.dnf.is_dnf || player.dns.is_dns,
             round_ind: round,
             division,
-            image_location,
+            image_location: dbg!(image_location),
             holes,
             ..Default::default()
         })
