@@ -309,7 +309,7 @@ impl FlipUpVMixCoordinator {
 
         self.player_manager.set_focused(&focused_player_id);
         player_updater.send(self);
-        let compare_2x2 = self
+        let mut compare_2x2 = self
             .player_manager
             .card(self.available_players())
             .into_par_iter()
@@ -321,7 +321,11 @@ impl FlipUpVMixCoordinator {
             })
             .collect::<Vec<_>>();
         for index in 0..(4 - self.player_manager.card(self.available_players()).len()) {
-            //compare_2x2.extend(Player::null_player().set_all_compare_2x2_values(index,&self.leaderboard)?);
+            compare_2x2.extend(Player::null_player().set_all_compare_2x2_values(
+                index,
+                &self.leaderboard,
+                true,
+            )?);
         }
         self.queue_add(&compare_2x2);
         Ok(())
