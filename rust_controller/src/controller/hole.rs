@@ -4,6 +4,7 @@ use std::sync::Arc;
 use itertools::Itertools;
 use rayon::prelude::*;
 
+use crate::controller::fix_score;
 use crate::vmix::functions::VMixSelectionTrait;
 
 use super::queries::{Division, HoleResult};
@@ -141,10 +142,7 @@ impl VMixSelectionTrait for VMixHoleInfo {
                 }) + " avg"
             }
             Difficulty { difficulty, hole } => difficulty.hole_difficulty_text(*hole).unwrap(),
-            Elevation(elevation) => {
-                let sign = if elevation.is_positive() { "+" } else { "" };
-                format!("{sign}{elevation}")
-            }
+            Elevation(elevation) => fix_score(*elevation as isize),
         })
     }
     const INPUT_ID: &'static str = "d9806a48-8766-40e0-b7fe-b217f9b1ef5b";
