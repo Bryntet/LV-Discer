@@ -541,7 +541,11 @@ impl Player {
                     Some(t) => t,
                     None => {
                         self.results
-                            .add_new_hole(&self.holes, self.hole_shown_up_until as u8, self.throws)
+                            .add_new_hole(
+                                &self.holes,
+                                self.hole_shown_up_until as u8 + 1,
+                                self.throws,
+                            )
                             .expect("Adding hole should work");
                         self.results.results.last_mut().unwrap()
                     }
