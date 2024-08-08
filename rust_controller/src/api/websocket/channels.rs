@@ -86,7 +86,7 @@ impl ChannelAttributes for HoleUpdate {
 impl From<&FlipUpVMixCoordinator> for HoleUpdate {
     fn from(value: &FlipUpVMixCoordinator) -> Self {
         Self {
-            hole: value.current_hole(),
+            hole: value.current_hole() + 1,
         }
     }
 }

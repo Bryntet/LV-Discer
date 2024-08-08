@@ -23,7 +23,7 @@ impl FlipUpVMixCoordinator {
                     .results
                     .get_hole_info(current_hole, stats, &holes, div);
             let drone_result = self.focused_player().results.get_drone_info(
-                hole as u8,
+                hole as u8 + 1,
                 &result,
                 &self.leaderboard_division,
             );
