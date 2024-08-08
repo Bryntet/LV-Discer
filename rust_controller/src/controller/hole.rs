@@ -28,6 +28,7 @@ impl HoleStats {
             .filter(|(div, _)| div.as_ref() == division)
             .map(|(_, score)| score);
         let amount_of_results = all_used_results.clone().count() as f64;
+        dbg!(self.hole_number);
         let par = all_used_results
             .clone()
             .find_any(|r| r.hole.par.is_some())
