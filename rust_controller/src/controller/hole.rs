@@ -30,7 +30,7 @@ impl HoleStats {
         let amount_of_results = all_used_results.clone().count() as f64;
         let par = all_used_results
             .clone()
-            .find_any(|r| r.hole.number as u8 == self.hole_number)
+            .find_any(|r| r.hole.par.is_some())
             .unwrap()
             .hole
             .par
