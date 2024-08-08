@@ -215,7 +215,7 @@ pub async fn set_leaderboard_round(
 #[post("/set-hole/<hole>")]
 pub async fn set_hole(coordinator: Coordinator, hole: usize) {
     let mut co = coordinator.lock().await;
-    co.make_hole_info(Some(hole));
+    co.make_hole_info(Some(hole - 1));
 }
 
 #[catch(424)]
