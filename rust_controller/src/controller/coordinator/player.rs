@@ -184,7 +184,7 @@ impl PlayerRound {
     pub fn amount_of_holes_finished(&self) -> u8 {
         self.results
             .iter()
-            .filter(|result| result.tjing_result.is_some() || result.finished || result.throws != 0)
+            .filter(|result| result.tjing_result.is_some_and(|res|res.is_verified) || result.finished || result.throws != 0)
             .count() as u8
     }
 
@@ -192,12 +192,12 @@ impl PlayerRound {
         let amount_finished = self
             .results
             .iter()
-            .filter(|hole| hole.finished || hole.tjing_result.is_some() || hole.throws != 0)
+            .filter(|hole| hole.finished || hole.tjing_result.is_some_and(|res|res.is_verified) || hole.throws != 0)
             .count();
         let mut results = self
             .results
             .into_iter()
-            .filter(|result| result.finished || result.tjing_result.is_some() || result.throws != 0)
+            .filter(|result| result.finished || result.tjing_result.is_some_and(|res|res.is_verified) || result.throws != 0)
             .sorted_by_key(|result| {
                 if amount_finished == 18 {
                     result.hole
