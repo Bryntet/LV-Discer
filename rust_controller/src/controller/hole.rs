@@ -11,7 +11,7 @@ use super::queries::{Division, HoleResult};
 
 pub struct HoleStats {
     pub hole_number: u8,
-    player_results: Vec<(Arc<Division>, HoleResult)>,
+    pub player_results: Vec<(Arc<Division>, HoleResult)>,
 }
 
 impl HoleStats {
