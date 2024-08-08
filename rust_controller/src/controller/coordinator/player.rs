@@ -52,7 +52,7 @@ impl PlayerRound {
     pub fn current_result_mut(&mut self, hole: usize) -> Option<&mut HoleResult> {
         for result in self.results.iter_mut() {
             if let Some(ref tjing_result) = result.tjing_result {
-                if tjing_result.hole.number as usize == hole {
+                if tjing_result.hole.number as usize == hole && tjing_result.is_verified {
                     return Some(result);
                 }
             }
