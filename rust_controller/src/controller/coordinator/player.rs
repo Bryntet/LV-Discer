@@ -174,8 +174,7 @@ impl PlayerRound {
         funcs.push(VMixInterfacer::set_image(
             format!(
                 "C:\\livegrafik-flipup\\holemaps\\{}hole{}.png",
-                division_name,
-                hole + 1
+                division_name, hole
             ),
             DroneHoleInfo::HoleMap,
         ));
