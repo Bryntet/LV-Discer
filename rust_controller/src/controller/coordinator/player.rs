@@ -184,7 +184,14 @@ impl PlayerRound {
     pub fn amount_of_holes_finished(&self) -> u8 {
         self.results
             .iter()
-            .filter(|result| result.tjing_result.is_some_and(|res|res.is_verified) || result.finished || result.throws != 0)
+            .filter(|result| {
+                result
+                    .tjing_result
+                    .as_ref()
+                    .is_some_and(|res| res.is_verified)
+                    || result.finished
+                    || result.throws != 0
+            })
             .count() as u8
     }
 
@@ -192,12 +199,26 @@ impl PlayerRound {
         let amount_finished = self
             .results
             .iter()
-            .filter(|hole| hole.finished || hole.tjing_result.is_some_and(|res|res.is_verified) || hole.throws != 0)
+            .filter(|hole| {
+                hole.finished
+                    || hole
+                        .tjing_result
+                        .as_ref()
+                        .is_some_and(|res| res.is_verified)
+                    || hole.throws != 0
+            })
             .count();
         let mut results = self
             .results
             .into_iter()
-            .filter(|result| result.finished || result.tjing_result.is_some_and(|res|res.is_verified) || result.throws != 0)
+            .filter(|result| {
+                result.finished
+                    || result
+                        .tjing_result
+                        .as_ref()
+                        .is_some_and(|res| res.is_verified)
+                    || result.throws != 0
+            })
             .sorted_by_key(|result| {
                 if amount_finished == 18 {
                     result.hole
@@ -420,7 +441,11 @@ impl Player {
         self.results
             .results
             .iter()
-            .filter(|res| res.finished || res.tjing_result.is_some_and(|res|res.is_verified) || res.throws != 0)
+            .filter(|res| {
+                res.finished
+                    || res.tjing_result.as_ref().is_some_and(|res| res.is_verified)
+                    || res.throws != 0
+            })
             .count()
     }
     fn overarching_score_representation(&self) -> OverarchingScore {
@@ -535,7 +560,10 @@ impl Player {
         let s = match self.get_score(self.hole_shown_up_until) {
             Ok(s) => s,
             Err(Error::NoScoreFound { .. }) => {
-                let t = match self.results.current_result_mut(self.hole_shown_up_until+1) {
+                let t = match self
+                    .results
+                    .current_result_mut(self.hole_shown_up_until + 1)
+                {
                     Some(t) => t,
                     None => {
                         self.results
