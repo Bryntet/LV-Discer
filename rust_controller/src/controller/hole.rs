@@ -136,7 +136,7 @@ impl VMixSelectionTrait for VMixHoleInfo {
                     rest.push('0');
                 }
                 (match cmp {
-                    Ordering::Greater => format!("{rest}.{decimal}"),
+                    Ordering::Greater => format!("-{rest}.{decimal}"),
                     Ordering::Equal => "E".to_string(),
                     Ordering::Less => format!("%2B{rest}.{decimal}"),
                 }) + " avg"

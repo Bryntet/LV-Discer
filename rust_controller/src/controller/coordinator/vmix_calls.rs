@@ -14,7 +14,7 @@ impl FlipUpVMixCoordinator {
         self.set_current_through();
         let hole = hole.unwrap_or(self.current_hole());
         if hole <= 18 {
-            let current_hole = (hole + 1) as u8;
+            let current_hole = hole as u8;
             let stats = self.make_stats();
             let holes = self.focused_player().holes.clone();
             let div: &Division = &self.leaderboard_division.clone();
