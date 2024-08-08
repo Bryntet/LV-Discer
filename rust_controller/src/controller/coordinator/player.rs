@@ -420,7 +420,7 @@ impl Player {
         self.results
             .results
             .iter()
-            .filter(|res| res.finished || res.tjing_result.is_some() || res.throws != 0)
+            .filter(|res| res.finished || res.tjing_result.is_some_and(|res|res.is_verified) || res.throws != 0)
             .count()
     }
     fn overarching_score_representation(&self) -> OverarchingScore {
