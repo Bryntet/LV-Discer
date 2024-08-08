@@ -751,7 +751,13 @@ impl Player {
             self.results
                 .results
                 .iter()
-                .filter(|result| !result.finished && result.tjing_result.is_none())
+                .filter(|result| {
+                    !result.finished
+                        && !result
+                            .tjing_result
+                            .as_ref()
+                            .is_some_and(|res| res.is_verified)
+                })
                 .flat_map(|result| self.del_score(result.hole as usize))
                 .collect_vec()
         } else {
@@ -869,7 +875,8 @@ impl Player {
             .results
             .results
             .iter()
-            .filter_map(|result| result.tjing_result.as_ref())
+            .filter(|res| res.tjing_result.as_ref().is_some_and(|res| res.is_verified))
+            .map(|result| result.tjing_result.as_ref().unwrap())
             .collect_vec();
 
         let finished_holes = results.len() as f64;
