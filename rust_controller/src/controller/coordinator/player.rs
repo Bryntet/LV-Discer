@@ -535,7 +535,7 @@ impl Player {
         let s = match self.get_score(self.hole_shown_up_until) {
             Ok(s) => s,
             Err(Error::NoScoreFound { .. }) => {
-                let t = match self.results.current_result_mut(self.hole_shown_up_until) {
+                let t = match self.results.current_result_mut(self.hole_shown_up_until+1) {
                     Some(t) => t,
                     None => {
                         self.results
