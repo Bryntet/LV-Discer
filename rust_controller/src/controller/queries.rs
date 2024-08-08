@@ -56,6 +56,7 @@ pub struct HoleResult {
     pub is_out_of_bounds: bool,
     pub is_outside_putt: bool,
     pub score: f64,
+    pub is_verified: book,
 }
 
 #[derive(cynic::QueryFragment, Debug, Clone)]
