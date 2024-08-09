@@ -56,7 +56,6 @@ pub async fn index(coordinator: Coordinator) -> RawHtml<Template> {
     let coordinator = coordinator.lock().await;
     let mut groups = coordinator.groups();
     let divisions = coordinator.get_div_names();
-    groups.reverse();
     let context = json!({"groups": groups,"divisions":divisions});
     RawHtml(Template::render("index", context))
 }
