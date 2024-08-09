@@ -39,12 +39,7 @@ impl HoleStats {
         let avg_result =
             all_used_results.clone().map(|res| res.score).sum::<f64>() / amount_of_results;
         let cmp = avg_result.total_cmp(&0.);
-        (
-            (all_used_results.map(|res| res.score).sum::<f64>() / amount_of_results * 10.).round()
-                as isize
-                - par * 10,
-            cmp,
-        )
+        ((avg_result * 10.).round() as isize - par * 10, cmp)
     }
 }
 #[derive(Clone, Debug)]

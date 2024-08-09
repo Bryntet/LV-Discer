@@ -3,6 +3,7 @@ use std::path::Path;
 use std::sync::Arc;
 
 use rocket::fairing::AdHoc;
+use rocket::fs::{relative, FileServer};
 use rocket::log::LogLevel;
 use rocket::tokio::sync::broadcast::channel;
 use rocket::{Build, Rocket, Route};
@@ -148,6 +149,7 @@ pub fn launch() -> Rocket<Build> {
         .mount("/htmx/", get_webpage_routes())
         .mount("/ws", get_websocket_routes())
         .mount("/ws/htmx/", get_websocket_htmx_routes())
+        .mount("/static", FileServer::from(relative!("static")))
         .attach(Template::fairing())
         .register("/", catchers![make_coordinator,])
         .mount(

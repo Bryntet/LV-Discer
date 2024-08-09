@@ -139,7 +139,7 @@ impl PlayerRound {
             }));
         }
 
-        if division.name == "Mixed Player Open" {
+        if division.name == "Mixed Pro Open" {
             r_vec.push(VMixInterfacer::set_only_input(VMixHoleInfo::Elevation(
                 [
                     -3, 10, -8, -4, 1, -10, 8, 11, -4, 3, 1, 1, -1, -6, 8, -12, 4, -6,
