@@ -151,7 +151,7 @@ pub fn launch() -> Rocket<Build> {
         .mount("/ws/htmx/", get_websocket_htmx_routes())
         .mount(
             "/static",
-            FileServer::from("C:\\livegrafik_flipup\\_conf\\static"),
+            FileServer::from("C:\\livegrafik-flipup\\_conf\\static"),
         )
         .attach(Template::fairing())
         .register("/", catchers![make_coordinator,])
