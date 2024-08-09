@@ -35,7 +35,7 @@ impl FlipUpVMixCoordinator {
     pub(crate) fn make_stats(&self) -> Vec<HoleStats> {
         let mut hole_stats: HashMap<usize, Vec<(Arc<Division>, queries::HoleResult)>> =
             HashMap::new();
-        self.available_players().into_iter().for_each(|player| {
+        self.handler.all_players().into_iter().for_each(|player| {
             for (hole, result) in player
                 .results
                 .to_owned()
@@ -44,13 +44,16 @@ impl FlipUpVMixCoordinator {
                 .enumerate()
             {
                 if let Some(result) = result {
-                    hole_stats
-                        .entry(hole)
-                        .or_default()
-                        .push((player.division.clone(), result));
+                    if result.is_verified {
+                        hole_stats
+                            .entry(hole)
+                            .or_default()
+                            .push((player.division.clone(), result));
+                    }
                 }
             }
         });
+
         hole_stats
             .into_iter()
             .sorted_by_key(|(hole, _)| hole.to_owned())

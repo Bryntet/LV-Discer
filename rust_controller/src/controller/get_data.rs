@@ -547,4 +547,12 @@ impl RustHandler {
     pub fn get_players_mut(&mut self) -> Vec<&mut Player> {
         self.player_container.players_mut()
     }
+
+    pub fn all_players(&self) -> Vec<&Player> {
+        self.player_container
+            .rounds_with_players
+            .iter()
+            .flatten()
+            .collect_vec()
+    }
 }
