@@ -139,17 +139,20 @@ impl PlayerRound {
             }));
         }
 
+        dbg!(&division.name);
         if division.name == "Mixed Pro Open" {
             r_vec.push(VMixInterfacer::set_only_input(VMixHoleInfo::Elevation(
-                [
-                    -3, 10, -8, -4, 1, -10, 8, 11, -4, 3, 1, 1, -1, -6, 8, -12, 4, -6,
-                ][(hole.hole - 1) as usize],
+                dbg!(
+                    [-3, 10, -8, -4, 1, -10, 8, 11, -4, 3, 1, 1, -1, -6, 8, -12, 4, -6,]
+                        [(dbg!(hole.hole) - 1) as usize]
+                ),
             )))
         } else {
             r_vec.push(VMixInterfacer::set_only_input(VMixHoleInfo::Elevation(
-                [
-                    -3, 10, -8, -4, 1, -10, 5, -5, -2, 3, 1, 1, -1, -6, 8, -12, 4, -6,
-                ][(hole.hole - 1) as usize],
+                dbg!(
+                    [-3, 10, -8, -4, 1, -10, 5, -5, -2, 3, 1, 1, -1, -6, 8, -12, 4, -6,]
+                        [(dbg!(hole.hole) - 1) as usize]
+                ),
             )))
         }
         r_vec
