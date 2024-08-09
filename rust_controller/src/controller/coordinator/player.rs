@@ -476,8 +476,9 @@ impl Player {
             }
         } else if self.hole_shown_up_until != 0 {
             let funcs: Vec<_> = (0..self.hole_shown_up_until)
-                .par_bridge()
-                .flat_map(|hole| self.get_score(hole).unwrap().update_score(0))
+                .into_par_iter()
+                .flat_map(|hole| self.get_score(hole))
+                .flat_map(|score| score.update_score(0))
                 .collect();
             return_vec.extend(funcs);
         }
