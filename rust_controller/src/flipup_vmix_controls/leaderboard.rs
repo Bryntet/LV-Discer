@@ -318,6 +318,8 @@ pub struct LeaderboardPlayer {
     pub total_score: isize,
     thru: u8,
     pub tied: Option<u8>,
+    dns: bool,
+    dnf: bool,
 }
 
 impl LeaderboardPlayer {
@@ -376,6 +378,8 @@ impl LeaderboardPlayer {
             thru: player.results.amount_of_holes_finished(),
             tied: tie,
             id: player.player_id.clone(),
+            dns: player.dns,
+            dnf: player.dnf,
         }
     }
 
@@ -442,6 +446,10 @@ impl LeaderboardPlayer {
         VMixInterfacer::set_text(
             if self.thru == 18 {
                 "F".to_string()
+            } else if self.dns {
+                "DNS".to_string()
+            } else if self.dnf {
+                "DNF".to_string()
             } else {
                 self.thru.to_string()
             },
