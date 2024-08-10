@@ -494,10 +494,9 @@ impl Player {
         &self,
         index: usize,
         lb: &Leaderboard,
-        for_hiding: bool,
     ) -> Result<Vec<VMixInterfacer<Compare2x2>>, Error> {
         let mut output: Vec<VMixInterfacer<Compare2x2>> = self
-            .set_all_values(lb, !for_hiding)?
+            .set_all_values(lb, true)?
             .into_par_iter()
             .map(|val| val.into_compare_2x2_player(index))
             .collect();
