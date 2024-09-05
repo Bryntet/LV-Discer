@@ -242,7 +242,7 @@ pub mod layout {
         pub id: cynic::Id,
     }
 
-    #[derive(cynic::QueryFragment, Debug)]
+    #[derive(cynic::QueryFragment, Debug, Default)]
     pub(crate) struct Hole {
         pub measure_in_meters: Option<bool>,
         pub number: f64,
