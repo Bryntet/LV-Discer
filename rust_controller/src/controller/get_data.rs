@@ -262,7 +262,7 @@ impl RustHandler {
                             let holes = holes
                                 .iter()
                                 .find(|holes| holes.division.name == player.division.name)
-                                .unwrap_or_default()
+                                .unwrap_or(&Holes::default())
                                 .clone();
                             Player::from_query(
                                 player,
