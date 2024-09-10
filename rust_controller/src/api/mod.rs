@@ -33,6 +33,8 @@ mod vmix_calls;
 mod webpage_responses;
 mod websocket;
 
+use super::controller::coordinator::leaderboard_cycle;
+
 #[derive(Debug, Clone)]
 struct Coordinator(Arc<Mutex<FlipUpVMixCoordinator>>);
 
@@ -40,9 +42,11 @@ impl From<FlipUpVMixCoordinator> for Coordinator {
     fn from(value: FlipUpVMixCoordinator) -> Self {
         let coordinator = Arc::new(Mutex::new(value));
         let s = Self(coordinator.clone());
+        let leaderboard_cycle = leaderboard_cycle::start_leaderboard_cycle(coordinator.clone());
         tokio::spawn(async move {
-            update_loop::update_loop(coordinator).await;
+            update_loop::update_loop(coordinator, leaderboard_cycle).await;
         });
+
         s
     }
 }

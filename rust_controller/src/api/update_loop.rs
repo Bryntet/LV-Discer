@@ -7,6 +7,7 @@ use rayon::prelude::*;
 use tokio::sync::Mutex;
 
 use crate::controller;
+use crate::controller::coordinator::leaderboard_cycle::LeaderboardCycle;
 use crate::controller::coordinator::FlipUpVMixCoordinator;
 use crate::controller::queries::{HoleResult, RoundResultsQuery, RoundResultsQueryVariables};
 
@@ -93,7 +94,10 @@ impl TjingResultMap {
     }
 }
 
-pub async fn update_loop(coordinator: Arc<Mutex<FlipUpVMixCoordinator>>) {
+pub async fn update_loop(
+    coordinator: Arc<Mutex<FlipUpVMixCoordinator>>,
+    leaderboard_cycle: Arc<Mutex<LeaderboardCycle>>,
+) {
     let temp_coordinator = coordinator.lock().await;
     let mut tjing_result_map = TjingResultMap::new(temp_coordinator.available_players());
 
@@ -141,6 +145,8 @@ pub async fn update_loop(coordinator: Arc<Mutex<FlipUpVMixCoordinator>>) {
                         let queue = coordinator.vmix_queue.clone();
                         coordinator.add_state_to_leaderboard();
                         coordinator.leaderboard.update_little_lb(&div, queue);
+                        drop(coordinator);
+                        leaderboard_cycle.lock().await.update_leaderboard().await;
                     }
                 }
             }

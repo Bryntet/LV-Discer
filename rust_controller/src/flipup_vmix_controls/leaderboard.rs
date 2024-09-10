@@ -4,20 +4,21 @@ use itertools::Itertools;
 use rayon::prelude::*;
 use rocket::http::ext::IntoCollection;
 
-pub use prop::{LeaderBoardProperty, LeaderboardTop6};
-
 use crate::controller::fix_score;
 use crate::controller::get_data::HoleResult;
 use crate::controller::queries::Division;
 use crate::controller::Player;
+use crate::flipup_vmix_controls::leaderboard::prop::CycledLeaderboard;
 use crate::flipup_vmix_controls::Image;
 use crate::vmix::functions::{VMixInterfacer, VMixSelectionTrait};
 use crate::vmix::VMixQueue;
+pub use prop::{LeaderBoardProperty, LeaderboardTop6};
 
 #[derive(Debug, Clone, Default)]
 pub struct Leaderboard {
     states: Vec<LeaderboardState>,
     pub skip: usize,
+    pub cycle: bool,
 }
 #[derive(Debug, Clone)]
 pub struct LeaderboardState {
@@ -32,12 +33,6 @@ pub enum LeaderboardStart {
 }
 
 impl Leaderboard {
-    pub fn new(state: LeaderboardState) -> Self {
-        Self {
-            states: vec![state],
-            skip: 0,
-        }
-    }
     fn current_state(&self, round: usize) -> Option<&LeaderboardState> {
         self.states.get(round)
     }
@@ -67,6 +62,7 @@ impl Leaderboard {
         self.current_state(round)
             .map(|state| {
                 state.send_to_vmix(
+                    self.cycle,
                     division,
                     self.previous_state(round),
                     queue.clone(),
@@ -111,7 +107,7 @@ impl Leaderboard {
         if let Some(current) = self.current_state(self.states.len() - 1) {
             let previous = self.previous_state(self.states.len() - 1);
             let previous_batch = current.big_leaderboard_funcs(div, previous, 0);
-            current.update_little_leaderboard(div, previous_batch, previous, queue);
+            current.update_little_leaderboard(div, previous_batch, previous, queue, self.cycle);
         }
     }
 }
@@ -218,22 +214,25 @@ impl LeaderboardState {
 
     pub fn send_to_vmix(
         &self,
+        cycled: bool,
         division: &Division,
         other: Option<&Self>,
         queue: Arc<VMixQueue>,
         skip: usize,
     ) {
         let first_batch = self.big_leaderboard_funcs(division, other, skip);
-        queue.add(&first_batch);
+
+        queue.add_ref(first_batch.iter());
         if skip > 0 {
             self.update_little_leaderboard(
                 division,
                 self.big_leaderboard_funcs(division, other, 0),
                 other,
                 queue,
+                cycled,
             )
         } else {
-            self.update_little_leaderboard(division, first_batch, other, queue);
+            self.update_little_leaderboard(division, first_batch, other, queue, cycled);
         }
     }
 
@@ -267,6 +266,7 @@ impl LeaderboardState {
         first_batch: Vec<VMixInterfacer<LeaderBoardProperty>>,
         other: Option<&Self>,
         queue: Arc<VMixQueue>,
+        cycled: bool,
     ) {
         let lb_players = self.leaderboard_players(division, other);
 
@@ -302,7 +302,15 @@ impl LeaderboardState {
             .collect_vec();
 
         second_batch.extend(v);
-        queue.add(&second_batch);
+        if cycled {
+            queue.add(
+                second_batch
+                    .into_iter()
+                    .map(VMixInterfacer::<CycledLeaderboard>::from),
+            );
+        } else {
+            queue.add_ref(second_batch.iter());
+        }
     }
 }
 
@@ -391,21 +399,21 @@ impl LeaderboardPlayer {
                 Image::Nothing
             }
             .to_location(),
-            LeaderBoardProperty::HotRound(self.index).into(),
+            LeaderBoardProperty::HotRound(self.index),
         )
     }
 
     fn set_round_score(&self) -> VMixInterfacer<LeaderBoardProperty> {
         VMixInterfacer::set_text(
             fix_score(self.round_score),
-            LeaderBoardProperty::RoundScore(self.index).into(),
+            LeaderBoardProperty::RoundScore(self.index),
         )
     }
 
     fn set_total_score(&self) -> VMixInterfacer<LeaderBoardProperty> {
         VMixInterfacer::set_text(
             fix_score(self.total_score),
-            LeaderBoardProperty::TotalScore { pos: self.index }.into(),
+            LeaderBoardProperty::TotalScore { pos: self.index },
         )
     }
 
@@ -497,7 +505,7 @@ impl LeaderboardMovement {
 }
 
 mod prop {
-    use crate::vmix::functions::VMixSelectionTrait;
+    use crate::vmix::functions::{VMixInterfacer, VMixSelectionTrait};
 
     #[derive(Clone)]
     pub enum LeaderBoardProperty {
@@ -545,9 +553,48 @@ mod prop {
         fn value(&self) -> Option<String> {
             None
         }
-        const INPUT_ID: &'static str = "38ded319-d270-41ec-b161-130db4b19901";
+        fn input_id(&self) -> &'static str {
+            "38ded319-d270-41ec-b161-130db4b19901"
+        }
     }
 
+    pub struct CycledLeaderboard(LeaderboardTop6);
+
+    impl VMixSelectionTrait for CycledLeaderboard {
+        fn value(&self) -> Option<String> {
+            self.0.value()
+        }
+
+        fn get_selection_name(&self) -> String {
+            self.0.get_selection_name()
+        }
+
+        fn data_extension(&self) -> &'static str {
+            self.0.data_extension()
+        }
+
+        fn get_selection(&self) -> String {
+            self.0.get_selection()
+        }
+
+        fn input_id(&self) -> &'static str {
+            // TODO SET ID
+            ""
+        }
+    }
+
+    impl From<VMixInterfacer<LeaderboardTop6>> for VMixInterfacer<CycledLeaderboard> {
+        fn from(interfacer: VMixInterfacer<LeaderboardTop6>) -> Self {
+            let value = interfacer.value;
+            let function = interfacer.function;
+
+            Self {
+                value,
+                function,
+                input: interfacer.input.map(|input| CycledLeaderboard(input)),
+            }
+        }
+    }
     pub enum LeaderboardTop6 {
         Position { pos: usize },
         Name { pos: usize },
@@ -582,7 +629,9 @@ mod prop {
             None
         }
 
-        const INPUT_ID: &'static str = "1900db1a-4f83-4111-848d-d9a87474f56c";
+        fn input_id(&self) -> &'static str {
+            "1900db1a-4f83-4111-848d-d9a87474f56c"
+        }
     }
 
     impl LeaderboardTop6 {

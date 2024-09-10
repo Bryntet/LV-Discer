@@ -24,10 +24,10 @@ cynic-codegen = "3.7.3"
 rand = "0.9.0-alpha.1"
 itertools = "0.13.0"
 rocket = "0.5.1"
-rocket_okapi = {git = "https://github.com/Bryntet/okapi", features = ["swagger", "rapidoc", "rocket_dyn_templates", "rocket_ws"] }
-tokio = {version =  "1.38.0", features = ["full"] }
+rocket_okapi = { git = "https://github.com/Bryntet/okapi", features = ["swagger", "rapidoc", "rocket_dyn_templates", "rocket_ws"] }
+tokio = { version = "1.38.0", features = ["full"] }
 rayon = "1.10.0"
-chrono = { version = "0.4.38",features = ["serde",] }
+chrono = { version = "0.4.38", features = ["serde", ] }
 chrono-tz = "0.9.0"
 rocket_ws = "0.1.1"
 thiserror = "1.0.61"
@@ -36,7 +36,7 @@ lodepng = "3.10.4"
 
 
 [dev-dependencies]
-fake = {version = "2.9.2", features = ["derive", "uuid", "always-true-rng"]}
+fake = { version = "2.9.2", features = ["derive", "uuid", "always-true-rng"] }
 
 [dependencies.rocket_dyn_templates]
 version = "0.2.0"

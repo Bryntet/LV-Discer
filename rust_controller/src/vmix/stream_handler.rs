@@ -85,7 +85,21 @@ impl VMixQueue {
         }
     }
 
-    pub fn add<T: VMixSelectionTrait>(&self, functions: &[VMixInterfacer<T>]) {
+    pub fn add_ref<'a, T: VMixSelectionTrait + 'a>(
+        &self,
+        functions: impl Iterator<Item = &'a VMixInterfacer<T>>,
+    ) {
+        for func in functions {
+            match self.functions_sender.send(func.to_cmd()) {
+                Ok(_) => (),
+                Err(e) => {
+                    warn!("Failed to send command to queue: {e}");
+                }
+            };
+        }
+    }
+
+    pub fn add<T: VMixSelectionTrait>(&self, functions: impl Iterator<Item = VMixInterfacer<T>>) {
         for func in functions {
             match self.functions_sender.send(func.to_cmd()) {
                 Ok(_) => (),
@@ -126,7 +140,7 @@ mod test {
                 (1..=9).flat_map(move |hole| random_score_type(hole).update_score(player))
             })
             .collect::<Vec<VMixInterfacer<_>>>();
-        q.add(&funcs);
+        q.add_ref(&funcs);
 
         /*loop {
             let lock =  q.functions.lock().await;
@@ -145,7 +159,7 @@ mod test {
         let q = connect();
         for player in 0..=3 {
             for hole in 1..=9 {
-                q.add(&[
+                q.add_ref(&[
                     VMixInterfacer::SetText {
                         input: VMixProperty::Score { player, hole }.into(),
                         value: "".to_string(),

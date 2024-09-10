@@ -14,10 +14,10 @@ pub trait VMixSelectionTrait {
         {
             format!(
                 "Input={}&SelectedName={name}.{extension}&Value={value}",
-                Self::INPUT_ID
+                self.input_id()
             )
         } else {
-            format!("Input={}&SelectedName={name}.{extension}", Self::INPUT_ID)
+            format!("Input={}&SelectedName={name}.{extension}", self.input_id())
         }
     }
     fn get_selection_name(&self) -> String;
@@ -26,14 +26,14 @@ pub trait VMixSelectionTrait {
 
     fn value(&self) -> Option<String>;
 
-    const INPUT_ID: &'static str;
+    fn input_id(&self) -> &'static str;
 }
 
 #[derive(Clone)]
 pub struct VMixInterfacer<InputEnum: VMixSelectionTrait> {
-    value: Option<String>,
-    input: Option<InputEnum>,
-    function: VMixFunction,
+    pub value: Option<String>,
+    pub input: Option<InputEnum>,
+    pub function: VMixFunction,
 }
 
 impl VMixInterfacer<LeaderBoardProperty> {
@@ -246,7 +246,9 @@ impl VMixSelectionTrait for VMixPlayerInfo {
         None
     }
 
-    const INPUT_ID: &'static str = "8db7c455-e05c-4e65-821b-048cd7057cb1";
+    fn input_id(&self) -> &'static str {
+        "8db7c455-e05c-4e65-821b-048cd7057cb1"
+    }
 }
 
 pub struct CurrentPlayer(pub VMixPlayerInfo);
@@ -264,7 +266,9 @@ impl VMixSelectionTrait for CurrentPlayer {
         self.0.value()
     }
 
-    const INPUT_ID: &'static str = "03a31701-8b74-46f9-a9e0-9e263d7ba0be";
+    fn input_id(&self) -> &'static str {
+        "03a31701-8b74-46f9-a9e0-9e263d7ba0be"
+    }
 }
 
 impl VMixInterfacer<VMixPlayerInfo> {
@@ -357,7 +361,9 @@ impl VMixSelectionTrait for Compare2x2 {
         }
     }
 
-    const INPUT_ID: &'static str = "a4f106c7-db2c-4aa8-895b-076ba55de8a7";
+    fn input_id(&self) -> &'static str {
+        "a4f106c7-db2c-4aa8-895b-076ba55de8a7"
+    }
 }
 
 pub struct Featured(Compare2x2);
@@ -385,5 +391,7 @@ impl VMixSelectionTrait for Featured {
         self.0.value()
     }
 
-    const INPUT_ID: &'static str = "2994000d-afe5-44fc-a2c1-fc0993de21da";
+    fn input_id(&self) -> &'static str {
+        "2994000d-afe5-44fc-a2c1-fc0993de21da"
+    }
 }

@@ -1,16 +1,16 @@
 use std::sync::Arc;
 
-use itertools::Itertools;
-use rayon::prelude::*;
-
 use flipup_vmix_controls::LeaderBoardProperty;
 use flipup_vmix_controls::{Leaderboard, LeaderboardState};
+use itertools::Itertools;
 pub use player::Player;
 use player_queue_system::PlayerManager;
+use rayon::prelude::*;
 use vmix::functions::VMixInterfacer;
 use vmix::functions::{VMixPlayerInfo, VMixSelectionTrait};
 use vmix::VMixQueue;
 
+pub use super::*;
 use crate::api::{DivisionUpdate, Error, GeneralChannel, HoleUpdate, PlayerManagerUpdate};
 use crate::controller::get_data::RustHandler;
 use crate::controller::queries::Division;
@@ -19,8 +19,7 @@ use crate::vmix::functions::Compare2x2;
 use crate::{api, vmix};
 use crate::{dto, flipup_vmix_controls};
 
-pub use super::*;
-
+pub mod leaderboard_cycle;
 pub mod player;
 mod player_queue_system;
 mod simple_queries;
@@ -182,24 +181,25 @@ impl FlipUpVMixCoordinator {
         Ok(())
     }
 
-    pub fn next_featured_card(&mut self) {
+    pub fn next_featured_card(&mut self) -> Result<(), Error> {
         if !self.groups_featured_so_far as usize >= self.groups().len() {
             if let Some(group) = self
                 .groups()
-                .into_iter()
+                .iter()
                 .flatten()
                 .sorted_by_key(|group| group.start_time.unwrap())
                 .collect_vec()
                 .get(self.groups_featured_so_far as usize)
             {
                 self.featured_card.replace(group.player_ids());
-                self.update_featured_card();
+                self.update_featured_card()?;
                 self.groups_featured_so_far += 1;
             } else {
                 self.groups_featured_so_far += 1;
-                self.next_featured_card()
+                self.next_featured_card()?;
             }
         }
+        Ok(())
     }
 
     pub fn rewind_card(&mut self) {
@@ -429,7 +429,7 @@ impl FlipUpVMixCoordinator {
     }
 
     fn queue_add<T: VMixSelectionTrait>(&self, funcs: &[VMixInterfacer<T>]) {
-        self.vmix_queue.add(funcs)
+        self.vmix_queue.add_ref(funcs.into_iter())
     }
 
     fn set_current_through(&mut self) {

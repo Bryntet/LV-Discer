@@ -141,7 +141,9 @@ impl VMixSelectionTrait for VMixHoleInfo {
             Elevation(elevation) => fix_score(*elevation as isize),
         })
     }
-    const INPUT_ID: &'static str = "d9806a48-8766-40e0-b7fe-b217f9b1ef5b";
+    fn input_id(&self) -> &'static str {
+        "d9806a48-8766-40e0-b7fe-b217f9b1ef5b"
+    }
 }
 
 pub struct FeaturedHole(pub VMixHoleInfo);
@@ -158,7 +160,9 @@ impl VMixSelectionTrait for FeaturedHole {
         self.0.value()
     }
 
-    const INPUT_ID: &'static str = "0e9bec31-70a9-4566-a1ea-e050434c1cd2";
+    fn input_id(&self) -> &'static str {
+        "0e9bec31-70a9-4566-a1ea-e050434c1cd2"
+    }
 }
 
 pub enum DroneHoleInfo {
@@ -187,5 +191,7 @@ impl VMixSelectionTrait for DroneHoleInfo {
         }
     }
 
-    const INPUT_ID: &'static str = "d135d6d1-11ee-4169-9700-4c743d729218";
+    fn input_id(&self) -> &'static str {
+        "d135d6d1-11ee-4169-9700-4c743d729218"
+    }
 }
