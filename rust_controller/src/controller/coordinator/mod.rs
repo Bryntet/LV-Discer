@@ -303,10 +303,10 @@ impl FlipUpVMixCoordinator {
         let player = self.focused_player();
         let all = player.set_all_values(&self.leaderboard, false)?;
         let current = player.set_all_current_player_values(&all);
-
         self.queue_add(&all);
         self.queue_add(&current);
         updater.send(self);
+
         Ok(())
     }
 

@@ -51,6 +51,7 @@ pub async fn set_group(
     let mut coordinator = coordinator.lock().await;
     coordinator.set_group(group_id, updater)?;
     coordinator.leaderboard_division = coordinator.focused_player().division.clone();
+
     division_updater.send(coordinator.deref());
     Ok(())
 }
