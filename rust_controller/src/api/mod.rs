@@ -61,7 +61,6 @@ fn get_normal_routes() -> Vec<Route> {
         current_hole,
         amount_of_rounds,
         current_round,
-        rounds_structure,
         get_players,
         get_divisions,
         set_focus,

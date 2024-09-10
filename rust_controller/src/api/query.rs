@@ -26,14 +26,6 @@ pub async fn current_round(coordinator: Coordinator) -> Json<usize> {
     coordinator.lock().await.get_round().into()
 }
 
-/// # Rounds structure
-/// Used for preprocessing, i.e. when selecting parameters before coordinator is initialized
-#[openapi(tag = "Preprocessing")]
-#[get("/event/<event_id>/rounds")]
-pub async fn rounds_structure(event_id: String) -> Json<crate::dto::Rounds> {
-    crate::dto::get_rounds(event_id).await.unwrap().into()
-}
-
 #[openapi(tag = "Preprocessing")]
 #[get("/players")]
 pub async fn get_players(coordinator: Coordinator) -> Json<Vec<dto::Player>> {
@@ -61,6 +53,7 @@ pub async fn get_groups(coordinator: Coordinator) -> Json<Vec<dto::Group>> {
         .await
         .groups()
         .into_iter()
+        .flatten()
         .cloned()
         .collect_vec()
         .into()

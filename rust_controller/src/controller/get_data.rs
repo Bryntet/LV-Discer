@@ -187,11 +187,11 @@ impl From<&Player> for crate::flipup_vmix_controls::OverarchingScore {
 #[derive(Clone, Debug)]
 pub struct RustHandler {
     pub chosen_division: cynic::Id,
-    pub round_ids: Vec<String>,
+    pub round_ids: [Vec<String>; 3],
     player_container: PlayerContainer,
     divisions: Vec<Arc<queries::Division>>,
     round_ind: usize,
-    pub groups: Vec<Vec<dto::Group>>,
+    pub groups: [Vec<Vec<dto::Group>>; 3],
 }
 
 #[derive(Clone, Debug)]
@@ -230,36 +230,42 @@ impl PlayerContainer {
 }
 
 impl RustHandler {
-    pub async fn new(event_id: &str, round: usize) -> Result<Self, Error> {
+    pub async fn new(event_ids: [&'static str; 3], round: usize) -> Result<Self, Error> {
         let time = std::time::Instant::now();
-        let round_ids = Self::get_rounds(event_id).await?;
-        let event = Self::get_event(event_id, round_ids.clone()).await;
-        let groups = Self::get_groups(event_id).await;
+        let round_ids = Self::get_rounds(event_ids).await?;
+        let events = Self::get_event(event_ids, round_ids.clone()).await;
+        let groups = Self::get_groups(event_ids).await;
         warn!("Time taken to get event: {:?}", time.elapsed());
 
-        let divisions = event
+        let divisions: Vec<Arc<Division>> = events
             .iter()
-            .flat_map(|round| &round.event)
-            .flat_map(|event| event.divisions.clone())
-            .flatten()
-            .sorted_by_key(|div| div.name.to_owned())
-            .dedup_by(|a, b| a.id == b.id)
-            .map(Arc::new)
-            .collect::<Vec<_>>();
-        let holes = Self::get_holes(event_id, &divisions).await?;
+            .flat_map(|event| {
+                event
+                    .iter()
+                    .flat_map(|round| &round.event)
+                    .flat_map(|event| event.divisions.clone())
+                    .flatten()
+                    .sorted_by_key(|div| div.name.to_owned())
+                    .dedup_by(|a, b| a.id == b.id)
+                    .map(Arc::new)
+                    .collect_vec()
+            })
+            .collect_vec();
+        let holes = Self::get_holes(event_ids, &divisions).await?;
 
-        let mut container = PlayerContainer::new(
-            event
-                .into_par_iter()
+        let mut player_rounds: Vec<Vec<Player>> = vec![];
+        for (event_number, event) in events.into_iter().enumerate() {
+            let out = event
+                .into_iter()
+                .flat_map(|event| Some(event.event?))
                 .enumerate()
-                .flat_map(|(round_num, round)| Some((round_num, round.event?)))
-                .map(|(round_num, event)| {
+                .map(|(round_number, event)| {
                     event
                         .players
                         .into_iter()
                         .flat_map(|player| {
                             let id = player.id.clone().into_inner();
-                            let holes = holes
+                            let holes = holes[event_number]
                                 .iter()
                                 .find(|inner_holes| inner_holes.division.name == player.division.name)
                                 .unwrap_or({
@@ -269,10 +275,10 @@ impl RustHandler {
                                 .clone();
                             Player::from_query(
                                 player,
-                                round_num,
+                                round_number,
                                 holes,
                                 divisions.clone(),
-                                groups[round]
+                                groups[event_number][round]
                                     .iter()
                                     .find(|group| {
                                         group
@@ -283,17 +289,25 @@ impl RustHandler {
                                     })
                                     .map(|group| group.start_at_hole)
                                     .unwrap_or(0),
+                                event_number,
                             )
                         })
-                        .collect()
+                        .collect_vec()
                 })
-                .collect(),
-            round,
-        );
+                .collect_vec();
+            for (round_num, round_players) in out.into_iter().enumerate() {
+                match player_rounds.get_mut(round_num) {
+                    Some(players) => players.extend(round_players),
+                    None => player_rounds.push(round_players),
+                }
+            }
+        }
+
+        let mut container = PlayerContainer::new(player_rounds, round);
 
         for (i, round) in container.rounds_with_players.iter_mut().enumerate() {
             round.par_iter_mut().for_each(|player| {
-                if let Some(group_index) = groups[i]
+                if let Some(group_index) = groups[player.event_number][i]
                     .iter()
                     .flat_map(|group| &group.players)
                     .enumerate()
@@ -306,7 +320,7 @@ impl RustHandler {
         }
 
         Ok(Self {
-            chosen_division: divisions.first().expect("NO DIV CHOSEN").id.clone(),
+            chosen_division: divisions.first().unwrap().id.clone(),
             round_ids,
             player_container: container,
             divisions,
@@ -356,126 +370,144 @@ impl RustHandler {
         }
     }
     pub async fn get_event(
-        event_id: &str,
-        round_ids: Vec<String>,
-    ) -> Vec<queries::RoundResultsQuery> {
+        event_ids: [&str; 3],
+        round_ids: [Vec<String>; 3],
+    ) -> [Vec<queries::RoundResultsQuery>; 3] {
         use cynic::QueryBuilder;
         use queries::*;
-        let mut rounds = vec![];
-        for id in round_ids {
-            let operation = RoundResultsQuery::build(RoundResultsQueryVariables {
+        let mut out = vec![];
+        for (event_number, event_id) in event_ids.into_iter().enumerate() {
+            let mut rounds = vec![];
+            for round_id in &round_ids[event_number] {
+                let operation = RoundResultsQuery::build(RoundResultsQueryVariables {
+                    event_id: event_id.into(),
+                    round_id: round_id.to_owned().into(),
+                });
+                let response = reqwest::Client::new()
+                    .post("https://api.tjing.se/graphql")
+                    .json(&operation)
+                    .send()
+                    .await
+                    .expect("failed to send request");
+
+                let out = response
+                    .json::<GraphQlResponse<queries::RoundResultsQuery>>()
+                    .await
+                    .expect("failed to parse response")
+                    .data
+                    .unwrap();
+                rounds.push(out);
+            }
+            out.push(rounds);
+        }
+        out.try_into().unwrap()
+    }
+
+    pub async fn get_rounds(event_ids: [&str; 3]) -> Result<[Vec<String>; 3], Error> {
+        use cynic::QueryBuilder;
+        use queries::round::{RoundsQuery, RoundsQueryVariables};
+        let mut out = vec![];
+        for event_id in event_ids {
+            let body = RoundsQuery::build(RoundsQueryVariables {
                 event_id: event_id.into(),
-                round_id: id.to_owned().into(),
             });
             let response = reqwest::Client::new()
                 .post("https://api.tjing.se/graphql")
-                .json(&operation)
+                .json(&body)
                 .send()
                 .await
-                .expect("failed to send request");
-
-            let out = response
-                .json::<GraphQlResponse<queries::RoundResultsQuery>>()
-                .await
-                .expect("failed to parse response")
-                .data
-                .unwrap();
-            rounds.push(out);
+                .map_err(|_| Error::UnableToParse)?
+                .json::<GraphQlResponse<RoundsQuery>>()
+                .await;
+            out.push(
+                response
+                    .unwrap()
+                    .data
+                    .unwrap()
+                    .event
+                    .unwrap()
+                    .rounds
+                    .into_iter()
+                    .flatten()
+                    .map(|round| round.id.into_inner())
+                    .collect_vec(),
+            );
         }
-        rounds
+        Ok(out.try_into().unwrap())
     }
 
-    pub async fn get_rounds(event_id: &str) -> Result<Vec<String>, Error> {
-        use cynic::QueryBuilder;
-        use queries::round::{RoundsQuery, RoundsQueryVariables};
-        let body = RoundsQuery::build(RoundsQueryVariables {
-            event_id: event_id.into(),
-        });
-        let response = reqwest::Client::new()
-            .post("https://api.tjing.se/graphql")
-            .json(&body)
-            .send()
-            .await
-            .map_err(|_| Error::UnableToParse)?
-            .json::<GraphQlResponse<RoundsQuery>>()
-            .await;
-        Ok(response
-            .unwrap()
-            .data
-            .unwrap()
-            .event
-            .unwrap()
-            .rounds
-            .into_iter()
-            .flatten()
-            .map(|round| round.id.into_inner())
-            .collect_vec())
-    }
-
-    pub async fn get_holes(event_id: &str, divs: &[Arc<Division>]) -> Result<Vec<Holes>, Error> {
+    pub async fn get_holes(
+        event_ids: [&'static str; 3],
+        divs: &[Arc<Division>],
+    ) -> Result<[Vec<Holes>; 3], Error> {
         use cynic::QueryBuilder;
         use queries::layout::{HoleLayoutQuery, HoleLayoutQueryVariables};
-        let body = HoleLayoutQuery::build(HoleLayoutQueryVariables {
-            event_id: event_id.into(),
-        });
+        let mut out = vec![];
+        for event_id in event_ids {
+            let body = HoleLayoutQuery::build(HoleLayoutQueryVariables {
+                event_id: event_id.into(),
+            });
 
-        let holes = reqwest::Client::new()
-            .post("https://api.tjing.se/graphql")
-            .json(&body)
-            .send()
-            .await
-            .unwrap()
-            .json::<GraphQlResponse<HoleLayoutQuery>>()
-            .await
-            .unwrap();
-        let holes = {
-            let Some(data) = holes.data else {
-                return Err(Error::UnableToParse);
-            };
-            let Some(event) = data.event else {
-                return Err(Error::UnableToParse);
-            };
-            let division_pool_thing = event.division_in_pool.into_iter().flatten().collect_vec();
-
-            let mut rounds_holes = vec![];
-            for round in event.rounds {
-                let Some(round) = round else {
+            let holes = reqwest::Client::new()
+                .post("https://api.tjing.se/graphql")
+                .json(&body)
+                .send()
+                .await
+                .unwrap()
+                .json::<GraphQlResponse<HoleLayoutQuery>>()
+                .await
+                .unwrap();
+            let holes = {
+                let Some(data) = holes.data else {
                     return Err(Error::UnableToParse);
                 };
-                let div_holes = round
-                    .pools
-                    .into_iter()
-                    .map(|pool| {
-                        (
-                            divs.iter()
-                                .find(|div| {
-                                    div.id
-                                        == division_pool_thing
-                                            .iter()
-                                            .find(|thing| pool.id == thing.pool_id)
-                                            .map(|div| div.division_id.clone())
-                                            .unwrap_or(cynic::Id::new(""))
-                                })
-                                .unwrap_or(&Arc::new(Division::default()))
-                                .clone(),
-                            pool.layout_version.holes,
-                        )
-                    })
-                    .collect_vec();
-                for (div, holes) in div_holes {
-                    match Holes::from_vec_hole(holes, div.clone()) {
-                        Err(e) => return Err(e),
-                        Ok(holes) => rounds_holes.push(holes),
+                let Some(event) = data.event else {
+                    return Err(Error::UnableToParse);
+                };
+                let division_pool_thing =
+                    event.division_in_pool.into_iter().flatten().collect_vec();
+
+                let mut rounds_holes = vec![];
+                for round in event.rounds {
+                    let Some(round) = round else {
+                        return Err(Error::UnableToParse);
+                    };
+                    let div_holes = round
+                        .pools
+                        .into_iter()
+                        .map(|pool| {
+                            (
+                                divs.iter()
+                                    .find(|div| {
+                                        div.id
+                                            == division_pool_thing
+                                                .iter()
+                                                .find(|thing| pool.id == thing.pool_id)
+                                                .map(|div| div.division_id.clone())
+                                                .unwrap_or(cynic::Id::new(""))
+                                    })
+                                    .unwrap_or(&Arc::new(Division::default()))
+                                    .clone(),
+                                pool.layout_version.holes,
+                            )
+                        })
+                        .collect_vec();
+                    for (div, holes) in div_holes {
+                        match Holes::from_vec_hole(holes, div.clone()) {
+                            Err(e) => return Err(e),
+                            Ok(holes) => rounds_holes.push(holes),
+                        }
                     }
                 }
-            }
-            rounds_holes
-        };
+                rounds_holes
+            };
 
-        Ok(holes)
+            out.push(holes);
+        }
+        Ok(out.try_into().unwrap())
     }
 
-    pub fn groups(&self) -> &Vec<dto::Group> {
+    pub fn groups(&self) -> &Vec<Vec<dto::Group>> {
         self.groups.get(self.round_ind).unwrap()
     }
 
@@ -483,45 +515,56 @@ impl RustHandler {
         self.divisions.clone()
     }
 
-    async fn get_groups(event_id: &str) -> Vec<Vec<dto::Group>> {
+    async fn get_groups(event_ids: [&str; 3]) -> [Vec<Vec<dto::Group>>; 3] {
         use cynic::QueryBuilder;
         use queries::group::{GroupsQuery, GroupsQueryVariables};
-        let body = GroupsQuery::build(GroupsQueryVariables {
-            event_id: event_id.into(),
-        });
+        let mut out = vec![];
+        for event_id in event_ids {
+            let body = GroupsQuery::build(GroupsQueryVariables {
+                event_id: event_id.into(),
+            });
 
-        let groups = reqwest::Client::new()
-            .post("https://api.tjing.se/graphql")
-            .json(&body)
-            .send()
-            .await
-            .unwrap()
-            .json::<GraphQlResponse<GroupsQuery>>()
-            .await
-            .unwrap();
+            let groups = reqwest::Client::new()
+                .post("https://api.tjing.se/graphql")
+                .json(&body)
+                .send()
+                .await
+                .unwrap()
+                .json::<GraphQlResponse<GroupsQuery>>()
+                .await
+                .unwrap();
 
-        groups
-            .data
-            .unwrap()
-            .event
-            .unwrap()
-            .rounds
-            .into_iter()
-            .flatten()
-            .map(|round: queries::group::Round| {
-                round
-                    .pools
+            out.push(
+                groups
+                    .data
+                    .unwrap()
+                    .event
+                    .unwrap()
+                    .rounds
                     .into_iter()
-                    .flat_map(|pool| pool.groups)
-                    .dedup_by(|group1, group2| group1.id == group2.id)
-                    .map(dto::Group::from)
-                    .collect_vec()
-            })
-            .collect_vec()
+                    .flatten()
+                    .map(|round: queries::group::Round| {
+                        round
+                            .pools
+                            .into_iter()
+                            .flat_map(|pool| pool.groups)
+                            .dedup_by(|group1, group2| group1.id == group2.id)
+                            .map(dto::Group::from)
+                            .collect_vec()
+                    })
+                    .collect_vec(),
+            );
+        }
+        out.try_into().unwrap()
     }
 
-    pub fn round_id(&self) -> &str {
-        &self.round_ids[self.round_ind]
+    pub fn round_ids(&self) -> [String; 3] {
+        self.round_ids
+            .iter()
+            .map(|events_rounds| events_rounds[self.round_ind].to_owned())
+            .collect_vec()
+            .try_into()
+            .unwrap()
     }
 
     pub fn amount_of_rounds(&self) -> usize {

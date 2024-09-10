@@ -38,7 +38,7 @@ pub struct FlipUpVMixCoordinator {
     current_through: u8,
     pub vmix_queue: Arc<VMixQueue>,
     player_manager: PlayerManager,
-    pub event_id: String,
+    pub event_ids: [&'static str; 3],
     featured_card: PlayerManager,
     featured_hole: u8,
     groups_featured_so_far: u8,
@@ -48,19 +48,33 @@ pub struct FlipUpVMixCoordinator {
 impl FlipUpVMixCoordinator {
     pub async fn new(
         ip: String,
-        event_id: String,
+        _event_id: String,
         focused_player: usize,
         round: usize,
         featured_hole: u8,
     ) -> Result<Self, Error> {
         let queue = VMixQueue::new(ip.clone())?;
-        let handler = RustHandler::new(&event_id, round).await?;
+        let event_ids = [
+            "0bb0326d-24f7-47ba-afef-6d77fb82b6f3",
+            "2d1d0555-dadc-43a6-aeb4-443de849d141",
+            "a8294ab0-2a94-4a4c-b54f-c967ef9a90c6",
+        ];
+        let handler = RustHandler::new(event_ids, round).await?;
 
         let all_divs = handler.get_divisions();
-        let first_group = handler.groups.first().unwrap().first().unwrap();
+        let first_group = handler
+            .groups
+            .first()
+            .unwrap()
+            .first()
+            .unwrap()
+            .first()
+            .unwrap();
 
         let card_starts_at_hole = handler
             .groups
+            .first()
+            .unwrap()
             .get(round)
             .unwrap()
             .iter()
@@ -88,7 +102,7 @@ impl FlipUpVMixCoordinator {
             round_ind: round,
             current_through: 0,
             vmix_queue: Arc::new(queue),
-            event_id,
+            event_ids,
             groups_featured_so_far: 1,
             featured_hole,
             leaderboard_round: round,
@@ -173,6 +187,7 @@ impl FlipUpVMixCoordinator {
             if let Some(group) = self
                 .groups()
                 .into_iter()
+                .flatten()
                 .sorted_by_key(|group| group.start_time.unwrap())
                 .collect_vec()
                 .get(self.groups_featured_so_far as usize)
@@ -283,8 +298,8 @@ impl FlipUpVMixCoordinator {
             .dto_players(self.available_players(), true)
     }
 
-    pub fn round_id(&self) -> &str {
-        self.handler.round_id()
+    pub fn round_ids(&self) -> [String; 3] {
+        self.handler.round_ids()
     }
 
     pub fn set_group(
@@ -295,6 +310,7 @@ impl FlipUpVMixCoordinator {
         let groups = self.groups();
         let ids = groups
             .iter()
+            .flatten()
             .find(|group| group.id == group_id)
             .ok_or(Error::UnableToParse)?
             .player_ids();
@@ -318,6 +334,7 @@ impl FlipUpVMixCoordinator {
         let group = self
             .groups()
             .into_par_iter()
+            .flatten()
             .find_first(|group| group.player_ids().iter().contains(&focused_player_id))
             .expect("Player needs to be in group");
 
@@ -360,11 +377,23 @@ impl FlipUpVMixCoordinator {
     }
 
     pub fn dto_rounds(&self) -> Vec<dto::SimpleRound> {
-        self.handler
-            .round_ids
-            .iter()
+        let mut round_ids: Vec<Vec<String>> = vec![];
+        self.handler.round_ids.iter().for_each(|ids| {
+            ids.iter()
+                .enumerate()
+                .for_each(|(round, round_id)| match round_ids.get_mut(round) {
+                    Some(rounds) => rounds.push(round_id.to_owned()),
+                    None => round_ids.push(vec![round_id.to_owned()]),
+                })
+        });
+        round_ids
+            .into_iter()
+            .map(|ids| {
+                let ids: [String; 3] = ids.try_into().unwrap();
+                ids
+            })
             .enumerate()
-            .map(|(round, id)| SimpleRound::new(round, id.clone(), round == self.leaderboard_round))
+            .map(|(round, id)| SimpleRound::new(round, id, round == self.leaderboard_round))
             .collect()
     }
     pub fn amount_of_rounds(&self) -> usize {
@@ -381,8 +410,8 @@ impl FlipUpVMixCoordinator {
         self.handler.find_player_mut(&id).unwrap()
     }
 
-    pub fn groups(&self) -> Vec<&dto::Group> {
-        self.handler.groups().iter().collect_vec()
+    pub fn groups(&self) -> &Vec<Vec<dto::Group>> {
+        self.handler.groups()
     }
 
     pub fn current_players(&self) -> Vec<&Player> {

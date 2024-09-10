@@ -270,6 +270,7 @@ pub struct Player {
     pub division: Arc<Division>,
     image_location: Option<String>,
     pub holes: Holes,
+    pub event_number: usize,
 }
 
 impl Player {
@@ -279,6 +280,7 @@ impl Player {
         holes: Holes,
         divisions: Vec<Arc<Division>>,
         starts_at_hole: u8,
+        event_number: usize,
     ) -> Result<Self, Error> {
         let mut first_name = player.user.first_name.unwrap();
         let mut surname = player.user.last_name.unwrap();
@@ -338,6 +340,7 @@ impl Player {
             division,
             image_location,
             holes,
+            event_number,
             ..Default::default()
         })
     }

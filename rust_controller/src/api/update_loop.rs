@@ -97,47 +97,54 @@ pub async fn update_loop(coordinator: Arc<Mutex<FlipUpVMixCoordinator>>) {
     let temp_coordinator = coordinator.lock().await;
     let mut tjing_result_map = TjingResultMap::new(temp_coordinator.available_players());
 
-    let tjing_request = crate::controller::coordinator::queries::RoundResultsQuery::build(
-        RoundResultsQueryVariables {
-            round_id: temp_coordinator.round_id().to_owned().into(),
-            event_id: temp_coordinator.event_id.to_owned().into(),
-        },
-    );
-    let reqwest_client = reqwest::Client::new();
-    std::mem::drop(temp_coordinator);
+    let mut requests = vec![];
+    let round_ids = temp_coordinator.round_ids();
+    for (event_number, event_id) in temp_coordinator.event_ids.iter().enumerate() {
+        let tjing_request = crate::controller::coordinator::queries::RoundResultsQuery::build(
+            RoundResultsQueryVariables {
+                round_id: round_ids[event_number].to_owned().into(),
+                event_id: event_id.to_owned().into(),
+            },
+        );
+        requests.push(tjing_request)
+    }
+    drop(temp_coordinator);
+
     loop {
-        if let Ok(response) = reqwest::Client::new()
-            .post("https://api.tjing.se/graphql")
-            .json(&tjing_request)
-            .send()
-            .await
-        {
-            if let Ok(GraphQlResponse {
-                data:
-                    Some(RoundResultsQuery {
-                        event: Some(controller::queries::Event { players, .. }),
-                    }),
-                ..
-            }) = response.json::<GraphQlResponse<RoundResultsQuery>>().await
+        for tjing_request in &requests {
+            if let Ok(response) = reqwest::Client::new()
+                .post("https://api.tjing.se/graphql")
+                .json(&tjing_request)
+                .send()
+                .await
             {
-                if tjing_result_map.update_all_players(
-                    players
-                        .into_iter()
-                        .flat_map(|player| Some((player.id.into_inner(), player.results?)))
-                        .collect_vec(),
-                ) {
-                    let mut coordinator = coordinator.lock().await;
-                    coordinator
-                        .available_players_mut()
-                        .into_iter()
-                        .for_each(|player| tjing_result_map.update_mut_player(player));
-                    let div = coordinator.focused_player().division.clone();
-                    let queue = coordinator.vmix_queue.clone();
-                    coordinator.add_state_to_leaderboard();
-                    coordinator.leaderboard.update_little_lb(&div, queue);
+                if let Ok(GraphQlResponse {
+                    data:
+                        Some(RoundResultsQuery {
+                            event: Some(controller::queries::Event { players, .. }),
+                        }),
+                    ..
+                }) = response.json::<GraphQlResponse<RoundResultsQuery>>().await
+                {
+                    if tjing_result_map.update_all_players(
+                        players
+                            .into_iter()
+                            .flat_map(|player| Some((player.id.into_inner(), player.results?)))
+                            .collect_vec(),
+                    ) {
+                        let mut coordinator = coordinator.lock().await;
+                        coordinator
+                            .available_players_mut()
+                            .into_iter()
+                            .for_each(|player| tjing_result_map.update_mut_player(player));
+                        let div = coordinator.focused_player().division.clone();
+                        let queue = coordinator.vmix_queue.clone();
+                        coordinator.add_state_to_leaderboard();
+                        coordinator.leaderboard.update_little_lb(&div, queue);
+                    }
                 }
             }
+            tokio::time::sleep(tokio::time::Duration::new(5, 0)).await;
         }
-        tokio::time::sleep(tokio::time::Duration::new(5, 0)).await;
     }
 }
