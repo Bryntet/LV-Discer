@@ -1,11 +1,11 @@
-use std::collections::HashSet;
-use std::sync::Arc;
-
 use cynic::GraphQlResponse;
 use itertools::Itertools;
 use log::warn;
 use rayon::prelude::*;
 use rocket::futures::{FutureExt, StreamExt};
+use std::collections::HashSet;
+use std::sync::Arc;
+use std::time::Duration;
 
 use crate::api::Error;
 use crate::controller::coordinator::player::{Player, PlayerRound};
@@ -232,8 +232,11 @@ impl PlayerContainer {
 impl RustHandler {
     pub async fn new(event_ids: [&'static str; 3], round: usize) -> Result<Self, Error> {
         let time = std::time::Instant::now();
+        dbg!("hello");
         let round_ids = Self::get_rounds(event_ids).await?;
+        dbg!("next");
         let events = Self::get_event(event_ids, round_ids.clone()).await;
+        dbg!("hi");
         let groups = Self::get_groups(event_ids).await;
         warn!("Time taken to get event: {:?}", time.elapsed());
 
@@ -432,6 +435,7 @@ impl RustHandler {
                     .map(|round| round.id.into_inner())
                     .collect_vec(),
             );
+            tokio::time::sleep(Duration::from_secs(5)).await;
         }
         Ok(out.try_into().unwrap())
     }

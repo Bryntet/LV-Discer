@@ -79,7 +79,9 @@ impl LeaderboardCycle {
 pub fn start_leaderboard_cycle(
     coordinator: Arc<Mutex<FlipUpVMixCoordinator>>,
 ) -> Arc<Mutex<LeaderboardCycle>> {
+    dbg!("here");
     let cycle = Arc::new(Mutex::new(LeaderboardCycle::new(coordinator)));
+    dbg!("after here");
     let loop_cycle = cycle.clone();
     tokio::spawn(async move {
         let cycle = loop_cycle;

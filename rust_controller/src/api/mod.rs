@@ -152,10 +152,13 @@ pub fn launch() -> Rocket<Build> {
         .mount("/htmx/", get_webpage_routes())
         .mount("/ws", get_websocket_routes())
         .mount("/ws/htmx/", get_websocket_htmx_routes())
-        .mount(
-            "/static",
-            FileServer::from("C:\\livegrafik-flipup\\_conf\\static"),
-        )
+        .mount("/static", {
+            if cfg!(target_os = "windows") {
+                FileServer::from("C:\\livegrafik-flipup\\_conf\\static")
+            } else {
+                FileServer::from("static")
+            }
+        })
         .attach(Template::fairing())
         .register("/", catchers![make_coordinator,])
         .mount(
