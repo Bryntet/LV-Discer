@@ -603,7 +603,7 @@ mod prop {
         RoundScore { pos: usize },
         TotalScore { pos: usize },
         Thru { pos: usize },
-        LeaderboardDivision,
+        DivisionName,
     }
     impl VMixSelectionTrait for LeaderboardTop6 {
         fn get_selection_name(&self) -> String {
@@ -616,7 +616,7 @@ mod prop {
                 RoundScore { pos } => format!("p{pos}scorernd"),
                 TotalScore { pos } => format!("p{pos}scoretot"),
                 Thru { pos } => format!("p{pos}thru"),
-                LeaderboardDivision => "top6txt".to_string(),
+                DivisionName => "top6txt".to_string(),
             }
         }
         fn data_extension(&self) -> &'static str {
@@ -649,7 +649,7 @@ mod prop {
                 LeaderBoardProperty::RoundScore(pos) => Some(LeaderboardTop6::RoundScore { pos }),
 
                 LeaderBoardProperty::Name(pos) => Some(LeaderboardTop6::Name { pos }),
-                LeaderBoardProperty::CheckinText => Some(LeaderboardTop6::LeaderboardDivision),
+                LeaderBoardProperty::CheckinText => Some(LeaderboardTop6::DivisionName),
             }
         }
     }
