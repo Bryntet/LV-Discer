@@ -11,7 +11,7 @@ use serde_json::json;
 use crate::api::guard::CoordinatorLoader;
 use crate::api::websocket::channels::DivisionUpdate;
 use crate::api::websocket::htmx::division_updater;
-use crate::api::websocket::LeaderboardRoundUpdate;
+use crate::api::websocket::{hole_finished_alert, HoleFinishedAlert, LeaderboardRoundUpdate};
 use crate::api::{Coordinator, Error, GeneralChannel, PlayerManagerUpdate};
 use crate::dto;
 use crate::dto::{CoordinatorBuilder, HoleSetting};
@@ -21,8 +21,8 @@ use crate::dto::{CoordinatorBuilder, HoleSetting};
 pub async fn set_focus(
     focused_player: usize,
     coordinator: Coordinator,
-    player_updater: &GeneralChannel<PlayerManagerUpdate>,
-    division_updater: &GeneralChannel<DivisionUpdate>,
+    player_updater: GeneralChannel<PlayerManagerUpdate>,
+    division_updater: GeneralChannel<DivisionUpdate>,
 ) -> Result<Json<dto::Player>, Error> {
     let mut coordinator = coordinator.lock().await;
 
@@ -35,9 +35,13 @@ pub async fn set_focus(
 
 #[openapi(tag = "Config")]
 #[post("/init", data = "<builder>")]
-pub async fn load(loader: &State<CoordinatorLoader>, builder: Json<CoordinatorBuilder>) {
+pub async fn load(
+    loader: &State<CoordinatorLoader>,
+    builder: Json<CoordinatorBuilder>,
+    hole_finished_alert: GeneralChannel<HoleFinishedAlert>,
+) {
     let coordinator = builder.into_inner().into_coordinator().await.unwrap();
-    *loader.0.lock().await = Some(coordinator.into_coordinator().await);
+    *loader.0.lock().await = Some(coordinator.into_coordinator(hole_finished_alert).await);
 }
 
 #[openapi(tag = "Config")]
@@ -45,14 +49,14 @@ pub async fn load(loader: &State<CoordinatorLoader>, builder: Json<CoordinatorBu
 pub async fn set_group(
     coordinator: Coordinator,
     group_id: &str,
-    updater: &GeneralChannel<PlayerManagerUpdate>,
-    division_updater: &GeneralChannel<DivisionUpdate>,
+    updater: GeneralChannel<PlayerManagerUpdate>,
+    division_updater: GeneralChannel<DivisionUpdate>,
 ) -> Result<(), Error> {
     let mut coordinator = coordinator.lock().await;
     coordinator.set_group(group_id, updater)?;
     coordinator.leaderboard_division = coordinator.focused_player().division.clone();
 
-    division_updater.send(coordinator.deref());
+    division_updater.send_from_coordinator(coordinator.deref());
     Ok(())
 }
 
@@ -77,13 +81,13 @@ pub async fn rewind_lb_pos(coordinator: Coordinator) {
 #[post("/players/focused/set-group")]
 pub async fn set_group_to_focused_player(
     coordinator: Coordinator,
-    updater: &GeneralChannel<PlayerManagerUpdate>,
-    division_updater: &GeneralChannel<DivisionUpdate>,
+    updater: GeneralChannel<PlayerManagerUpdate>,
+    division_updater: GeneralChannel<DivisionUpdate>,
 ) -> Result<(), Error> {
     let mut coordinator = coordinator.lock().await;
     coordinator.update_group_to_focused_player_group(updater)?;
     coordinator.leaderboard_division = coordinator.focused_player().division.clone();
-    division_updater.send(coordinator.deref());
+    division_updater.send_from_coordinator(coordinator.deref());
     Ok(())
 }
 
@@ -120,7 +124,7 @@ pub async fn set_score_ready(coordinator: Coordinator, player_id: &str) -> Resul
 #[post("/player/<player_id>/add-to-queue", data = "<hole_setting>")]
 pub async fn add_to_queue(
     coordinator: Coordinator,
-    channel: &GeneralChannel<PlayerManagerUpdate>,
+    channel: GeneralChannel<PlayerManagerUpdate>,
     player_id: &str,
     hole_setting: Form<dto::HoleSetting>,
 ) -> Result<(), Error> {
@@ -137,7 +141,7 @@ pub async fn add_to_queue(
 #[post("/players/queue/next")]
 pub async fn next_queue(
     coordinator: Coordinator,
-    channel: &GeneralChannel<PlayerManagerUpdate>,
+    channel: GeneralChannel<PlayerManagerUpdate>,
 ) -> Result<(), Error> {
     coordinator.lock().await.next_queued(channel)?;
     Ok(())
@@ -148,7 +152,7 @@ pub async fn next_queue(
 pub async fn update_division(
     co: Coordinator,
     division: &str,
-    channel: &GeneralChannel<DivisionUpdate>,
+    channel: GeneralChannel<DivisionUpdate>,
 ) -> Result<(), Error> {
     let mut co = co.lock().await;
     let div = co
@@ -166,7 +170,7 @@ pub async fn update_division(
 pub async fn update_division_form(
     co: Coordinator,
     division: &str,
-    channel: &GeneralChannel<DivisionUpdate>,
+    channel: GeneralChannel<DivisionUpdate>,
 ) -> Result<(), Error> {
     let mut co = co.lock().await;
     let div = co
@@ -202,12 +206,12 @@ pub async fn rewind_featured_hole_card(coordinator: Coordinator) {
 pub async fn set_leaderboard_round(
     coordinator: Coordinator,
     round: usize,
-    watcher: &GeneralChannel<LeaderboardRoundUpdate>,
+    watcher: GeneralChannel<LeaderboardRoundUpdate>,
 ) {
     let round = round - 1;
     let mut co = coordinator.lock().await;
     co.leaderboard_round = round;
-    watcher.send(&co);
+    watcher.send_from_coordinator(&co);
     co.reset_leaderboard_skip();
     co.set_leaderboard(None);
 }

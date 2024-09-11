@@ -1,22 +1,25 @@
-use std::fmt::Debug;
-use std::marker::PhantomData;
-
 use itertools::Itertools;
 use rocket::serde::Serialize;
 use rocket_dyn_templates::Metadata;
 use rocket_ws::Message;
 use serde_json::json;
+use std::fmt::Debug;
+use std::sync::Arc;
 
 use crate::controller::coordinator::FlipUpVMixCoordinator;
 use crate::dto;
 use crate::dto::Division;
-
+#[derive(Clone)]
 pub struct GeneralChannel<T: ChannelAttributes> {
-    sender: tokio::sync::broadcast::Sender<T>,
+    sender: Arc<tokio::sync::broadcast::Sender<T>>,
 }
 impl<T: ChannelAttributes> GeneralChannel<T> {
-    pub fn send(&self, coordinator: &FlipUpVMixCoordinator) {
+    pub fn send_from_coordinator(&self, coordinator: &FlipUpVMixCoordinator) {
         let t = T::from(coordinator);
+        self.send(t)
+    }
+
+    pub fn send(&self, t: T) {
         match self.sender.send(t) {
             Ok(_) => (),
             Err(e) => warn!("Error sending message: {:?}", e),
@@ -30,7 +33,9 @@ impl<T: ChannelAttributes> GeneralChannel<T> {
 
 impl<T: ChannelAttributes> From<tokio::sync::broadcast::Sender<T>> for GeneralChannel<T> {
     fn from(sender: tokio::sync::broadcast::Sender<T>) -> Self {
-        Self { sender }
+        Self {
+            sender: Arc::new(sender),
+        }
     }
 }
 
@@ -154,5 +159,28 @@ impl ChannelAttributes for LeaderboardRoundUpdate {
         metadata
             .render("rounds", json!({"rounds":self.rounds}))
             .map(|(_, message)| Message::from(message))
+    }
+}
+
+#[derive(Clone, Debug)]
+pub enum HoleFinishedAlert {
+    JustFinished,
+    SecondSend,
+}
+
+impl From<&FlipUpVMixCoordinator> for HoleFinishedAlert {
+    fn from(value: &FlipUpVMixCoordinator) -> Self {
+        Self::JustFinished
+    }
+}
+impl ChannelAttributes for HoleFinishedAlert {
+    fn try_into_message(self) -> Option<Message> {
+        Some(Message::from(match self {
+            HoleFinishedAlert::JustFinished => "NU",
+            HoleFinishedAlert::SecondSend => "SEN",
+        }))
+    }
+    fn make_html(self, metadata: &Metadata) -> Option<Message> {
+        None
     }
 }

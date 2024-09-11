@@ -8,7 +8,8 @@ use rocket_ws::Message;
 use serde::Deserialize;
 
 pub use channels::{
-    ChannelAttributes, DivisionUpdate, LeaderboardRoundUpdate, PlayerManagerUpdate,
+    ChannelAttributes, DivisionUpdate, HoleFinishedAlert, LeaderboardRoundUpdate,
+    PlayerManagerUpdate,
 };
 
 use crate::api::websocket::channels::{GeneralChannel, HoleUpdate};
@@ -22,8 +23,8 @@ pub mod htmx;
 async fn interpret_message(
     message: Message,
     coordinator: &Coordinator,
-    player_updater: &GeneralChannel<PlayerManagerUpdate>,
-    division_updater: &GeneralChannel<DivisionUpdate>,
+    player_updater: GeneralChannel<PlayerManagerUpdate>,
+    division_updater: GeneralChannel<DivisionUpdate>,
 ) -> Result<Interpreter, serde_json::Error> {
     let interpreter: Interpreter = serde_json::from_str(&message.to_string())?;
     if let Ok(num) = interpreter.message.parse::<usize>() {
@@ -33,12 +34,9 @@ async fn interpret_message(
     Ok(interpreter)
 }
 
-pub async fn make_watcher_websocket<
-    'r,
-    T: for<'a> From<&'a FlipUpVMixCoordinator> + ChannelAttributes + Send + Clone + Debug,
->(
+pub async fn make_watcher_websocket<'r, T: ChannelAttributes + 'r>(
     ws: ws::WebSocket,
-    coordinator: &'r State<GeneralChannel<T>>,
+    coordinator: GeneralChannel<T>,
     shutdown: Shutdown,
 ) -> ws::Channel<'r> {
     use rocket::futures::SinkExt;
@@ -65,7 +63,7 @@ pub async fn make_watcher_websocket<
 #[get("/players/selected/watch")]
 pub async fn selection_watcher<'r>(
     ws: ws::WebSocket,
-    queue: &'r State<GeneralChannel<PlayerManagerUpdate>>,
+    queue: GeneralChannel<PlayerManagerUpdate>,
     shutdown: Shutdown,
 ) -> ws::Channel<'r> {
     make_watcher_websocket(ws, queue, shutdown).await
@@ -74,18 +72,27 @@ pub async fn selection_watcher<'r>(
 #[get("/hole/watch")]
 pub async fn hole_watcher(
     ws: ws::WebSocket,
-    hole_watcher: &State<GeneralChannel<HoleUpdate>>,
+    hole_watcher: GeneralChannel<HoleUpdate>,
     shutdown: Shutdown,
-) -> ws::Channel {
+) -> ws::Channel<'static> {
     make_watcher_websocket(ws, hole_watcher, shutdown).await
 }
 
 #[get("/rounds")]
 pub async fn leaderboard_round_watcher(
     ws: ws::WebSocket,
-    watcher: &State<GeneralChannel<LeaderboardRoundUpdate>>,
+    watcher: GeneralChannel<LeaderboardRoundUpdate>,
     shutdown: Shutdown,
-) -> ws::Channel {
+) -> ws::Channel<'static> {
+    make_watcher_websocket(ws, watcher, shutdown).await
+}
+
+#[get("/hole-finished-alert/watch")]
+pub async fn hole_finished_alert(
+    ws: ws::WebSocket,
+    watcher: GeneralChannel<HoleFinishedAlert>,
+    shutdown: Shutdown,
+) -> ws::Channel<'static> {
     make_watcher_websocket(ws, watcher, shutdown).await
 }
 #[derive(Deserialize, Debug)]

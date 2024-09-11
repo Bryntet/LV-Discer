@@ -36,15 +36,21 @@ impl<'r> FromRequest<'r> for Coordinator {
 }
 
 #[rocket::async_trait]
-impl<'r, T: ChannelAttributes + 'static> FromRequest<'r> for &'r GeneralChannel<T> {
+impl<'r, T: ChannelAttributes + 'static> FromRequest<'r> for GeneralChannel<T> {
     type Error = ();
 
     async fn from_request(request: &'r Request<'_>) -> Outcome<Self, Self::Error> {
-        Outcome::Success(request.rocket().state::<GeneralChannel<T>>().unwrap())
+        Outcome::Success(
+            request
+                .rocket()
+                .state::<GeneralChannel<T>>()
+                .unwrap()
+                .clone(),
+        )
     }
 }
 
-impl<'r, T: ChannelAttributes + 'static> OpenApiFromRequest<'r> for &'r GeneralChannel<T> {
+impl<'r, T: ChannelAttributes + 'static> OpenApiFromRequest<'r> for GeneralChannel<T> {
     fn from_request_input(
         gen: &mut OpenApiGenerator,
         name: String,

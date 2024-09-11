@@ -208,8 +208,8 @@ impl FlipUpVMixCoordinator {
     pub fn set_focused_player(
         &mut self,
         index: usize,
-        player_updater: &GeneralChannel<api::PlayerManagerUpdate>,
-        division_updater: &GeneralChannel<DivisionUpdate>,
+        player_updater: GeneralChannel<api::PlayerManagerUpdate>,
+        division_updater: GeneralChannel<DivisionUpdate>,
     ) -> Result<(), Error> {
         if index >= self.player_manager.players(self.available_players()).len() {
             return Err(Error::CardIndexNotFound(index));
@@ -226,8 +226,8 @@ impl FlipUpVMixCoordinator {
             .set_all_current_player_values(&all_values);
         self.queue_add(&all_values);
         self.queue_add(&current);
-        player_updater.send(self);
-        division_updater.send(self);
+        player_updater.send_from_coordinator(self);
+        division_updater.send_from_coordinator(self);
         Ok(())
     }
 
@@ -236,7 +236,7 @@ impl FlipUpVMixCoordinator {
         player_id: String,
         hole: Option<u8>,
         throw: Option<u8>,
-        channel: &GeneralChannel<PlayerManagerUpdate>,
+        channel: GeneralChannel<PlayerManagerUpdate>,
     ) {
         if let Some(player) = self.find_player_mut(&player_id) {
             let hole = match hole {
@@ -250,12 +250,12 @@ impl FlipUpVMixCoordinator {
         }
 
         self.player_manager.add_to_queue(player_id);
-        channel.send(self);
+        channel.send_from_coordinator(self);
     }
 
     pub fn next_queued(
         &mut self,
-        channel: &GeneralChannel<PlayerManagerUpdate>,
+        channel: GeneralChannel<PlayerManagerUpdate>,
     ) -> Result<(), Error> {
         self.player_manager.next_queued();
         let up_until = self.focused_player().hole_shown_up_until;
@@ -274,7 +274,7 @@ impl FlipUpVMixCoordinator {
         self.queue_add(&all);
         let current = self.focused_player().set_all_current_player_values(&all);
         self.queue_add(&current);
-        channel.send(self);
+        channel.send_from_coordinator(self);
         Ok(())
     }
 
@@ -295,7 +295,7 @@ impl FlipUpVMixCoordinator {
     pub fn set_group(
         &mut self,
         group_id: &str,
-        updater: &GeneralChannel<api::PlayerManagerUpdate>,
+        updater: GeneralChannel<api::PlayerManagerUpdate>,
     ) -> Result<(), Error> {
         let groups = self.groups();
         let ids = groups
@@ -310,14 +310,14 @@ impl FlipUpVMixCoordinator {
         let current = player.set_all_current_player_values(&all);
         self.queue_add(&all);
         self.queue_add(&current);
-        updater.send(self);
+        updater.send_from_coordinator(self);
 
         Ok(())
     }
 
     pub fn update_group_to_focused_player_group(
         &mut self,
-        player_updater: &GeneralChannel<PlayerManagerUpdate>,
+        player_updater: GeneralChannel<PlayerManagerUpdate>,
     ) -> Result<(), Error> {
         let focused_player_id = self.focused_player().player_id.to_owned();
         let group = self
@@ -327,10 +327,10 @@ impl FlipUpVMixCoordinator {
             .expect("Player needs to be in group");
 
         let group_id = group.id.to_owned();
-        self.set_group(&group_id, player_updater)?;
+        self.set_group(&group_id, player_updater.clone())?;
 
         self.player_manager.set_focused(&focused_player_id);
-        player_updater.send(self);
+        player_updater.send_from_coordinator(self);
         let mut compare_2x2 = self
             .player_manager
             .card(self.available_players())
@@ -432,11 +432,11 @@ impl FlipUpVMixCoordinator {
             .player(self.available_players())
             .unwrap()
     }
-    pub fn set_div(&mut self, div: &Division, channel: &GeneralChannel<DivisionUpdate>) {
+    pub fn set_div(&mut self, div: &Division, channel: GeneralChannel<DivisionUpdate>) {
         if let Some(div) = self.all_divs.iter().find(|d| d.id == div.id) {
             self.leaderboard_division = dbg!(div.clone());
         }
-        channel.send(self);
+        channel.send_from_coordinator(self);
     }
 
     pub fn find_division(&self, div_id: &str) -> Option<Arc<Division>> {
@@ -541,7 +541,7 @@ impl FlipUpVMixCoordinator {
             self.queue_add(&f);
             self.queue_add(&current);
         }
-        hole_update.send(self);
+        hole_update.send_from_coordinator(self);
         Ok(())
     }
 

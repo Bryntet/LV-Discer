@@ -1,15 +1,16 @@
-use std::collections::HashMap;
-use std::sync::Arc;
-
-use cynic::{GraphQlResponse, QueryBuilder};
-use itertools::Itertools;
-use rayon::prelude::*;
-use tokio::sync::Mutex;
-
+use crate::api::websocket::HoleFinishedAlert;
+use crate::api::GeneralChannel;
 use crate::controller;
 use crate::controller::coordinator::leaderboard_cycle::LeaderboardCycle;
 use crate::controller::coordinator::FlipUpVMixCoordinator;
 use crate::controller::queries::{HoleResult, RoundResultsQuery, RoundResultsQueryVariables};
+use cynic::{GraphQlResponse, QueryBuilder};
+use itertools::Itertools;
+use rayon::prelude::*;
+use std::collections::HashMap;
+use std::sync::Arc;
+use std::time::Duration;
+use tokio::sync::Mutex;
 
 #[derive(Debug)]
 struct TjingResultMap {
@@ -97,6 +98,7 @@ impl TjingResultMap {
 pub async fn update_loop(
     coordinator: Arc<Mutex<FlipUpVMixCoordinator>>,
     leaderboard_cycle: Arc<Mutex<LeaderboardCycle>>,
+    hole_finished_alert: GeneralChannel<HoleFinishedAlert>,
 ) {
     let temp_coordinator = coordinator.lock().await;
     let mut tjing_result_map = TjingResultMap::new(temp_coordinator.available_players());
@@ -145,6 +147,23 @@ pub async fn update_loop(
                         let queue = coordinator.vmix_queue.clone();
                         coordinator.add_state_to_leaderboard();
                         coordinator.leaderboard.update_little_lb(&div, queue);
+                        if coordinator
+                            .available_players()
+                            .into_par_iter()
+                            .any(|player| {
+                                player
+                                    .results
+                                    .latest_hole_finished()
+                                    .is_some_and(|hole| hole.hole == 18)
+                            })
+                        {
+                            hole_finished_alert.send(HoleFinishedAlert::JustFinished);
+                            let alert = hole_finished_alert.clone();
+                            tokio::spawn(async move {
+                                tokio::time::sleep(Duration::from_secs(2 * 60)).await;
+                                alert.send(HoleFinishedAlert::SecondSend)
+                            });
+                        }
                         drop(coordinator);
                         leaderboard_cycle.lock().await.update_leaderboard().await;
                     }

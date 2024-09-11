@@ -195,22 +195,13 @@ impl PlayerRound {
             .count() as u8
     }
 
-    pub fn the_latest_6_holes(self, take_amount: usize) -> Vec<Option<HoleResult>> {
-        let amount_finished = self
-            .results
+    fn holes_sorted_by_completion(
+        &self,
+    ) -> impl Iterator<Item = &HoleResult> + ExactSizeIterator + DoubleEndedIterator {
+        let amount_finished = self.amount_of_holes_finished();
+
+        self.results
             .iter()
-            .filter(|hole| {
-                hole.finished
-                    || hole
-                        .tjing_result
-                        .as_ref()
-                        .is_some_and(|res| res.is_verified)
-                    || hole.throws != 0
-            })
-            .count();
-        let mut results = self
-            .results
-            .into_iter()
             .filter(|result| {
                 result.finished
                     || result
@@ -226,6 +217,15 @@ impl PlayerRound {
                     (result.hole - 1 + self.start_at_hole) % 19
                 }
             })
+    }
+
+    pub fn latest_hole_finished(&self) -> Option<&HoleResult> {
+        self.holes_sorted_by_completion().last()
+    }
+
+    pub fn the_latest_6_holes(&self, take_amount: usize) -> Vec<Option<&HoleResult>> {
+        let mut results = self
+            .holes_sorted_by_completion()
             .rev()
             .take(take_amount)
             .rev()

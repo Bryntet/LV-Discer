@@ -21,6 +21,7 @@ pub use websocket::channels::{DivisionUpdate, HoleUpdate, PlayerManagerUpdate};
 
 pub use crate::api::websocket::channels::GeneralChannel;
 use crate::api::websocket::htmx::division_updater;
+use crate::api::websocket::HoleFinishedAlert;
 use crate::controller::coordinator::FlipUpVMixCoordinator;
 use crate::util;
 
@@ -39,13 +40,16 @@ use super::controller::coordinator::leaderboard_cycle;
 struct Coordinator(Arc<Mutex<FlipUpVMixCoordinator>>);
 
 impl FlipUpVMixCoordinator {
-    pub async fn into_coordinator(self) -> Coordinator {
+    pub async fn into_coordinator(
+        self,
+        hole_finished_alert: GeneralChannel<HoleFinishedAlert>,
+    ) -> Coordinator {
         let coordinator = Arc::new(Mutex::new(self));
         let s = Coordinator(coordinator.clone());
         let leaderboard_cycle =
             leaderboard_cycle::start_leaderboard_cycle(coordinator.clone()).await;
         tokio::spawn(async move {
-            update_loop::update_loop(coordinator, leaderboard_cycle).await;
+            update_loop::update_loop(coordinator, leaderboard_cycle, hole_finished_alert).await;
         });
 
         s
@@ -107,7 +111,8 @@ fn get_websocket_routes() -> Vec<Route> {
         selection_watcher,
         hole_watcher,
         division_updater,
-        leaderboard_round_watcher
+        leaderboard_round_watcher,
+        hole_finished_alert
     ]
 }
 
@@ -129,6 +134,7 @@ pub fn launch() -> Rocket<Build> {
     let hole_update_sender = GeneralChannel::from(hole_update_sender);
     let division_sender = GeneralChannel::from(channel::<websocket::DivisionUpdate>(1024).0);
     let round_sender = GeneralChannel::from(channel::<websocket::LeaderboardRoundUpdate>(1024).0);
+    let hole_finished_alert = GeneralChannel::from(channel::<websocket::HoleFinishedAlert>(1024).0);
 
     let conf = {
         #[cfg(windows)]
@@ -150,6 +156,7 @@ pub fn launch() -> Rocket<Build> {
         .manage(hole_update_sender)
         .manage(division_sender)
         .manage(round_sender)
+        .manage(hole_finished_alert)
         .mount("/", get_normal_routes())
         .mount("/htmx/", get_webpage_routes())
         .mount("/ws", get_websocket_routes())

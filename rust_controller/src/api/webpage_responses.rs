@@ -7,6 +7,7 @@ use rocket_okapi::openapi;
 use serde_json::json;
 
 use crate::api::guard::CoordinatorLoader;
+use crate::api::websocket::{hole_finished_alert, HoleFinishedAlert};
 use crate::api::{
     mutation, query, Coordinator, DivisionUpdate, Error, GeneralChannel, PlayerManagerUpdate,
 };
@@ -26,8 +27,8 @@ pub async fn focused_players(coordinator: Coordinator) -> Template {
 pub async fn set_group(
     coordinator: Coordinator,
     group_id: &str,
-    updater: &State<GeneralChannel<PlayerManagerUpdate>>,
-    division_updater: &GeneralChannel<DivisionUpdate>,
+    updater: GeneralChannel<PlayerManagerUpdate>,
+    division_updater: GeneralChannel<DivisionUpdate>,
 ) -> Result<Template, Error> {
     mutation::set_group(coordinator.clone(), group_id, updater, division_updater).await?;
 
@@ -43,10 +44,15 @@ pub async fn set_group(
 pub async fn load(
     loader: &State<CoordinatorLoader>,
     builder: Form<CoordinatorBuilder>,
+    hole_finished_alert: GeneralChannel<HoleFinishedAlert>,
 ) -> Result<Template, Error> {
     let coordinator = builder.into_inner().into_coordinator().await?;
     let groups = coordinator.groups().into_iter().cloned().collect_vec();
-    *loader.0.lock().await = Some(coordinator.into_coordinator().await);
+    *loader.0.lock().await = Some(
+        coordinator
+            .into_coordinator(hole_finished_alert.clone())
+            .await,
+    );
     Ok(Template::render("index", json!({"groups": groups})))
 }
 
