@@ -6,6 +6,7 @@ use itertools::Itertools;
 pub use player::Player;
 use player_queue_system::PlayerManager;
 use rayon::prelude::*;
+use tokio::sync::Mutex;
 use vmix::functions::VMixInterfacer;
 use vmix::functions::{VMixPlayerInfo, VMixSelectionTrait};
 use vmix::VMixQueue;
@@ -42,6 +43,7 @@ pub struct FlipUpVMixCoordinator {
     featured_hole: u8,
     groups_featured_so_far: u8,
     pub leaderboard_round: usize,
+    pub next_group: Arc<Mutex<String>>,
 }
 
 impl FlipUpVMixCoordinator {
@@ -62,6 +64,7 @@ impl FlipUpVMixCoordinator {
 
         let all_divs = handler.get_divisions();
         let first_group = handler.groups.first().unwrap().first().unwrap();
+        let next_group = Arc::new(Mutex::new(first_group.id.to_owned()));
 
         let card_starts_at_hole = handler
             .groups
@@ -96,6 +99,7 @@ impl FlipUpVMixCoordinator {
             groups_featured_so_far: 1,
             featured_hole,
             leaderboard_round: round,
+            next_group,
         };
         coordinator.handler.add_total_score_to_players();
         coordinator.queue_add(&coordinator.focused_player().set_name());
@@ -172,42 +176,12 @@ impl FlipUpVMixCoordinator {
         Ok(())
     }
 
-    pub fn next_featured_card(&mut self) -> Result<(), Error> {
-        if !self.groups_featured_so_far as usize >= self.groups().len() {
-            if let Some(group) = self
-                .groups()
-                .iter()
-                .sorted_by_key(|group| {
-                    group
-                        .players
-                        .iter()
-                        .map(|group_player| {
-                            if let Some(player) = self
-                                .current_players()
-                                .par_iter()
-                                .find_any(|player| player.player_id == group_player.id)
-                            {
-                                player
-                                    .results
-                                    .latest_hole_finished()
-                                    .map(|hole| hole.hole)
-                                    .unwrap_or(group.start_at_hole)
-                            } else {
-                                group.start_at_hole
-                            }
-                        })
-                        .max()
-                })
-                .collect_vec()
-                .get(self.groups_featured_so_far as usize)
-            {
-                self.featured_card.replace(group.player_ids());
-                self.update_featured_card()?;
-                self.groups_featured_so_far += 1;
-            } else {
-                self.groups_featured_so_far += 1;
-                self.next_featured_card()?;
-            }
+    pub async fn next_featured_card(&mut self) -> Result<(), Error> {
+        let next_group_id = self.next_group.lock().await.clone();
+        if let Some(group) = self.groups().iter().find(|group| group.id == next_group_id) {
+            self.featured_card.replace(group.player_ids());
+            self.update_featured_card()?;
+            self.groups_featured_so_far += 1;
         }
         Ok(())
     }

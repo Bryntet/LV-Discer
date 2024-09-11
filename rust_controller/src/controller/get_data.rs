@@ -3,7 +3,7 @@ use itertools::Itertools;
 use log::warn;
 use rayon::prelude::*;
 use rocket::futures::{FutureExt, StreamExt};
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 use std::time::Duration;
 

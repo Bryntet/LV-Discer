@@ -99,6 +99,7 @@ pub async fn update_loop(
     coordinator: Arc<Mutex<FlipUpVMixCoordinator>>,
     leaderboard_cycle: Arc<Mutex<LeaderboardCycle>>,
     hole_finished_alert: GeneralChannel<HoleFinishedAlert>,
+    next_group: Arc<Mutex<String>>,
 ) {
     let temp_coordinator = coordinator.lock().await;
     let mut tjing_result_map = TjingResultMap::new(temp_coordinator.available_players());
@@ -147,16 +148,29 @@ pub async fn update_loop(
                         let queue = coordinator.vmix_queue.clone();
                         coordinator.add_state_to_leaderboard();
                         coordinator.leaderboard.update_little_lb(&div, queue);
-                        if coordinator
+                        if let Some(player) = coordinator
                             .available_players()
                             .into_par_iter()
-                            .any(|player| {
+                            .find_any(|player| {
                                 player
                                     .results
                                     .latest_hole_finished()
                                     .is_some_and(|hole| hole.hole == 18)
                             })
                         {
+                            if let Some(group_id) = coordinator
+                                .groups()
+                                .into_par_iter()
+                                .find_any(|group| {
+                                    group
+                                        .players
+                                        .iter()
+                                        .any(|group_player| group_player.id == player.player_id)
+                                })
+                                .map(|group| group.id.clone())
+                            {
+                                *next_group.lock().await = group_id;
+                            }
                             hole_finished_alert.send(HoleFinishedAlert::JustFinished);
                             let alert = hole_finished_alert.clone();
                             tokio::spawn(async move {

@@ -1,9 +1,10 @@
+use crate::api::Error;
+use crate::controller::coordinator::FlipUpVMixCoordinator;
 use rocket::serde::json::Json;
 use rocket_okapi::okapi::{schemars, schemars::JsonSchema};
 use serde::Deserialize;
-
-use crate::api::Error;
-use crate::controller::coordinator::FlipUpVMixCoordinator;
+use std::sync::Arc;
+use tokio::sync::Mutex;
 
 #[derive(Default, Deserialize, JsonSchema, FromForm)]
 pub struct CoordinatorBuilder {

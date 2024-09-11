@@ -44,12 +44,19 @@ impl FlipUpVMixCoordinator {
         self,
         hole_finished_alert: GeneralChannel<HoleFinishedAlert>,
     ) -> Coordinator {
+        let next_group = self.next_group.clone();
         let coordinator = Arc::new(Mutex::new(self));
         let s = Coordinator(coordinator.clone());
         let leaderboard_cycle =
             leaderboard_cycle::start_leaderboard_cycle(coordinator.clone()).await;
         tokio::spawn(async move {
-            update_loop::update_loop(coordinator, leaderboard_cycle, hole_finished_alert).await;
+            update_loop::update_loop(
+                coordinator,
+                leaderboard_cycle,
+                hole_finished_alert,
+                next_group,
+            )
+            .await;
         });
 
         s
