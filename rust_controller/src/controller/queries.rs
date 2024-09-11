@@ -192,7 +192,7 @@ pub mod layout {
                     value.length.map(|l| l * 0.9144)
                 };
                 let length = length.unwrap_or(0.) as u16;
-                let par = value.par.ok_or(Self::Error::HoleParNotFound(hole_number))? as u8;
+                let par = value.par.unwrap_or(0.) as u8;
                 Ok(Hole {
                     length,
                     par,

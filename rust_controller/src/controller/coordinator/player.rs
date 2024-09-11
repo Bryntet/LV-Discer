@@ -298,8 +298,7 @@ impl Player {
             .unwrap_or_default()
             .into_iter()
             .map(|r: controller::queries::HoleResult| {
-                HoleResult::from_tjing(r.hole.number as u8, &holes, r)
-                    .expect("Could not create HoleResult")
+                HoleResult::from_tjing(r.hole.number as u8, &holes, r).unwrap()
             })
             .collect_vec();
 
