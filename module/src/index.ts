@@ -31,6 +31,11 @@ export class LevandeVideoInstance extends InstanceBase<Config> {
         debug_messages: true,
         variableName: 'hole',
         subpath: 'hole',
+    }, {
+        url: `ws://${this.config.coordinator_ip}:8000/ws/hole-finished-alert/watch`,
+        debug_messages: true,
+        variableName: 'hole_finished_alert',
+        subpath: ''
     }];
     public websockets: WebSocketManager[] = [];
     private players: DropdownChoice[] = [{id: 'none', label: 'None'}];
@@ -41,6 +46,8 @@ export class LevandeVideoInstance extends InstanceBase<Config> {
         id: 1,
         label: "2"
     }, {id: 2, label: "3"}, {id: 3, label: "4"}];
+    public hole_finished_alert: string = ""
+
 
     constructor(internal: unknown) {
         console.log("hi");
@@ -89,6 +96,10 @@ export class LevandeVideoInstance extends InstanceBase<Config> {
             {
                 name: "Round",
                 variableId: "round",
+            },
+            {
+                name: "Hole finished alert",
+                variableId: "hole_finished_alert"
             }
         ])
 
@@ -142,6 +153,7 @@ export class LevandeVideoInstance extends InstanceBase<Config> {
             hole: await this.coordinator.currentHole(),
             foc_player_ind: this.foc_player_ind,
             round: await this.coordinator.getRound(),
+            hole_finished_alert: this.hole_finished_alert,
         }
     }
 
