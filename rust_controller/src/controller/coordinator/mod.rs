@@ -177,7 +177,27 @@ impl FlipUpVMixCoordinator {
             if let Some(group) = self
                 .groups()
                 .iter()
-                .sorted_by_key(|group| group.start_time.unwrap())
+                .sorted_by_key(|group| {
+                    group
+                        .players
+                        .iter()
+                        .map(|group_player| {
+                            if let Some(player) = self
+                                .current_players()
+                                .par_iter()
+                                .find_any(|player| player.player_id == group_player.id)
+                            {
+                                player
+                                    .results
+                                    .latest_hole_finished()
+                                    .map(|hole| hole.hole)
+                                    .unwrap_or(group.start_at_hole)
+                            } else {
+                                group.start_at_hole
+                            }
+                        })
+                        .max()
+                })
                 .collect_vec()
                 .get(self.groups_featured_so_far as usize)
             {
