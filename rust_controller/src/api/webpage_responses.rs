@@ -45,13 +45,8 @@ pub async fn load(
     builder: Form<CoordinatorBuilder>,
 ) -> Result<Template, Error> {
     let coordinator = builder.into_inner().into_coordinator().await?;
-    let groups = coordinator
-        .groups()
-        .into_iter()
-        .flatten()
-        .cloned()
-        .collect_vec();
-    *loader.0.lock().await = Some(coordinator.into());
+    let groups = coordinator.groups().into_iter().cloned().collect_vec();
+    *loader.0.lock().await = Some(coordinator.into_coordinator().await);
     Ok(Template::render("index", json!({"groups": groups})))
 }
 
@@ -59,7 +54,7 @@ pub async fn load(
 #[get("/")]
 pub async fn index(coordinator: Coordinator) -> RawHtml<Template> {
     let coordinator = coordinator.lock().await;
-    let mut groups = coordinator.groups().into_iter().flatten().collect_vec();
+    let mut groups = coordinator.groups().into_iter().collect_vec();
     let divisions = coordinator.get_div_names();
     groups.reverse();
     let context = json!({"groups": groups,"divisions":divisions});

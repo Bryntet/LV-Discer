@@ -16,8 +16,8 @@ pub struct LeaderboardCycle {
 }
 
 impl LeaderboardCycle {
-    fn new(coordinator: Arc<Mutex<FlipUpVMixCoordinator>>) -> Self {
-        let temp_coordinator = coordinator.blocking_lock();
+    async fn new(coordinator: Arc<Mutex<FlipUpVMixCoordinator>>) -> Self {
+        let temp_coordinator = coordinator.lock().await;
         let all_divisions = VecDeque::from(temp_coordinator.all_divs.clone());
 
         let mut leaderboard = temp_coordinator.handler.get_previous_leaderboards();
@@ -76,11 +76,11 @@ impl LeaderboardCycle {
     }
 }
 
-pub fn start_leaderboard_cycle(
+pub async fn start_leaderboard_cycle(
     coordinator: Arc<Mutex<FlipUpVMixCoordinator>>,
 ) -> Arc<Mutex<LeaderboardCycle>> {
     dbg!("here");
-    let cycle = Arc::new(Mutex::new(LeaderboardCycle::new(coordinator)));
+    let cycle = Arc::new(Mutex::new(LeaderboardCycle::new(coordinator).await));
     dbg!("after here");
     let loop_cycle = cycle.clone();
     tokio::spawn(async move {

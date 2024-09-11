@@ -191,7 +191,7 @@ pub struct RustHandler {
     player_container: PlayerContainer,
     divisions: Vec<Arc<queries::Division>>,
     round_ind: usize,
-    pub groups: [Vec<Vec<dto::Group>>; 3],
+    pub groups: Vec<Vec<dto::Group>>,
 }
 
 #[derive(Clone, Debug)]
@@ -232,12 +232,14 @@ impl PlayerContainer {
 impl RustHandler {
     pub async fn new(event_ids: [&'static str; 3], round: usize) -> Result<Self, Error> {
         let time = std::time::Instant::now();
-        dbg!("hello");
+        dbg!("gonna get round ids");
         let round_ids = Self::get_rounds(event_ids).await?;
-        dbg!("next");
+        dbg!("got round ids");
         let events = Self::get_event(event_ids, round_ids.clone()).await;
-        dbg!("hi");
+        dbg!("got events");
         let groups = Self::get_groups(event_ids).await;
+        dbg!("got groups");
+
         warn!("Time taken to get event: {:?}", time.elapsed());
 
         let divisions: Vec<Arc<Division>> = events
@@ -245,7 +247,6 @@ impl RustHandler {
             .flat_map(|event| {
                 event
                     .iter()
-                    .flat_map(|round| &round.event)
                     .flat_map(|event| event.divisions.clone())
                     .flatten()
                     .sorted_by_key(|div| div.name.to_owned())
@@ -260,42 +261,42 @@ impl RustHandler {
         for (event_number, event) in events.into_iter().enumerate() {
             let out = event
                 .into_iter()
-                .flat_map(|event| Some(event.event?))
                 .enumerate()
                 .map(|(round_number, event)| {
                     event
                         .players
-                        .into_iter()
-                        .flat_map(|player| {
-                            let id = player.id.clone().into_inner();
-                            let holes = holes[event_number]
-                                .iter()
-                                .find(|inner_holes| inner_holes.division.name == player.division.name)
-                                .unwrap_or({
-                                    warn!("Couldn't find the holes for this division, defaulting to last hole");
-                                    holes.iter().last().unwrap()
+                        .into_par_iter()
+                        // This validates that only players on the correct course are used
+                        .filter_map(|player| {
+                            let id = player.id.to_owned().into_inner();
+                            groups[round]
+                                .par_iter()
+                                .find_any(|group| {
+                                    group
+                                        .players
+                                        .iter()
+                                        .map(|player| player.id.as_str())
+                                        .contains(&id.as_str())
                                 })
+                                .map(|group| (player, group))
+                        })
+                        .flat_map(|(player, group)| {
+                            let holes = holes[event_number]
+                                .par_iter()
+                                .find_any(|holes| holes.division.name == player.division.name)
+                                .unwrap_or(&Holes::default())
                                 .clone();
+
                             Player::from_query(
                                 player,
                                 round_number,
                                 holes,
                                 divisions.clone(),
-                                groups[event_number][round]
-                                    .iter()
-                                    .find(|group| {
-                                        group
-                                            .players
-                                            .iter()
-                                            .map(|player| player.id.as_str())
-                                            .contains(&id.as_str())
-                                    })
-                                    .map(|group| group.start_at_hole)
-                                    .unwrap_or(0),
+                                group.start_at_hole,
                                 event_number,
                             )
                         })
-                        .collect_vec()
+                        .collect::<Vec<_>>()
                 })
                 .collect_vec();
             for (round_num, round_players) in out.into_iter().enumerate() {
@@ -308,9 +309,9 @@ impl RustHandler {
 
         let mut container = PlayerContainer::new(player_rounds, round);
 
-        for (i, round) in container.rounds_with_players.iter_mut().enumerate() {
+        for (round_number, round) in container.rounds_with_players.iter_mut().enumerate() {
             round.par_iter_mut().for_each(|player| {
-                if let Some(group_index) = groups[player.event_number][i]
+                if let Some(group_index) = groups[round_number]
                     .iter()
                     .flat_map(|group| &group.players)
                     .enumerate()
@@ -375,7 +376,7 @@ impl RustHandler {
     pub async fn get_event(
         event_ids: [&str; 3],
         round_ids: [Vec<String>; 3],
-    ) -> [Vec<queries::RoundResultsQuery>; 3] {
+    ) -> [Vec<queries::Event>; 3] {
         use cynic::QueryBuilder;
         use queries::*;
         let mut out = vec![];
@@ -399,7 +400,7 @@ impl RustHandler {
                     .expect("failed to parse response")
                     .data
                     .unwrap();
-                rounds.push(out);
+                rounds.push(out.event.unwrap());
             }
             out.push(rounds);
         }
@@ -435,7 +436,6 @@ impl RustHandler {
                     .map(|round| round.id.into_inner())
                     .collect_vec(),
             );
-            tokio::time::sleep(Duration::from_secs(5)).await;
         }
         Ok(out.try_into().unwrap())
     }
@@ -511,7 +511,7 @@ impl RustHandler {
         Ok(out.try_into().unwrap())
     }
 
-    pub fn groups(&self) -> &Vec<Vec<dto::Group>> {
+    pub fn groups(&self) -> &Vec<dto::Group> {
         self.groups.get(self.round_ind).unwrap()
     }
 
@@ -519,10 +519,10 @@ impl RustHandler {
         self.divisions.clone()
     }
 
-    async fn get_groups(event_ids: [&str; 3]) -> [Vec<Vec<dto::Group>>; 3] {
+    async fn get_groups(event_ids: [&str; 3]) -> Vec<Vec<dto::Group>> {
         use cynic::QueryBuilder;
         use queries::group::{GroupsQuery, GroupsQueryVariables};
-        let mut out = vec![];
+        let mut out: Vec<Vec<dto::Group>> = vec![];
         for event_id in event_ids {
             let body = GroupsQuery::build(GroupsQueryVariables {
                 event_id: event_id.into(),
@@ -538,28 +538,45 @@ impl RustHandler {
                 .await
                 .unwrap();
 
-            out.push(
-                groups
-                    .data
-                    .unwrap()
-                    .event
-                    .unwrap()
-                    .rounds
-                    .into_iter()
-                    .flatten()
-                    .map(|round: queries::group::Round| {
-                        round
-                            .pools
-                            .into_iter()
-                            .flat_map(|pool| pool.groups)
-                            .dedup_by(|group1, group2| group1.id == group2.id)
-                            .map(dto::Group::from)
-                            .collect_vec()
-                    })
-                    .collect_vec(),
-            );
+            let group_rounds = groups
+                .data
+                .unwrap()
+                .event
+                .unwrap()
+                .rounds
+                .into_iter()
+                .flatten()
+                .map(|round: queries::group::Round| {
+                    round
+                        .pools
+                        .into_iter()
+                        .filter_map(|pool| {
+                            let layout_version = pool.layout_version.clone().layout;
+                            if pool.layout_version.layout.name == "Vit"
+                                || pool.layout_version.layout.course.unwrap().name == "Ale Vit"
+                            {
+                                dbg!("some pool");
+                                Some(pool.groups)
+                            } else {
+                                dbg!(layout_version);
+                                None
+                            }
+                        })
+                        .flatten()
+                        .dedup_by(|group1, group2| group1.id == group2.id)
+                        .map(dto::Group::from)
+                        .collect_vec()
+                })
+                .collect::<Vec<_>>();
+
+            for (round_number, groups) in group_rounds.into_iter().enumerate() {
+                match out.get_mut(round_number) {
+                    Some(existing) => existing.extend(groups),
+                    None => out.push(groups),
+                }
+            }
         }
-        out.try_into().unwrap()
+        out
     }
 
     pub fn round_ids(&self) -> [String; 3] {

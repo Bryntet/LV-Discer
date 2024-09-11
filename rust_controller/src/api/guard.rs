@@ -92,6 +92,8 @@ pub enum Error {
     InvalidDivision(String),
     #[error("Player index {0} not found in focused card")]
     PlayerInCardNotFound(usize),
+    #[error("Group not found")]
+    GroupNotFound,
 }
 
 impl<'r, 'o: 'r> Responder<'r, 'o> for Error {
@@ -108,7 +110,8 @@ impl<'r, 'o: 'r> Responder<'r, 'o> for Error {
             | UnableToParse
             | HoleLengthNotFound(_)
             | HoleParNotFound(_)
-            | NotEnoughHoles { .. } => Err(Status::InternalServerError),
+            | NotEnoughHoles { .. }
+            | GroupNotFound => Err(Status::InternalServerError),
             UnloadedDependency => Err(Status::FailedDependency),
             CardIndexNotFound(_) | TooManyHoles | InvalidDivision(_) | PlayerInCardNotFound(_) => {
                 Err(Status::BadRequest)

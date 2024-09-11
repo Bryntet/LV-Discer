@@ -53,7 +53,6 @@ pub async fn get_groups(coordinator: Coordinator) -> Json<Vec<dto::Group>> {
         .await
         .groups()
         .into_iter()
-        .flatten()
         .cloned()
         .collect_vec()
         .into()

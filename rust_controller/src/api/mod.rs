@@ -38,11 +38,12 @@ use super::controller::coordinator::leaderboard_cycle;
 #[derive(Debug, Clone)]
 struct Coordinator(Arc<Mutex<FlipUpVMixCoordinator>>);
 
-impl From<FlipUpVMixCoordinator> for Coordinator {
-    fn from(value: FlipUpVMixCoordinator) -> Self {
-        let coordinator = Arc::new(Mutex::new(value));
-        let s = Self(coordinator.clone());
-        let leaderboard_cycle = leaderboard_cycle::start_leaderboard_cycle(coordinator.clone());
+impl FlipUpVMixCoordinator {
+    pub async fn into_coordinator(self) -> Coordinator {
+        let coordinator = Arc::new(Mutex::new(self));
+        let s = Coordinator(coordinator.clone());
+        let leaderboard_cycle =
+            leaderboard_cycle::start_leaderboard_cycle(coordinator.clone()).await;
         tokio::spawn(async move {
             update_loop::update_loop(coordinator, leaderboard_cycle).await;
         });
@@ -50,6 +51,7 @@ impl From<FlipUpVMixCoordinator> for Coordinator {
         s
     }
 }
+
 impl Coordinator {
     async fn lock(&self) -> MutexGuard<FlipUpVMixCoordinator> {
         self.0.lock().await

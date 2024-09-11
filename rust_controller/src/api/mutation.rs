@@ -37,7 +37,7 @@ pub async fn set_focus(
 #[post("/init", data = "<builder>")]
 pub async fn load(loader: &State<CoordinatorLoader>, builder: Json<CoordinatorBuilder>) {
     let coordinator = builder.into_inner().into_coordinator().await.unwrap();
-    *loader.0.lock().await = Some(coordinator.into());
+    *loader.0.lock().await = Some(coordinator.into_coordinator().await);
 }
 
 #[openapi(tag = "Config")]

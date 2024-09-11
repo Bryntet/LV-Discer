@@ -61,19 +61,10 @@ impl FlipUpVMixCoordinator {
         let handler = RustHandler::new(event_ids, round).await?;
 
         let all_divs = handler.get_divisions();
-        let first_group = handler
-            .groups
-            .first()
-            .unwrap()
-            .first()
-            .unwrap()
-            .first()
-            .unwrap();
+        let first_group = handler.groups.first().unwrap().first().unwrap();
 
         let card_starts_at_hole = handler
             .groups
-            .first()
-            .unwrap()
             .get(round)
             .unwrap()
             .iter()
@@ -186,7 +177,6 @@ impl FlipUpVMixCoordinator {
             if let Some(group) = self
                 .groups()
                 .iter()
-                .flatten()
                 .sorted_by_key(|group| group.start_time.unwrap())
                 .collect_vec()
                 .get(self.groups_featured_so_far as usize)
@@ -310,7 +300,6 @@ impl FlipUpVMixCoordinator {
         let groups = self.groups();
         let ids = groups
             .iter()
-            .flatten()
             .find(|group| group.id == group_id)
             .ok_or(Error::UnableToParse)?
             .player_ids();
@@ -334,7 +323,6 @@ impl FlipUpVMixCoordinator {
         let group = self
             .groups()
             .into_par_iter()
-            .flatten()
             .find_first(|group| group.player_ids().iter().contains(&focused_player_id))
             .expect("Player needs to be in group");
 
@@ -410,7 +398,7 @@ impl FlipUpVMixCoordinator {
         self.handler.find_player_mut(&id).unwrap()
     }
 
-    pub fn groups(&self) -> &Vec<Vec<dto::Group>> {
+    pub fn groups(&self) -> &Vec<dto::Group> {
         self.handler.groups()
     }
 

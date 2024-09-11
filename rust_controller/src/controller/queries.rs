@@ -230,19 +230,30 @@ pub mod layout {
         pub pools: Vec<Pool>,
     }
 
-    #[derive(cynic::QueryFragment, Debug)]
+    #[derive(cynic::QueryFragment, Debug, Clone)]
     pub struct Pool {
         pub layout_version: LayoutVersion,
         pub id: cynic::Id,
     }
 
-    #[derive(cynic::QueryFragment, Debug)]
+    #[derive(cynic::QueryFragment, Debug, Clone)]
     pub struct LayoutVersion {
         pub holes: Vec<Hole>,
-        pub id: cynic::Id,
+        pub layout: Layout,
     }
 
-    #[derive(cynic::QueryFragment, Debug, Default)]
+    #[derive(cynic::QueryFragment, Debug, Clone)]
+    pub struct Layout {
+        pub name: String,
+        pub course: Option<Course>,
+    }
+
+    #[derive(cynic::QueryFragment, Debug, Clone)]
+    pub struct Course {
+        pub name: String,
+    }
+
+    #[derive(cynic::QueryFragment, Debug, Default, Clone)]
     pub(crate) struct Hole {
         pub measure_in_meters: Option<bool>,
         pub number: f64,
@@ -259,9 +270,9 @@ pub mod group {
     use rocket_okapi::okapi::schemars;
     use schemars::JsonSchema;
 
-    use crate::controller;
-
     use super::schema;
+    use crate::controller;
+    use crate::controller::queries::layout::LayoutVersion;
 
     #[derive(cynic::QueryVariables, Debug)]
     pub struct GroupsQueryVariables {
@@ -283,9 +294,10 @@ pub mod group {
     pub struct Round {
         pub pools: Vec<Pool>,
     }
-    #[derive(cynic::QueryFragment, Debug)]
+    #[derive(cynic::QueryFragment, Debug, Clone)]
     pub struct Pool {
         pub groups: Vec<Group>,
+        pub layout_version: LayoutVersion,
     }
 
     #[derive(cynic::QueryFragment, Debug, Clone)]
