@@ -261,8 +261,11 @@ impl RustHandler {
                             let id = player.id.clone().into_inner();
                             let holes = holes
                                 .iter()
-                                .find(|holes| holes.division.name == player.division.name)
-                                .unwrap_or(&Holes::default())
+                                .find(|inner_holes| inner_holes.division.name == player.division.name)
+                                .unwrap_or({
+                                    warn!("Couldn't find the holes for this division, defaulting to last hole");
+                                    holes.iter().last().unwrap()
+                                })
                                 .clone();
                             Player::from_query(
                                 player,
