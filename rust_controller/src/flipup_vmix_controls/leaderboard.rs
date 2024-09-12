@@ -579,7 +579,7 @@ mod prop {
 
         fn input_id(&self) -> &'static str {
             // TODO SET ID
-            ""
+            "712e8a3d-605f-4ce2-b8c5-74f64f903495"
         }
     }
 
@@ -591,7 +591,7 @@ mod prop {
             Self {
                 value,
                 function,
-                input: interfacer.input.map(|input| CycledLeaderboard(input)),
+                input: interfacer.input.map(CycledLeaderboard),
             }
         }
     }

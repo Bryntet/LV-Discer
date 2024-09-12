@@ -50,6 +50,15 @@ impl VMixInterfacer<LeaderBoardProperty> {
                     input: Some(LeaderboardTop6::Name { pos: n }),
                 })
             }
+            Some(LeaderBoardProperty::CheckinText) => {
+                let mut name = self.value.as_ref().unwrap().split(" | ");
+                let name = format!("{} | {}", name.next()?, name.next()?);
+                Some(VMixInterfacer {
+                    value: Some(name),
+                    function: self.function,
+                    input: Some(LeaderboardTop6::DivisionName),
+                })
+            }
             _ => Some(VMixInterfacer {
                 value: self.value,
                 function: self.function,
