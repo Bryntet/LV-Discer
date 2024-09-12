@@ -501,15 +501,23 @@ impl RustHandler {
                 .await
                 .unwrap();
             let holes = {
-                let Some(data) = holes.data else {
+                let Some(Some(event)) = holes.data.map(|data| data.event) else {
                     return Err(Error::UnableToParse);
                 };
-                let Some(event) = data.event else {
-                    return Err(Error::UnableToParse);
-                };
+
                 let division_pool_thing =
                     event.division_in_pool.into_iter().flatten().collect_vec();
-
+                let mut pool_and_division_map: HashMap<cynic::Id, Arc<Division>> = HashMap::new();
+                for (pool_id, division_id) in division_pool_thing
+                    .into_iter()
+                    .map(|thing| (thing.pool_id, thing.division_id))
+                {
+                    if let Some(div) = divs.iter().find(|div| div.id == division_id) {
+                        pool_and_division_map.insert(pool_id, div.clone());
+                    } else {
+                        dbg!("couldn't find div!!!");
+                    }
+                }
                 let mut rounds_holes = vec![];
                 for round in event.rounds {
                     let Some(round) = round else {
@@ -520,20 +528,7 @@ impl RustHandler {
                         .into_iter()
                         .map(|pool| {
                             (
-                                divs.iter()
-                                    .find(|div| {
-                                        div.id
-                                            == division_pool_thing
-                                                .iter()
-                                                .find(|thing| pool.id == thing.pool_id)
-                                                .map(|div| div.division_id.clone())
-                                                .unwrap_or(cynic::Id::new(""))
-                                    })
-                                    .unwrap_or({
-                                        dbg!("couldn't find div");
-                                        &Arc::new(Division::default())
-                                    })
-                                    .clone(),
+                                pool_and_division_map.get(&pool.id).unwrap().clone(),
                                 pool.layout_version.holes,
                             )
                         })
