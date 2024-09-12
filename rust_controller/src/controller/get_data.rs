@@ -242,6 +242,29 @@ impl RustHandler {
 
         warn!("Time taken to get event: {:?}", time.elapsed());
 
+        let conversion_names = [
+            ("women's amateur 1", "FA1"),
+            ("women's amateur 2", "FA2"),
+            ("women's amateur 3", "FA3"),
+            ("women's amateur 4", "FA3"),
+            ("mixed amateur 1", "MA1"),
+            ("mixed amateur 2", "MA2"),
+            ("mixed amateur 3", "MA3"),
+            ("mixed amateur 4", "MA4"),
+            ("mixed amateur 40", "MA40"),
+            ("mixed amateur 50", "MA50"),
+        ];
+        let division_name_conversion: HashMap<&'static str, &'static str> =
+            HashMap::from(conversion_names);
+
+        let sort_conversion: [(&'static str, usize); 10] = conversion_names
+            .into_iter()
+            .enumerate()
+            .map(|(usize, (_, new_name))| (new_name, usize))
+            .collect_vec()
+            .try_into()
+            .unwrap();
+        let sort: HashMap<&str, usize> = HashMap::from(sort_conversion);
         let divisions: Vec<Arc<Division>> = events
             .iter()
             .flat_map(|event| {
@@ -249,7 +272,15 @@ impl RustHandler {
                     .iter()
                     .flat_map(|event| event.divisions.clone())
                     .flatten()
-                    .sorted_by_key(|div| div.name.to_owned())
+                    .map(|mut div| {
+                        let div_name = div.name.clone();
+                        div.name = division_name_conversion
+                            .get(div_name.as_str())
+                            .map(|name| name.to_string())
+                            .unwrap_or(div.name);
+                        div
+                    })
+                    .sorted_by_key(|div| *sort.get(div.name.as_str()).unwrap_or(&0))
                     .dedup_by(|a, b| a.id == b.id)
                     .map(Arc::new)
                     .collect_vec()
