@@ -273,7 +273,7 @@ impl RustHandler {
                     .flat_map(|event| event.divisions.clone())
                     .flatten()
                     .map(|mut div| {
-                        let div_name = div.name.clone();
+                        let div_name = div.name.to_lowercase();
                         div.name = division_name_conversion
                             .get(div_name.as_str())
                             .map(|name| name.to_string())
