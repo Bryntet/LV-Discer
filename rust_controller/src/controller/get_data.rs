@@ -311,6 +311,14 @@ impl RustHandler {
                                 })
                                 .map(|group| (player, group))
                         })
+                        .map(|(mut player, group)| {
+                            let div_name = player.division.name.to_lowercase();
+                            player.division.name = division_name_conversion
+                                .get(div_name.as_str())
+                                .unwrap_or(&player.division.name.as_str())
+                                .to_string();
+                            (player, group)
+                        })
                         .flat_map(|(player, group)| {
                             let holes = holes[event_number]
                                 .par_iter()
@@ -521,7 +529,10 @@ impl RustHandler {
                                                 .map(|div| div.division_id.clone())
                                                 .unwrap_or(cynic::Id::new(""))
                                     })
-                                    .unwrap_or(&Arc::new(Division::default()))
+                                    .unwrap_or({
+                                        dbg!("couldn't find div");
+                                        &Arc::new(Division::default())
+                                    })
                                     .clone(),
                                 pool.layout_version.holes,
                             )

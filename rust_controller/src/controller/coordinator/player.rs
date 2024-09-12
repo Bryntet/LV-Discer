@@ -295,18 +295,18 @@ impl Player {
             .into_iter()
             .find(|div| div.id == player.division.id)
             .ok_or(Error::UnableToParse)?;
-        let mut results = player
+        let results = player
             .results
             .unwrap_or_default()
             .into_iter()
-            .filter_map(|r: controller::queries::HoleResult| {
+            .map(|r: controller::queries::HoleResult| {
                 let hole_number = r.hole.number as u8;
                 match HoleResult::from_tjing(hole_number, &holes, r) {
                     None => {
                         dbg!(hole_number, &holes);
-                        None
+                        panic!()
                     }
-                    Some(result) => Some(result),
+                    Some(result) => result,
                 }
             })
             .collect_vec();
