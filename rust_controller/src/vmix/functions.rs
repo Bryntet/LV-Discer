@@ -41,9 +41,9 @@ impl VMixInterfacer<LeaderBoardProperty> {
         let input = LeaderboardTop6::from_prop(self.input.clone()?)?;
         match self.input {
             Some(LeaderBoardProperty::Name(n)) => {
-                let name = self.value.unwrap();
+                let name = self.value?;
                 let name = name.split(" ").collect_vec();
-                let name = format!("{}. {}", name[0].chars().next().unwrap(), name[1]);
+                let name = format!("{}. {}", name[0].chars().next()?, name[1]);
                 Some(VMixInterfacer {
                     value: Some(name),
                     function: self.function,
@@ -51,7 +51,7 @@ impl VMixInterfacer<LeaderBoardProperty> {
                 })
             }
             Some(LeaderBoardProperty::CheckinText) => {
-                let mut name = self.value.as_ref().unwrap().split(" | ");
+                let mut name = self.value.as_ref()?.split(" | ");
                 let name = format!("{} | {}", name.next()?, name.next()?);
                 Some(VMixInterfacer {
                     value: Some(name),
