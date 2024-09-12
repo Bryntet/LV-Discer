@@ -299,8 +299,15 @@ impl Player {
             .results
             .unwrap_or_default()
             .into_iter()
-            .map(|r: controller::queries::HoleResult| {
-                HoleResult::from_tjing(r.hole.number as u8, &holes, r).unwrap()
+            .filter_map(|r: controller::queries::HoleResult| {
+                let hole_number = r.hole.number as u8;
+                match HoleResult::from_tjing(hole_number, &holes, r) {
+                    None => {
+                        dbg!(hole_number, &holes);
+                        None
+                    }
+                    Some(result) => Some(result),
+                }
             })
             .collect_vec();
 
