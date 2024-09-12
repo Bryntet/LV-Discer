@@ -303,7 +303,6 @@ impl Player {
                 let hole_number = r.hole.number as u8;
                 match HoleResult::from_tjing(hole_number, &holes, r) {
                     None => {
-                        dbg!(hole_number, &holes);
                         panic!()
                     }
                     Some(result) => result,

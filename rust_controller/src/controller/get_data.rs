@@ -550,7 +550,6 @@ impl RustHandler {
 
             out.push(holes);
         }
-        dbg!(&out);
         Ok(out.try_into().unwrap())
     }
 
