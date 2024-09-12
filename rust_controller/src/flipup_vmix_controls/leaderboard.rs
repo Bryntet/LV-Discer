@@ -143,16 +143,24 @@ impl LeaderboardState {
 
     fn sort_players(players: &mut [Player]) {
         players.sort_by(|player_a, player_b| {
-            let cmp = player_a.total_score.cmp(&player_b.total_score);
-            match cmp {
-                std::cmp::Ordering::Equal => {
-                    let cmp = player_a.round_score.cmp(&player_b.round_score);
-                    match cmp {
-                        std::cmp::Ordering::Equal => player_a.pdga_num.cmp(&player_b.pdga_num),
-                        _ => cmp,
+            if player_a.dnf || player_a.dns && !(player_b.dns || player_b.dnf) {
+                std::cmp::Ordering::Less
+            } else if player_b.dnf || player_b.dns && !(player_a.dns || player_a.dnf) {
+                std::cmp::Ordering::Greater
+            } else if player_a.dnf || player_a.dns && player_b.dnf || player_b.dns {
+                std::cmp::Ordering::Equal
+            } else {
+                let cmp = player_a.total_score.cmp(&player_b.total_score);
+                match cmp {
+                    std::cmp::Ordering::Equal => {
+                        let cmp = player_a.round_score.cmp(&player_b.round_score);
+                        match cmp {
+                            std::cmp::Ordering::Equal => player_a.pdga_num.cmp(&player_b.pdga_num),
+                            _ => cmp,
+                        }
                     }
+                    _ => cmp,
                 }
-                _ => cmp,
             }
         })
     }
