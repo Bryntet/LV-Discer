@@ -246,7 +246,7 @@ impl RustHandler {
             ("women's amateur 1", "FA1"),
             ("women's amateur 2", "FA2"),
             ("women's amateur 3", "FA3"),
-            ("women's amateur 4", "FA3"),
+            ("women's amateur 4", "FA4"),
             ("mixed amateur 1", "MA1"),
             ("mixed amateur 2", "MA2"),
             ("mixed amateur 3", "MA3"),
