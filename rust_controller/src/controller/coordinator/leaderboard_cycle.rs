@@ -60,7 +60,9 @@ impl LeaderboardCycle {
     pub async fn next(&mut self) {
         let coordinator = self.coordinator.lock().await;
         let current_division = coordinator.leaderboard_division.clone();
+        let mut queue = coordinator.vmix_queue.clone();
         drop(coordinator);
+        queue.add(FlipUpVMixCoordinator::clear_little_cycling_lb().into_iter());
         let next = self.cycle_next();
         if next == current_division {
             self.current_cycled = self.cycle_next()

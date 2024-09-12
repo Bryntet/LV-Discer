@@ -16,6 +16,7 @@ use crate::api::{DivisionUpdate, Error, GeneralChannel, HoleUpdate, PlayerManage
 use crate::controller::get_data::RustHandler;
 use crate::controller::queries::Division;
 use crate::dto::SimpleRound;
+use crate::flipup_vmix_controls::CycledLeaderboard;
 use crate::vmix::functions::Compare2x2;
 use crate::{api, vmix};
 use crate::{dto, flipup_vmix_controls};
@@ -408,6 +409,17 @@ impl FlipUpVMixCoordinator {
             r_v.extend(new_player.set_lb());
         }
         r_v
+    }
+
+    pub fn clear_little_cycling_lb() -> Vec<VMixInterfacer<CycledLeaderboard>> {
+        FlipUpVMixCoordinator::clear_lb(6)
+            .into_iter()
+            .filter_map(|interface| {
+                Some(VMixInterfacer::<CycledLeaderboard>::from(
+                    interface.to_top_6()?,
+                ))
+            })
+            .collect()
     }
 
     fn queue_add<T: VMixSelectionTrait>(&self, funcs: &[VMixInterfacer<T>]) {

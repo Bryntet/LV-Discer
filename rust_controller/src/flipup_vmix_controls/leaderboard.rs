@@ -8,11 +8,10 @@ use crate::controller::fix_score;
 use crate::controller::get_data::HoleResult;
 use crate::controller::queries::Division;
 use crate::controller::Player;
-use crate::flipup_vmix_controls::leaderboard::prop::CycledLeaderboard;
 use crate::flipup_vmix_controls::Image;
 use crate::vmix::functions::{VMixInterfacer, VMixSelectionTrait};
 use crate::vmix::VMixQueue;
-pub use prop::{LeaderBoardProperty, LeaderboardTop6};
+pub use prop::{CycledLeaderboard, LeaderBoardProperty, LeaderboardTop6};
 
 #[derive(Debug, Clone, Default)]
 pub struct Leaderboard {
@@ -110,6 +109,8 @@ impl Leaderboard {
             current.update_little_leaderboard(div, previous_batch, previous, queue, self.cycle);
         }
     }
+
+    pub fn clear_little_lb(&self, queue: Arc<VMixQueue>) {}
 }
 impl LeaderboardState {
     pub fn new(

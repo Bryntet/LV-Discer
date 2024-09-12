@@ -1,6 +1,7 @@
 pub use internal_content::Image;
 pub use leaderboard::{
-    LeaderBoardProperty, Leaderboard, LeaderboardMovement, LeaderboardState, LeaderboardTop6,
+    CycledLeaderboard, LeaderBoardProperty, Leaderboard, LeaderboardMovement, LeaderboardState,
+    LeaderboardTop6,
 };
 pub use score::{OverarchingScore, Score};
 
