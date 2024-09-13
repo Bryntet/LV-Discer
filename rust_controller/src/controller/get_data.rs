@@ -251,8 +251,8 @@ impl RustHandler {
             ("mixed amateur 2", "MA2"),
             ("mixed amateur 3", "MA3"),
             ("mixed amateur 4", "MA4"),
-            ("mixed amateur 40", "MA40"),
-            ("mixed amateur 50", "MA50"),
+            ("mixed amateur 40+", "MA40"),
+            ("mixed amateur 50+", "MA50"),
         ];
         let division_name_conversion: HashMap<&'static str, &'static str> =
             HashMap::from(conversion_names);
@@ -265,7 +265,7 @@ impl RustHandler {
             .try_into()
             .unwrap();
         let sort: HashMap<&str, usize> = HashMap::from(sort_conversion);
-        let divisions: Vec<Arc<Division>> = events
+        let mut divisions: Vec<Arc<Division>> = events
             .iter()
             .flat_map(|event| {
                 event
@@ -280,13 +280,12 @@ impl RustHandler {
                             .unwrap_or(div.name);
                         div
                     })
-                    .sorted_by_key(|div| *sort.get(div.name.as_str()).unwrap_or(&0))
-                    .dedup_by(|a, b| a.id == b.id)
-                    .map(Arc::new)
-                    .collect_vec()
             })
+            .sorted_by_key(|div| *sort.get(div.name.as_str()).unwrap_or(&0))
+            .map(Arc::new)
             .collect_vec();
-        let holes = Self::get_holes(event_ids, &divisions).await?;
+        dbg!(divisions.iter().map(|div| div.name.clone()).collect_vec());
+        let holes = Self::get_holes(event_ids, &mut divisions).await?;
 
         let mut player_rounds: Vec<Vec<Player>> = vec![];
         for (event_number, event) in events.into_iter().enumerate() {
@@ -296,7 +295,7 @@ impl RustHandler {
                 .map(|(round_number, event)| {
                     event
                         .players
-                        .into_par_iter()
+                        .into_iter()
                         // This validates that only players on the correct course are used
                         .filter_map(|player| {
                             let id = player.id.to_owned().into_inner();
@@ -320,11 +319,22 @@ impl RustHandler {
                             (player, group)
                         })
                         .flat_map(|(player, group)| {
-                            let holes = holes[event_number]
-                                .par_iter()
-                                .find_any(|holes| holes.division.name == player.division.name)
-                                .unwrap_or(&Holes::default())
-                                .clone();
+                            let holes = match holes
+                                .iter()
+                                .flat_map(|holes| holes.iter())
+                                .find(|holes| holes.division.name == player.division.name)
+                            {
+                                Some(holes) => holes.clone(),
+                                None => {
+                                    dbg!(holes
+                                        .iter()
+                                        .flatten()
+                                        .map(|hole| hole.division.name.as_str())
+                                        .collect_vec());
+                                    dbg!(player.division.name);
+                                    panic!()
+                                }
+                            };
 
                             Player::from_query(
                                 player,
@@ -442,6 +452,7 @@ impl RustHandler {
                 rounds.push(out.event.unwrap());
             }
             out.push(rounds);
+            tokio::time::sleep(Duration::from_secs(4)).await;
         }
         out.try_into().unwrap()
     }
@@ -481,7 +492,7 @@ impl RustHandler {
 
     pub async fn get_holes(
         event_ids: [&'static str; 3],
-        divs: &[Arc<Division>],
+        divs: &mut Vec<Arc<Division>>,
     ) -> Result<[Vec<Holes>; 3], Error> {
         use cynic::QueryBuilder;
         use queries::layout::{HoleLayoutQuery, HoleLayoutQueryVariables};
@@ -526,11 +537,17 @@ impl RustHandler {
                     let div_holes = round
                         .pools
                         .into_iter()
-                        .map(|pool| {
-                            (
-                                pool_and_division_map.get(&pool.id).unwrap().clone(),
+                        .flat_map(|pool| {
+                            Some((
+                                match pool_and_division_map.get(&pool.id) {
+                                    Some(div) => Some(div.clone()),
+                                    None => {
+                                        dbg!(pool.name);
+                                        None
+                                    }
+                                }?,
                                 pool.layout_version.holes,
-                            )
+                            ))
                         })
                         .collect_vec();
                     for (div, holes) in div_holes {

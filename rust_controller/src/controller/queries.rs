@@ -234,6 +234,7 @@ pub mod layout {
     pub struct Pool {
         pub layout_version: LayoutVersion,
         pub id: cynic::Id,
+        pub name: Option<String>,
     }
 
     #[derive(cynic::QueryFragment, Debug, Clone)]
