@@ -145,8 +145,8 @@ impl LeaderboardState {
         players.sort_by(|player_a, player_b| {
             match (player_a.dnf || player_a.dns, player_b.dnf || player_b.dns) {
                 (true, true) => std::cmp::Ordering::Equal,
-                (true, false) => std::cmp::Ordering::Less,
-                (false, true) => std::cmp::Ordering::Greater,
+                (true, false) => std::cmp::Ordering::Greater,
+                (false, true) => std::cmp::Ordering::Less,
                 (false, false) => {
                     let cmp = player_a.total_score.cmp(&player_b.total_score);
                     match cmp {
@@ -181,7 +181,7 @@ impl LeaderboardState {
         let players_with_pos = Self::players_with_positions(
             self.players
                 .iter()
-                .filter(|player| player.division.id == division.id)
+                .filter(|player| player.division.name == division.name)
                 .collect_vec(),
         );
 

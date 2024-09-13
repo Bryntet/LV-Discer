@@ -6,6 +6,7 @@ use itertools::Itertools;
 pub use player::Player;
 use player_queue_system::PlayerManager;
 use rayon::prelude::*;
+use rocket::yansi::Paint;
 use tokio::sync::Mutex;
 use vmix::functions::VMixInterfacer;
 use vmix::functions::{VMixPlayerInfo, VMixSelectionTrait};
@@ -387,7 +388,7 @@ impl FlipUpVMixCoordinator {
         let id = self
             .player_manager
             .player(self.available_players())
-            .unwrap()
+            .unwrap_or(self.available_players().first().unwrap())
             .player_id
             .to_owned();
         self.handler.find_player_mut(&id).unwrap()
@@ -436,7 +437,7 @@ impl FlipUpVMixCoordinator {
     pub fn focused_player(&self) -> &Player {
         self.player_manager
             .player(self.available_players())
-            .unwrap()
+            .unwrap_or(self.available_players().first().unwrap())
     }
     pub fn set_div(&mut self, div: &Division, channel: GeneralChannel<DivisionUpdate>) {
         if let Some(div) = self.all_divs.iter().find(|d| d.id == div.id) {

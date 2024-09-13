@@ -282,6 +282,7 @@ impl RustHandler {
                     })
             })
             .sorted_by_key(|div| *sort.get(div.name.as_str()).unwrap_or(&0))
+            .dedup_by(|a, b| a.name == b.name)
             .map(Arc::new)
             .collect_vec();
         dbg!(divisions.iter().map(|div| div.name.clone()).collect_vec());
@@ -310,15 +311,20 @@ impl RustHandler {
                                 })
                                 .map(|group| (player, group))
                         })
-                        .map(|(mut player, group)| {
+                        .filter_map(|(mut player, group)| {
                             let div_name = player.division.name.to_lowercase();
                             player.division.name = division_name_conversion
                                 .get(div_name.as_str())
                                 .unwrap_or(&player.division.name.as_str())
                                 .to_string();
-                            (player, group)
+
+                            if &player.division.name != "MA40" {
+                                Some((player, group))
+                            } else {
+                                None
+                            }
                         })
-                        .flat_map(|(player, group)| {
+                        .map(|(player, group)| {
                             let holes = match holes
                                 .iter()
                                 .flat_map(|holes| holes.iter())
@@ -344,6 +350,7 @@ impl RustHandler {
                                 group.start_at_hole,
                                 event_number,
                             )
+                            .unwrap()
                         })
                         .collect::<Vec<_>>()
                 })
@@ -486,6 +493,7 @@ impl RustHandler {
                     .map(|round| round.id.into_inner())
                     .collect_vec(),
             );
+            tokio::time::sleep(Duration::from_secs(4)).await
         }
         Ok(out.try_into().unwrap())
     }

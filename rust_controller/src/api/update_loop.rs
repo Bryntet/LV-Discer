@@ -147,7 +147,7 @@ pub async fn update_loop(
                         let div = coordinator.focused_player().division.clone();
                         let queue = coordinator.vmix_queue.clone();
                         coordinator.add_state_to_leaderboard();
-                        coordinator.leaderboard.update_little_lb(&div, queue);
+                        //coordinator.leaderboard.update_little_lb(&div, queue);
                         if let Some(player) = coordinator
                             .available_players()
                             .into_par_iter()

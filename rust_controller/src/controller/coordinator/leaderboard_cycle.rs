@@ -18,13 +18,14 @@ pub struct LeaderboardCycle {
 impl LeaderboardCycle {
     async fn new(coordinator: Arc<Mutex<FlipUpVMixCoordinator>>) -> Self {
         let temp_coordinator = coordinator.lock().await;
-        let all_divisions = VecDeque::from(temp_coordinator.all_divs.clone());
+        let all_divisions = VecDeque::from(temp_coordinator.handler.get_divisions().clone());
 
         let mut leaderboard = temp_coordinator.handler.get_previous_leaderboards();
         leaderboard.cycle = true;
         drop(temp_coordinator);
+        dbg!(&all_divisions);
         Self {
-            current_cycled: all_divisions.back().unwrap().clone(),
+            current_cycled: all_divisions.front().unwrap().clone(),
             all_divisions,
             coordinator,
             leaderboard,
@@ -48,8 +49,9 @@ impl LeaderboardCycle {
             current_players,
             previous,
         ));
+        let queue = coordinator.vmix_queue.clone();
         self.leaderboard
-            .update_little_lb(&self.current_cycled, coordinator.vmix_queue.clone());
+            .update_little_lb(&self.current_cycled, queue);
     }
 
     fn send(&self, queue: Arc<VMixQueue>, round: usize) {
@@ -59,16 +61,10 @@ impl LeaderboardCycle {
 
     pub async fn next(&mut self) {
         let coordinator = self.coordinator.lock().await;
-        let current_division = coordinator.leaderboard_division.clone();
-        let mut queue = coordinator.vmix_queue.clone();
+        let queue = coordinator.vmix_queue.clone();
         drop(coordinator);
         queue.add(FlipUpVMixCoordinator::clear_little_cycling_lb().into_iter());
-        let next = self.cycle_next();
-        if next == current_division {
-            self.current_cycled = self.cycle_next()
-        } else {
-            self.current_cycled = next;
-        }
+        self.current_cycled = self.cycle_next();
     }
 
     fn cycle_next(&mut self) -> Arc<Division> {
