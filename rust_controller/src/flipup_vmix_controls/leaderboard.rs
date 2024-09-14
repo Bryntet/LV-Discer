@@ -32,6 +32,15 @@ pub enum LeaderboardStart {
 }
 
 impl Leaderboard {
+    pub fn all_players_in_div(
+        &self,
+        division: Arc<Division>,
+        round: usize,
+    ) -> Vec<LeaderboardPlayer> {
+        self.current_state(round)
+            .unwrap()
+            .leaderboard_players(&division, self.previous_state(round))
+    }
     fn current_state(&self, round: usize) -> Option<&LeaderboardState> {
         self.states.get(round)
     }

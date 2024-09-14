@@ -254,6 +254,7 @@ impl RustHandler {
             ("mixed amateur 40+", "MA40"),
             ("mixed amateur 50+", "MA50"),
         ];
+        let removed_divisions = ["FA1", "FA2", "FA3"];
         let division_name_conversion: HashMap<&'static str, &'static str> =
             HashMap::from(conversion_names);
 
@@ -281,11 +282,11 @@ impl RustHandler {
                         div
                     })
             })
+            .filter(|div| !removed_divisions.contains(&div.name.as_str()))
             .sorted_by_key(|div| *sort.get(div.name.as_str()).unwrap_or(&0))
             .dedup_by(|a, b| a.name == b.name)
             .map(Arc::new)
             .collect_vec();
-        dbg!(divisions.iter().map(|div| div.name.clone()).collect_vec());
         let holes = Self::get_holes(event_ids, &mut divisions).await?;
 
         let mut player_rounds: Vec<Vec<Player>> = vec![];
@@ -318,7 +319,7 @@ impl RustHandler {
                                 .unwrap_or(&player.division.name.as_str())
                                 .to_string();
 
-                            if &player.division.name != "MA40" {
+                            if !removed_divisions.contains(&player.division.name.as_str()) {
                                 Some((player, group))
                             } else {
                                 None
@@ -459,7 +460,6 @@ impl RustHandler {
                 rounds.push(out.event.unwrap());
             }
             out.push(rounds);
-            tokio::time::sleep(Duration::from_secs(4)).await;
         }
         out.try_into().unwrap()
     }
@@ -472,6 +472,7 @@ impl RustHandler {
             let body = RoundsQuery::build(RoundsQueryVariables {
                 event_id: event_id.into(),
             });
+
             let response = reqwest::Client::new()
                 .post("https://api.tjing.se/graphql")
                 .json(&body)
@@ -493,7 +494,6 @@ impl RustHandler {
                     .map(|round| round.id.into_inner())
                     .collect_vec(),
             );
-            tokio::time::sleep(Duration::from_secs(4)).await
         }
         Ok(out.try_into().unwrap())
     }
@@ -524,9 +524,19 @@ impl RustHandler {
                     return Err(Error::UnableToParse);
                 };
 
+                for division in &event.division_in_pool {
+                    if let Some(division_id) =
+                        division.as_ref().map(|division| &division.division_id)
+                    {
+                        if !divs.iter().any(|div| &div.id == division_id) {
+                            dbg!(division_id);
+                        }
+                    }
+                }
                 let division_pool_thing =
                     event.division_in_pool.into_iter().flatten().collect_vec();
                 let mut pool_and_division_map: HashMap<cynic::Id, Arc<Division>> = HashMap::new();
+
                 for (pool_id, division_id) in division_pool_thing
                     .into_iter()
                     .map(|thing| (thing.pool_id, thing.division_id))
@@ -613,14 +623,11 @@ impl RustHandler {
                         .pools
                         .into_iter()
                         .filter_map(|pool| {
-                            let layout_version = pool.layout_version.clone().layout;
                             if pool.layout_version.layout.name == "Vit"
                                 || pool.layout_version.layout.course.unwrap().name == "Ale Vit"
                             {
-                                dbg!("some pool");
                                 Some(pool.groups)
                             } else {
-                                dbg!(layout_version);
                                 None
                             }
                         })
@@ -629,13 +636,13 @@ impl RustHandler {
                         .map(dto::Group::from)
                         .collect_vec()
                 })
-                .collect::<Vec<_>>();
+                .collect::<Vec<Vec<dto::Group>>>();
 
             for (round_number, groups) in group_rounds.into_iter().enumerate() {
-                match out.get_mut(round_number) {
-                    Some(existing) => existing.extend(groups),
-                    None => out.push(groups),
+                while out.len() <= round_number {
+                    out.push(vec![])
                 }
+                out[round_number].extend(groups);
             }
         }
         out

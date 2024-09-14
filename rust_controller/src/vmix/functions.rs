@@ -42,13 +42,21 @@ impl VMixInterfacer<LeaderBoardProperty> {
         match self.input {
             Some(LeaderBoardProperty::Name(n)) => {
                 let name = self.value?;
-                let name = name.split(" ").collect_vec();
-                let name = format!("{}. {}", name[0].chars().next()?, name[1]);
-                Some(VMixInterfacer {
-                    value: Some(name),
-                    function: self.function,
-                    input: Some(LeaderboardTop6::Name { pos: n }),
-                })
+                if !name.is_empty() {
+                    let name = name.split(" ").collect_vec();
+                    let name = format!("{}. {}", name[0].chars().next()?, name[1]);
+                    Some(VMixInterfacer {
+                        value: Some(name),
+                        function: self.function,
+                        input: Some(LeaderboardTop6::Name { pos: n }),
+                    })
+                } else {
+                    Some(VMixInterfacer {
+                        value: Some(name),
+                        function: self.function,
+                        input: Some(LeaderboardTop6::Name { pos: n }),
+                    })
+                }
             }
             Some(LeaderBoardProperty::CheckinText) => {
                 let mut name = self.value.as_ref()?.split(" | ");

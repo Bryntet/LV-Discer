@@ -1,8 +1,7 @@
 use crate::controller::coordinator::FlipUpVMixCoordinator;
 use crate::controller::queries::Division;
-use crate::flipup_vmix_controls::{Leaderboard, LeaderboardState};
+use crate::flipup_vmix_controls::Leaderboard;
 use crate::vmix::VMixQueue;
-use itertools::Itertools;
 use std::collections::VecDeque;
 use std::sync::Arc;
 use std::time::Duration;
@@ -13,13 +12,14 @@ pub struct LeaderboardCycle {
     all_divisions: VecDeque<Arc<Division>>,
     coordinator: Arc<Mutex<FlipUpVMixCoordinator>>,
     leaderboard: Leaderboard,
+    round: usize,
 }
 
 impl LeaderboardCycle {
     async fn new(coordinator: Arc<Mutex<FlipUpVMixCoordinator>>) -> Self {
         let temp_coordinator = coordinator.lock().await;
         let all_divisions = VecDeque::from(temp_coordinator.handler.get_divisions().clone());
-
+        let round = temp_coordinator.round_ind;
         let mut leaderboard = temp_coordinator.handler.get_previous_leaderboards();
         leaderboard.cycle = true;
         drop(temp_coordinator);
@@ -29,29 +29,17 @@ impl LeaderboardCycle {
             all_divisions,
             coordinator,
             leaderboard,
+            round,
         }
     }
 
     pub async fn update_leaderboard(&mut self) {
         let coordinator = self.coordinator.lock().await;
-        let current_players = coordinator
-            .available_players()
-            .into_iter()
-            .cloned()
-            .collect_vec();
-        let previous = coordinator
-            .previous_rounds_players()
-            .into_iter()
-            .cloned()
-            .collect_vec();
-        self.leaderboard.add_state(LeaderboardState::new(
-            coordinator.round_ind,
-            current_players,
-            previous,
-        ));
+        let state = coordinator.current_leaderboard_state();
+        self.leaderboard.add_state(state);
         let queue = coordinator.vmix_queue.clone();
         self.leaderboard
-            .update_little_lb(&self.current_cycled, queue);
+            .send_to_vmix(&self.current_cycled, queue, self.round)
     }
 
     fn send(&self, queue: Arc<VMixQueue>, round: usize) {
@@ -62,15 +50,25 @@ impl LeaderboardCycle {
     pub async fn next(&mut self) {
         let coordinator = self.coordinator.lock().await;
         let queue = coordinator.vmix_queue.clone();
+        self.leaderboard
+            .add_state(coordinator.current_leaderboard_state());
         drop(coordinator);
-        queue.add(FlipUpVMixCoordinator::clear_little_cycling_lb().into_iter());
-        self.current_cycled = self.cycle_next();
+        self.current_cycled = self.cycle_next(queue);
     }
 
-    fn cycle_next(&mut self) -> Arc<Division> {
+    fn cycle_next(&mut self, queue: Arc<VMixQueue>) -> Arc<Division> {
         let div = self.all_divisions.pop_front().unwrap();
         self.all_divisions.push_back(div.clone());
-        div
+        let all_players = self.leaderboard.all_players_in_div(div.clone(), self.round);
+        if all_players.is_empty() {
+            println!("{} is empty", div.name);
+            self.cycle_next(queue)
+        } else {
+            if all_players.len() < 6 {
+                queue.add(FlipUpVMixCoordinator::clear_little_cycling_lb().into_iter())
+            }
+            div
+        }
     }
 }
 

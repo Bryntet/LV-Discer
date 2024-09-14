@@ -58,9 +58,9 @@ impl FlipUpVMixCoordinator {
     ) -> Result<Self, Error> {
         let queue = VMixQueue::new(ip.clone())?;
         let event_ids = [
+            "a8294ab0-2a94-4a4c-b54f-c967ef9a90c6",
             "0bb0326d-24f7-47ba-afef-6d77fb82b6f3",
             "2d1d0555-dadc-43a6-aeb4-443de849d141",
-            "a8294ab0-2a94-4a4c-b54f-c967ef9a90c6",
         ];
         let handler = RustHandler::new(event_ids, round).await?;
 
@@ -460,6 +460,16 @@ impl FlipUpVMixCoordinator {
             .iter()
             .find(|div| div.name == div_name)
             .map(Arc::clone)
+    }
+
+    pub fn current_leaderboard_state(&self) -> LeaderboardState {
+        let current_players = self.available_players().into_iter().cloned().collect_vec();
+        let previous = self
+            .previous_rounds_players()
+            .into_iter()
+            .cloned()
+            .collect_vec();
+        LeaderboardState::new(self.round_ind, current_players, previous)
     }
 
     pub fn add_state_to_leaderboard(&mut self) {
