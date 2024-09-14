@@ -254,7 +254,6 @@ impl RustHandler {
             ("mixed amateur 40+", "MA40"),
             ("mixed amateur 50+", "MA50"),
         ];
-        let removed_divisions = ["FA1", "FA2", "FA3"];
         let division_name_conversion: HashMap<&'static str, &'static str> =
             HashMap::from(conversion_names);
 
@@ -282,12 +281,14 @@ impl RustHandler {
                         div
                     })
             })
-            .filter(|div| !removed_divisions.contains(&div.name.as_str()))
             .sorted_by_key(|div| *sort.get(div.name.as_str()).unwrap_or(&0))
             .dedup_by(|a, b| a.name == b.name)
             .map(Arc::new)
             .collect_vec();
-        let holes = Self::get_holes(event_ids, &mut divisions).await?;
+
+        dbg!(&divisions);
+        let holes = Self::get_holes(event_ids).await?;
+        for div in divisions.clone() {}
 
         let mut player_rounds: Vec<Vec<Player>> = vec![];
         for (event_number, event) in events.into_iter().enumerate() {
@@ -301,7 +302,7 @@ impl RustHandler {
                         // This validates that only players on the correct course are used
                         .filter_map(|player| {
                             let id = player.id.to_owned().into_inner();
-                            groups[round]
+                            groups[round_number]
                                 .par_iter()
                                 .find_any(|group| {
                                     group
@@ -312,32 +313,19 @@ impl RustHandler {
                                 })
                                 .map(|group| (player, group))
                         })
-                        .filter_map(|(mut player, group)| {
+                        .map(|(mut player, group)| {
                             let div_name = player.division.name.to_lowercase();
                             player.division.name = division_name_conversion
                                 .get(div_name.as_str())
                                 .unwrap_or(&player.division.name.as_str())
                                 .to_string();
 
-                            if !removed_divisions.contains(&player.division.name.as_str()) {
-                                Some((player, group))
-                            } else {
-                                None
-                            }
+                            (player, group)
                         })
                         .map(|(player, group)| {
-                            let holes = match holes
-                                .iter()
-                                .flat_map(|holes| holes.iter())
-                                .find(|holes| holes.division.name == player.division.name)
-                            {
+                            let holes = match holes[event_number][round_number].get(&group.id) {
                                 Some(holes) => holes.clone(),
                                 None => {
-                                    dbg!(holes
-                                        .iter()
-                                        .flatten()
-                                        .map(|hole| hole.division.name.as_str())
-                                        .collect_vec());
                                     dbg!(player.division.name);
                                     panic!()
                                 }
@@ -500,8 +488,7 @@ impl RustHandler {
 
     pub async fn get_holes(
         event_ids: [&'static str; 3],
-        divs: &mut Vec<Arc<Division>>,
-    ) -> Result<[Vec<Holes>; 3], Error> {
+    ) -> Result<[Vec<HashMap<String, Holes>>; 3], Error> {
         use cynic::QueryBuilder;
         use queries::layout::{HoleLayoutQuery, HoleLayoutQueryVariables};
         let mut out = vec![];
@@ -519,66 +506,28 @@ impl RustHandler {
                 .json::<GraphQlResponse<HoleLayoutQuery>>()
                 .await
                 .unwrap();
-            let holes = {
-                let Some(Some(event)) = holes.data.map(|data| data.event) else {
-                    return Err(Error::UnableToParse);
-                };
 
-                for division in &event.division_in_pool {
-                    if let Some(division_id) =
-                        division.as_ref().map(|division| &division.division_id)
-                    {
-                        if !divs.iter().any(|div| &div.id == division_id) {
-                            dbg!(division_id);
-                        }
-                    }
-                }
-                let division_pool_thing =
-                    event.division_in_pool.into_iter().flatten().collect_vec();
-                let mut pool_and_division_map: HashMap<cynic::Id, Arc<Division>> = HashMap::new();
-
-                for (pool_id, division_id) in division_pool_thing
-                    .into_iter()
-                    .map(|thing| (thing.pool_id, thing.division_id))
-                {
-                    if let Some(div) = divs.iter().find(|div| div.id == division_id) {
-                        pool_and_division_map.insert(pool_id, div.clone());
-                    } else {
-                        dbg!("couldn't find div!!!");
-                    }
-                }
-                let mut rounds_holes = vec![];
-                for round in event.rounds {
-                    let Some(round) = round else {
-                        return Err(Error::UnableToParse);
-                    };
-                    let div_holes = round
-                        .pools
-                        .into_iter()
-                        .flat_map(|pool| {
-                            Some((
-                                match pool_and_division_map.get(&pool.id) {
-                                    Some(div) => Some(div.clone()),
-                                    None => {
-                                        dbg!(pool.name);
-                                        None
-                                    }
-                                }?,
-                                pool.layout_version.holes,
-                            ))
-                        })
-                        .collect_vec();
-                    for (div, holes) in div_holes {
-                        match Holes::from_vec_hole(holes, div.clone()) {
-                            Err(e) => return Err(e),
-                            Ok(holes) => rounds_holes.push(holes),
-                        }
-                    }
-                }
-                rounds_holes
+            let Some(Some(event)) = holes.data.map(|data| data.event) else {
+                return Err(Error::UnableToParse);
             };
 
-            out.push(holes);
+            let mut event_out = vec![];
+
+            for round in event.rounds {
+                let Some(round) = round else {
+                    return Err(Error::UnableToParse);
+                };
+                let mut return_map: HashMap<String, Holes> = HashMap::new();
+                for pool in round.pools {
+                    let holes = Holes::from_vec_hole(pool.layout_version.holes)?;
+                    for group in pool.groups {
+                        return_map.insert(group.id.into_inner(), holes.clone());
+                    }
+                }
+                event_out.push(return_map);
+            }
+
+            out.push(event_out);
         }
         Ok(out.try_into().unwrap())
     }
@@ -622,16 +571,8 @@ impl RustHandler {
                     round
                         .pools
                         .into_iter()
-                        .filter_map(|pool| {
-                            if pool.layout_version.layout.name == "Vit"
-                                || pool.layout_version.layout.course.unwrap().name == "Ale Vit"
-                            {
-                                Some(pool.groups)
-                            } else {
-                                None
-                            }
-                        })
-                        .flatten()
+                        .flat_map(|pool| pool.groups)
+                        .sorted_by_key(|group| group.id.inner().to_owned())
                         .dedup_by(|group1, group2| group1.id == group2.id)
                         .map(dto::Group::from)
                         .collect_vec()

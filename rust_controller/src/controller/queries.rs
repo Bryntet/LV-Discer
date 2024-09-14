@@ -140,12 +140,9 @@ pub mod layout {
 
         use crate::api::Error;
 
-        use super::super::Division;
-
         #[derive(Debug, Clone, Default)]
         pub struct Holes {
             holes: Vec<Arc<Hole>>,
-            pub division: Arc<Division>,
         }
         impl Holes {
             pub fn find_hole(&self, hole_number: u8) -> Option<Arc<Hole>> {
@@ -155,17 +152,14 @@ pub mod layout {
                     .map(Arc::clone)
             }
 
-            pub fn from_vec_hole(
-                holes: Vec<super::Hole>,
-                division: Arc<Division>,
-            ) -> Result<Self, Error> {
+            pub fn from_vec_hole(holes: Vec<super::Hole>) -> Result<Self, Error> {
                 let mut holes: Vec<Hole> = holes
                     .into_iter()
                     .map(|hole| Hole::try_from(hole))
                     .try_collect()?;
                 holes.sort_by_key(|hole| hole.hole);
                 let holes = holes.into_iter().map(Arc::new).collect();
-                Ok(Self { holes, division })
+                Ok(Self { holes })
             }
         }
 
@@ -234,9 +228,13 @@ pub mod layout {
     pub struct Pool {
         pub layout_version: LayoutVersion,
         pub id: cynic::Id,
+        pub groups: Vec<Group>,
         pub name: Option<String>,
     }
-
+    #[derive(cynic::QueryFragment, Debug, Clone)]
+    pub struct Group {
+        pub id: cynic::Id,
+    }
     #[derive(cynic::QueryFragment, Debug, Clone)]
     pub struct LayoutVersion {
         pub holes: Vec<Hole>,
