@@ -7,8 +7,10 @@ use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 use std::time::Duration;
 
+use super::queries;
 use crate::api::Error;
 use crate::controller::coordinator::player::{Player, PlayerRound};
+use crate::controller::coordinator::BroadcastType;
 use crate::controller::hole::{HoleStats, VMixHoleInfo};
 use crate::controller::queries::layout::hole::Hole;
 use crate::controller::queries::layout::Holes;
@@ -19,8 +21,6 @@ use crate::flipup_vmix_controls::{
 use crate::flipup_vmix_controls::{OverarchingScore, Score};
 use crate::vmix::functions::*;
 use crate::{controller, dto};
-
-use super::queries;
 
 pub const DEFAULT_FOREGROUND_COL: &str = "3F334D";
 pub const DEFAULT_FOREGROUND_COL_ALPHA: &str = "3F334D00";
@@ -120,15 +120,19 @@ impl HoleResult {
         ]
     }
 
-    pub fn to_current_player(&self, hole: usize) -> Vec<VMixInterfacer<CurrentPlayer>> {
+    pub fn to_current_player(
+        &self,
+        hole: usize,
+        player: usize,
+    ) -> Vec<VMixInterfacer<CurrentPlayer>> {
         vec![
             VMixInterfacer::set_text(
                 fix_score(self.actual_score() as isize),
-                CurrentPlayer(VMixPlayerInfo::Score { player: 0, hole }),
+                CurrentPlayer(VMixPlayerInfo::Score { player, hole }),
             ),
             VMixInterfacer::set_color(
                 self.to_score().get_score_colour(),
-                CurrentPlayer(VMixPlayerInfo::ScoreColor { player: 0, hole }),
+                CurrentPlayer(VMixPlayerInfo::ScoreColor { player, hole }),
             ),
         ]
     }
@@ -178,7 +182,7 @@ impl From<&Player> for crate::flipup_vmix_controls::OverarchingScore {
         Self::new(
             player.round_ind,
             player.round_score,
-            player.ind,
+            player.vmix_index(),
             player.total_score,
         )
     }
@@ -230,7 +234,11 @@ impl PlayerContainer {
 }
 
 impl RustHandler {
-    pub async fn new(event_ids: Vec<String>, round: usize) -> Result<Self, Error> {
+    pub async fn new(
+        event_ids: Vec<String>,
+        round: usize,
+        broadcast_type: Arc<BroadcastType>,
+    ) -> Result<Self, Error> {
         let time = std::time::Instant::now();
         let round_ids = Self::get_rounds(&event_ids).await?;
         let events = Self::get_event(&event_ids, &round_ids).await;
@@ -332,6 +340,7 @@ impl RustHandler {
                                 divisions.clone(),
                                 group.start_at_hole,
                                 event_number,
+                                broadcast_type.clone(),
                             )
                             .unwrap()
                         })
@@ -357,7 +366,7 @@ impl RustHandler {
                     .find(|(_, group_player)| group_player.id == player.player_id)
                     .map(|(group_index, _)| group_index)
                 {
-                    player.index = group_index;
+                    player.group_index = group_index;
                 }
             });
         }

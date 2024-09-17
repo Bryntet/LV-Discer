@@ -197,7 +197,7 @@ impl Score {
     pub fn play_mov_vmix(&self, player: usize, ob: bool) -> [VMixInterfacer<VMixPlayerInfo>; 2] {
         [
             Self::stop_previous_mov(),
-            //self.set_input_pan(0),
+            //self.set_input_pan(player),
             self.to_vmix_mov(ob),
         ]
     }

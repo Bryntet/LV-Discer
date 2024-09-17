@@ -48,20 +48,20 @@ impl Player {
             image_url: player.image_url.clone(),
             focused: false,
             holes_finished: player.amount_of_holes_finished(),
-            index: player.ind,
+            index: player.group_index,
             queue,
         }
     }
 }
 impl From<&controller::Player> for self::Player {
-    fn from(value: &controller::Player) -> self::Player {
+    fn from(player: &controller::Player) -> self::Player {
         self::Player {
-            id: value.player_id.clone(),
-            name: value.name.clone(),
-            image_url: value.image_url.clone(),
+            id: player.player_id.clone(),
+            name: player.name.clone(),
+            image_url: player.image_url.clone(),
             focused: false,
-            holes_finished: value.amount_of_holes_finished(),
-            index: value.ind,
+            holes_finished: player.amount_of_holes_finished(),
+            index: player.group_index,
             queue: None,
         }
     }

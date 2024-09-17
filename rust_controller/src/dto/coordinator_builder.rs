@@ -1,5 +1,5 @@
 use crate::api::Error;
-use crate::controller::coordinator::FlipUpVMixCoordinator;
+use crate::controller::coordinator::{BroadcastType, FlipUpVMixCoordinator};
 use itertools::Itertools;
 use rocket::serde::json::Json;
 use rocket_okapi::okapi::{schemars, schemars::JsonSchema};
@@ -14,15 +14,23 @@ pub struct CoordinatorBuilder {
     event_ids: Vec<String>,
     round: usize,
     featured_hole: u8,
+    broadcast_type: BroadcastType,
 }
 
 impl CoordinatorBuilder {
-    pub fn new(ip: String, event_ids: Vec<String>, round: usize, featured_hole: u8) -> Self {
+    pub fn new(
+        ip: String,
+        event_ids: Vec<String>,
+        round: usize,
+        featured_hole: u8,
+        broadcast_type: BroadcastType,
+    ) -> Self {
         Self {
             ip,
             event_ids,
             round,
             featured_hole,
+            broadcast_type,
         }
     }
 }
@@ -37,7 +45,15 @@ impl CoordinatorBuilder {
                 .collect::<String>(),
         )
         .unwrap();
-        FlipUpVMixCoordinator::new(self.ip, self.event_ids, 0, self.round, self.featured_hole).await
+        FlipUpVMixCoordinator::new(
+            self.ip,
+            self.event_ids,
+            0,
+            self.round,
+            self.featured_hole,
+            self.broadcast_type,
+        )
+        .await
     }
 }
 

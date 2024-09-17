@@ -35,8 +35,7 @@ impl Group {
     pub fn player_ids(&self) -> Vec<String> {
         self.players
             .iter()
-            .cloned()
-            .map(|player| player.id)
+            .map(|player| player.id.to_string())
             .collect()
     }
 }

@@ -7,6 +7,7 @@ pub use player::Player;
 use player_queue_system::PlayerManager;
 use rayon::prelude::*;
 use rocket::yansi::Paint;
+use serde::{Deserialize, Serialize};
 use tokio::sync::Mutex;
 use vmix::functions::VMixInterfacer;
 use vmix::functions::{VMixPlayerInfo, VMixSelectionTrait};
@@ -46,6 +47,7 @@ pub struct FlipUpVMixCoordinator {
     groups_featured_so_far: u8,
     pub leaderboard_round: usize,
     pub next_group: Arc<Mutex<String>>,
+    pub broadcast_type: Arc<BroadcastType>,
 }
 
 impl FlipUpVMixCoordinator {
@@ -55,13 +57,22 @@ impl FlipUpVMixCoordinator {
         focused_player: usize,
         round: usize,
         featured_hole: u8,
+        broadcast_type: BroadcastType,
     ) -> Result<Self, Error> {
+        assert!(!event_ids.is_empty());
         let queue = VMixQueue::new(ip.clone())?;
-
-        let handler = RustHandler::new(event_ids.clone(), round).await?;
+        let broadcast_type = Arc::new(broadcast_type);
+        let handler = RustHandler::new(event_ids.clone(), round, broadcast_type.clone()).await?;
 
         let all_divs = handler.get_divisions();
-        let first_group = handler.groups.first().unwrap().first().unwrap();
+        let first_group = handler
+            .groups
+            .get(round)
+            .as_ref()
+            .unwrap()
+            .iter()
+            .find(|group| !group.players.is_empty())
+            .unwrap();
         let next_group = Arc::new(Mutex::new(first_group.id.to_owned()));
 
         let card_starts_at_hole = handler
@@ -69,6 +80,7 @@ impl FlipUpVMixCoordinator {
             .get(round)
             .unwrap()
             .iter()
+            .filter(|group| !group.players.is_empty())
             .sorted_by_key(|group| {
                 if let Some(start_time) = group.start_time {
                     start_time
@@ -98,6 +110,7 @@ impl FlipUpVMixCoordinator {
             featured_hole,
             leaderboard_round: round,
             next_group,
+            broadcast_type,
         };
         coordinator.handler.add_total_score_to_players();
         coordinator.queue_add(&coordinator.focused_player().set_name());
@@ -571,7 +584,6 @@ impl FlipUpVMixCoordinator {
         self.focused_player_index = index;
         let player = self.focused_player_mut();
 
-        player.ind = 0;
         let mut actions = vec![];
         actions.extend(player.set_name());
         self.queue_add(&actions)
@@ -670,6 +682,13 @@ impl FlipUpVMixCoordinator {
     }*/
 }
 
+use rocket_okapi::okapi::{schemars, schemars::JsonSchema};
+#[derive(Debug, Deserialize, JsonSchema, FromFormField, Default, Clone, Copy)]
+pub enum BroadcastType {
+    #[default]
+    Live,
+    PostLive,
+}
 #[cfg(test)]
 mod tests {
     //! Tests need to run with high node version otherwise it fails!
