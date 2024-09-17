@@ -15,3 +15,4 @@ built/*
 built
 pkg.tgz
 images
+previous_ids.txt

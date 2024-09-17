@@ -1,8 +1,10 @@
 use crate::api::Error;
 use crate::controller::coordinator::FlipUpVMixCoordinator;
+use itertools::Itertools;
 use rocket::serde::json::Json;
 use rocket_okapi::okapi::{schemars, schemars::JsonSchema};
 use serde::Deserialize;
+use std::path::Path;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
@@ -27,6 +29,14 @@ impl CoordinatorBuilder {
 
 impl CoordinatorBuilder {
     pub async fn into_coordinator(self) -> Result<FlipUpVMixCoordinator, Error> {
+        std::fs::write(
+            Path::new("previous_ids.txt"),
+            self.event_ids
+                .iter()
+                .map(|s| s.to_string() + "\n")
+                .collect::<String>(),
+        )
+        .unwrap();
         FlipUpVMixCoordinator::new(self.ip, self.event_ids, 0, self.round, self.featured_hole).await
     }
 }

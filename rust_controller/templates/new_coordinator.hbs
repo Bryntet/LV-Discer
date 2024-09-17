@@ -176,11 +176,15 @@
         <div>
             <label>Event ID(s):</label>
             <div id="event-ids-container" class="event-id-container">
-                <div class="event-id-row">
-                    <input name="event_ids[]" class="event-id-input" value="7d46bbff-f642-411f-981b-8d0b74bf31cc"
-                           required/>
-                    <button type="button" class="add-event-id" onclick="addEventIdField()">+</button>
-                </div>
+                {{#each event_ids}}
+                    <div class="event-id-row">
+                        <input name="event_ids[]" class="event-id-input" value="{{this}}"
+                               {{#if @first}}required{{/if}}/>
+                        {{#if @last}}
+                            <button type="button" class="add-event-id" onclick="addEventIdField()">+</button>
+                        {{/if}}
+                    </div>
+                {{/each}}
             </div>
         </div>
         <div>

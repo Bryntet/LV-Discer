@@ -1,13 +1,3 @@
-use std::ops::Deref;
-
-use rocket::form::Form;
-use rocket::response::content::RawHtml;
-use rocket::serde::json::Json;
-use rocket::State;
-use rocket_dyn_templates::Template;
-use rocket_okapi::openapi;
-use serde_json::json;
-
 use crate::api::guard::CoordinatorLoader;
 use crate::api::websocket::channels::DivisionUpdate;
 use crate::api::websocket::htmx::division_updater;
@@ -15,6 +5,17 @@ use crate::api::websocket::{hole_finished_alert, HoleFinishedAlert, LeaderboardR
 use crate::api::{Coordinator, Error, GeneralChannel, PlayerManagerUpdate};
 use crate::dto;
 use crate::dto::{CoordinatorBuilder, HoleSetting};
+use itertools::Itertools;
+use quote::ToTokens;
+use rocket::form::Form;
+use rocket::response::content::RawHtml;
+use rocket::serde::json::Json;
+use rocket::State;
+use rocket_dyn_templates::Template;
+use rocket_okapi::openapi;
+use serde_json::json;
+use std::ops::Deref;
+use std::path::Path;
 
 #[openapi(tag = "Config")]
 #[post("/player/focused/set/<focused_player>")]
@@ -225,5 +226,24 @@ pub async fn set_hole(coordinator: Coordinator, hole: usize) {
 
 #[catch(424)]
 pub fn make_coordinator() -> RawHtml<Template> {
-    RawHtml(Template::render("new_coordinator", json!({})))
+    let ids = std::fs::read_to_string(Path::new("previous_ids.txt"))
+        .unwrap_or("".to_string())
+        .lines()
+        .enumerate()
+        .filter_map(|(id_number, id)| {
+            if id.is_empty() {
+                if id_number == 0 {
+                    Some("".to_string())
+                } else {
+                    None
+                }
+            } else {
+                Some(id.to_string())
+            }
+        })
+        .collect_vec();
+    RawHtml(Template::render(
+        "new_coordinator",
+        json!({"event_ids": ids}),
+    ))
 }
