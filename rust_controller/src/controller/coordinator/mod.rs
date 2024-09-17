@@ -40,7 +40,7 @@ pub struct FlipUpVMixCoordinator {
     current_through: u8,
     pub vmix_queue: Arc<VMixQueue>,
     player_manager: PlayerManager,
-    pub event_ids: [&'static str; 3],
+    pub event_ids: Vec<String>,
     featured_card: PlayerManager,
     featured_hole: u8,
     groups_featured_so_far: u8,
@@ -51,18 +51,14 @@ pub struct FlipUpVMixCoordinator {
 impl FlipUpVMixCoordinator {
     pub async fn new(
         ip: String,
-        _event_id: String,
+        event_ids: Vec<String>,
         focused_player: usize,
         round: usize,
         featured_hole: u8,
     ) -> Result<Self, Error> {
         let queue = VMixQueue::new(ip.clone())?;
-        let event_ids = [
-            "a8294ab0-2a94-4a4c-b54f-c967ef9a90c6",
-            "0bb0326d-24f7-47ba-afef-6d77fb82b6f3",
-            "2d1d0555-dadc-43a6-aeb4-443de849d141",
-        ];
-        let handler = RustHandler::new(event_ids, round).await?;
+
+        let handler = RustHandler::new(event_ids.clone(), round).await?;
 
         let all_divs = handler.get_divisions();
         let first_group = handler.groups.first().unwrap().first().unwrap();
@@ -284,7 +280,7 @@ impl FlipUpVMixCoordinator {
             .dto_players(self.available_players(), true)
     }
 
-    pub fn round_ids(&self) -> [String; 3] {
+    pub fn round_ids(&self) -> Vec<String> {
         self.handler.round_ids()
     }
 
@@ -372,10 +368,6 @@ impl FlipUpVMixCoordinator {
         });
         round_ids
             .into_iter()
-            .map(|ids| {
-                let ids: [String; 3] = ids.try_into().unwrap();
-                ids
-            })
             .enumerate()
             .map(|(round, id)| SimpleRound::new(round, id, round == self.leaderboard_round))
             .collect()

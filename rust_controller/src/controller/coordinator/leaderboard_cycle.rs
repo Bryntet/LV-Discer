@@ -23,7 +23,6 @@ impl LeaderboardCycle {
         let mut leaderboard = temp_coordinator.handler.get_previous_leaderboards();
         leaderboard.cycle = true;
         drop(temp_coordinator);
-        dbg!(&all_divisions);
         Self {
             current_cycled: all_divisions.front().unwrap().clone(),
             all_divisions,
@@ -75,9 +74,7 @@ impl LeaderboardCycle {
 pub async fn start_leaderboard_cycle(
     coordinator: Arc<Mutex<FlipUpVMixCoordinator>>,
 ) -> Arc<Mutex<LeaderboardCycle>> {
-    dbg!("here");
     let cycle = Arc::new(Mutex::new(LeaderboardCycle::new(coordinator).await));
-    dbg!("after here");
     let loop_cycle = cycle.clone();
     tokio::spawn(async move {
         let cycle = loop_cycle;

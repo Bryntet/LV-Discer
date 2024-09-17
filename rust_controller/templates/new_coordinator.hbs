@@ -126,6 +126,41 @@
         .htmx-request.htmx-indicator {
             opacity: 1
         }
+
+        .event-id-container {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .event-id-row {
+            display: flex;
+            align-items: center;
+        }
+
+        .event-id-input {
+            width: 250px; /* Adjust this value to your preferred width */
+            margin-right: 10px;
+        }
+
+        .add-event-id {
+            background-color: #2196F3;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            font-size: 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .add-event-id:hover {
+            background-color: #0b7dda;
+        }
     </style>
     <link rel="stylesheet" href="static/styles.css">
 </head>
@@ -139,8 +174,14 @@
             <input name="ip" id="ip" value="10.170.121.242" required/>
         </div>
         <div>
-            <label for="event_id">Which event id?</label>
-            <input name="event_id" id="event_id" value="7d46bbff-f642-411f-981b-8d0b74bf31cc" required/>
+            <label>Event ID(s):</label>
+            <div id="event-ids-container" class="event-id-container">
+                <div class="event-id-row">
+                    <input name="event_ids[]" class="event-id-input" value="7d46bbff-f642-411f-981b-8d0b74bf31cc"
+                           required/>
+                    <button type="button" class="add-event-id" onclick="addEventIdField()">+</button>
+                </div>
+            </div>
         </div>
         <div>
             <label for="round">How many rounds have been completed before this one?</label>
@@ -159,4 +200,31 @@
 
 
 </body>
+<script>
+    function addEventIdField() {
+        const container = document.getElementById('event-ids-container');
+        const lastRow = container.lastElementChild;
+
+        // Create a new row
+        const newRow = document.createElement('div');
+        newRow.className = 'event-id-row';
+
+        // Create a new input field
+        const newField = document.createElement('input');
+        newField.type = 'text';
+        newField.name = 'event_ids[]';
+        newField.className = 'event-id-input';
+        newField.required = true;
+
+        // Add the new input to the new row
+        newRow.appendChild(newField);
+
+        // Move the add button to the new row
+        newRow.appendChild(lastRow.lastElementChild);
+
+        // Add the new row to the container
+        container.appendChild(newRow);
+    }
+</script>
+
 </html>

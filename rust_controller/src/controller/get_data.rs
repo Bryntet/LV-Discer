@@ -187,7 +187,7 @@ impl From<&Player> for crate::flipup_vmix_controls::OverarchingScore {
 #[derive(Clone, Debug)]
 pub struct RustHandler {
     pub chosen_division: cynic::Id,
-    pub round_ids: [Vec<String>; 3],
+    pub round_ids: Vec<Vec<String>>,
     player_container: PlayerContainer,
     divisions: Vec<Arc<queries::Division>>,
     round_ind: usize,
@@ -230,15 +230,11 @@ impl PlayerContainer {
 }
 
 impl RustHandler {
-    pub async fn new(event_ids: [&'static str; 3], round: usize) -> Result<Self, Error> {
+    pub async fn new(event_ids: Vec<String>, round: usize) -> Result<Self, Error> {
         let time = std::time::Instant::now();
-        dbg!("gonna get round ids");
-        let round_ids = Self::get_rounds(event_ids).await?;
-        dbg!("got round ids");
-        let events = Self::get_event(event_ids, round_ids.clone()).await;
-        dbg!("got events");
-        let groups = Self::get_groups(event_ids).await;
-        dbg!("got groups");
+        let round_ids = Self::get_rounds(&event_ids).await?;
+        let events = Self::get_event(&event_ids, &round_ids).await;
+        let groups = Self::get_groups(&event_ids).await;
 
         warn!("Time taken to get event: {:?}", time.elapsed());
 
@@ -286,9 +282,7 @@ impl RustHandler {
             .map(Arc::new)
             .collect_vec();
 
-        dbg!(&divisions);
-        let holes = Self::get_holes(event_ids).await?;
-        for div in divisions.clone() {}
+        let holes = Self::get_holes(&event_ids).await?;
 
         let mut player_rounds: Vec<Vec<Player>> = vec![];
         for (event_number, event) in events.into_iter().enumerate() {
@@ -419,9 +413,9 @@ impl RustHandler {
         }
     }
     pub async fn get_event(
-        event_ids: [&str; 3],
-        round_ids: [Vec<String>; 3],
-    ) -> [Vec<queries::Event>; 3] {
+        event_ids: &[String],
+        round_ids: &[Vec<String>],
+    ) -> Vec<Vec<queries::Event>> {
         use cynic::QueryBuilder;
         use queries::*;
         let mut out = vec![];
@@ -452,13 +446,13 @@ impl RustHandler {
         out.try_into().unwrap()
     }
 
-    pub async fn get_rounds(event_ids: [&str; 3]) -> Result<[Vec<String>; 3], Error> {
+    pub async fn get_rounds(event_ids: &[String]) -> Result<Vec<Vec<String>>, Error> {
         use cynic::QueryBuilder;
         use queries::round::{RoundsQuery, RoundsQueryVariables};
         let mut out = vec![];
         for event_id in event_ids {
             let body = RoundsQuery::build(RoundsQueryVariables {
-                event_id: event_id.into(),
+                event_id: event_id.to_string().into(),
             });
 
             let response = reqwest::Client::new()
@@ -487,8 +481,8 @@ impl RustHandler {
     }
 
     pub async fn get_holes(
-        event_ids: [&'static str; 3],
-    ) -> Result<[Vec<HashMap<String, Holes>>; 3], Error> {
+        event_ids: &[String],
+    ) -> Result<Vec<Vec<HashMap<String, Holes>>>, Error> {
         use cynic::QueryBuilder;
         use queries::layout::{HoleLayoutQuery, HoleLayoutQueryVariables};
         let mut out = vec![];
@@ -540,7 +534,7 @@ impl RustHandler {
         self.divisions.clone()
     }
 
-    async fn get_groups(event_ids: [&str; 3]) -> Vec<Vec<dto::Group>> {
+    async fn get_groups(event_ids: &[String]) -> Vec<Vec<dto::Group>> {
         use cynic::QueryBuilder;
         use queries::group::{GroupsQuery, GroupsQueryVariables};
         let mut out: Vec<Vec<dto::Group>> = vec![];
@@ -589,13 +583,11 @@ impl RustHandler {
         out
     }
 
-    pub fn round_ids(&self) -> [String; 3] {
+    pub fn round_ids(&self) -> Vec<String> {
         self.round_ids
             .iter()
             .map(|events_rounds| events_rounds[self.round_ind].to_owned())
             .collect_vec()
-            .try_into()
-            .unwrap()
     }
 
     pub fn amount_of_rounds(&self) -> usize {
