@@ -60,7 +60,6 @@ impl LeaderboardCycle {
         self.all_divisions.push_back(div.clone());
         let all_players = self.leaderboard.all_players_in_div(div.clone(), self.round);
         if all_players.is_empty() {
-            println!("{} is empty", div.name);
             self.cycle_next(queue)
         } else {
             if all_players.len() < 6 {

@@ -113,7 +113,7 @@ impl FlipUpVMixCoordinator {
             broadcast_type,
         };
         coordinator.handler.add_total_score_to_players();
-        coordinator.queue_add(&coordinator.focused_player().set_name());
+        coordinator.vmix_function_on_card(&Player::set_name);
         coordinator.reset_score();
         Ok(coordinator)
     }
@@ -161,10 +161,11 @@ impl FlipUpVMixCoordinator {
 
         self.add_null_players(&mut instructs, &self.featured_card)?;
         self.queue_add(
-            &instructs
-                .into_par_iter()
+            instructs
+                .into_iter()
                 .map(VMixInterfacer::into_featured)
-                .collect::<Vec<_>>(),
+                .collect_vec()
+                .iter(),
         );
         let featured_hole = self.featured_hole;
         let stats = self.make_stats();
@@ -406,6 +407,14 @@ impl FlipUpVMixCoordinator {
     pub fn current_players(&self) -> Vec<&Player> {
         self.player_manager.players(self.available_players())
     }
+
+    pub fn vmix_function_on_card<T: VMixSelectionTrait + Sized>(
+        &self,
+        func: &dyn Fn(&Player) -> Vec<VMixInterfacer<T>>,
+    ) {
+        self.vmix_queue
+            .add(self.current_players().into_iter().flat_map(func))
+    }
     fn clear_lb(idx: usize) -> Vec<VMixInterfacer<LeaderBoardProperty>> {
         let mut new_player = Player::null_player();
 
@@ -428,7 +437,10 @@ impl FlipUpVMixCoordinator {
             .collect()
     }
 
-    fn queue_add<T: VMixSelectionTrait>(&self, funcs: &[VMixInterfacer<T>]) {
+    fn queue_add<'a, T: VMixSelectionTrait + 'a>(
+        &self,
+        funcs: impl IntoIterator<Item = &'a VMixInterfacer<T>>,
+    ) {
         self.vmix_queue.add_ref(funcs.into_iter())
     }
 

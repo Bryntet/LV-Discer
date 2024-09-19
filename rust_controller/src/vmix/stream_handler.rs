@@ -36,6 +36,7 @@ impl VMixQueue {
         tokio::spawn(async move {
             loop {
                 if let Ok(f) = rx.recv().await {
+                    dbg!(&f);
                     match VMixQueue::send(&f.into_bytes(), &mut stream) {
                         Ok(()) => (),
                         Err(e) => {
