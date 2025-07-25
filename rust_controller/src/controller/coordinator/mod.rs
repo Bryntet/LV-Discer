@@ -223,9 +223,13 @@ impl FlipUpVMixCoordinator {
         self.player_manager.set_focused_by_card_index(index)?;
         self.leaderboard_division = self.focused_player().division.clone();
         self.add_state_to_leaderboard();
-        let all_values = self
-            .focused_player()
-            .set_all_values(&self.leaderboard, true)?;
+        let all_values = self.focused_player().set_all_values(
+            &self.leaderboard,
+            match self.broadcast_type.as_ref() {
+                BroadcastType::PostLive => false,
+                BroadcastType::Live => true,
+            },
+        )?;
 
         let current = self
             .focused_player()
@@ -244,9 +248,13 @@ impl FlipUpVMixCoordinator {
         throw: Option<u8>,
         channel: GeneralChannel<PlayerManagerUpdate>,
     ) {
+        let broadcast_type = self.broadcast_type.clone();
         if let Some(player) = self.find_player_mut(&player_id) {
             let hole = match hole {
-                Some(0) | None => player.amount_of_holes_finished() as u8,
+                Some(0) | None => match broadcast_type.as_ref() {
+                    BroadcastType::PostLive => 0,
+                    BroadcastType::Live => player.amount_of_holes_finished() as u8,
+                },
                 Some(h) => h,
             };
             player.hole_shown_up_until = hole as usize;
@@ -269,10 +277,12 @@ impl FlipUpVMixCoordinator {
         self.add_state_to_leaderboard();
         self.focused_player_mut()
             .fix_round_score(Some(up_until as u8));
-        if let Some(player) = self.leaderboard.get_lb_player(self.focused_player()) {
-            let current_round_score = self.focused_player().round_score;
-            self.focused_player_mut().total_score =
-                player.total_score - player.round_score + current_round_score;
+        if *self.broadcast_type == BroadcastType::Live {
+            if let Some(player) = self.leaderboard.get_lb_player(self.focused_player()) {
+                let current_round_score = self.focused_player().round_score;
+                self.focused_player_mut().total_score =
+                    player.total_score - player.round_score + current_round_score;
+            }
         }
         let all = self
             .focused_player()
@@ -316,6 +326,7 @@ impl FlipUpVMixCoordinator {
         let current = player.set_all_current_player_values(&all);
         self.queue_add(&all);
         self.queue_add(&current);
+
         updater.send_from_coordinator(self);
 
         Ok(())
@@ -412,9 +423,33 @@ impl FlipUpVMixCoordinator {
         &self,
         func: &dyn Fn(&Player) -> Vec<VMixInterfacer<T>>,
     ) {
+        let current_players = self.current_players();
         self.vmix_queue
-            .add(self.current_players().into_iter().flat_map(func))
+            .add(current_players.into_iter().flat_map(func))
     }
+    pub fn vmix_function_on_card_mut<T: VMixSelectionTrait + Sized>(
+        &mut self,
+        func: &dyn Fn(&mut Player) -> Vec<VMixInterfacer<T>>,
+    ) {
+        let current_players = self
+            .current_players()
+            .iter()
+            .map(|player| player.player_id.to_owned())
+            .collect_vec();
+        let mut players = self.handler.get_players_mut();
+        let mut funcs = vec![];
+        for player_id in current_players {
+            if let Some(player) = players
+                .par_iter_mut()
+                .find_any(|player| player.player_id == player_id)
+            {
+                funcs.push(func(player))
+            }
+        }
+        self.vmix_queue
+            .add(funcs.into_iter().flat_map(|fun| fun.into_iter()))
+    }
+
     fn clear_lb(idx: usize) -> Vec<VMixInterfacer<LeaderBoardProperty>> {
         let mut new_player = Player::null_player();
 
@@ -454,7 +489,7 @@ impl FlipUpVMixCoordinator {
     pub fn focused_player(&self) -> &Player {
         self.player_manager
             .player(self.available_players())
-            .unwrap_or(self.available_players().first().unwrap())
+            .unwrap()
     }
     pub fn set_div(&mut self, div: &Division, channel: GeneralChannel<DivisionUpdate>) {
         if let Some(div) = self.all_divs.iter().find(|d| d.id == div.id) {
@@ -557,9 +592,16 @@ impl FlipUpVMixCoordinator {
         &mut self,
         hole_update: &GeneralChannel<HoleUpdate>,
     ) -> Result<(), Error> {
+        let broadcast_type = self.broadcast_type.clone();
         let player = self.focused_player_mut();
 
-        if player.throws != 0 && player.hole_shown_up_until <= 17 {
+        dbg!(&player.name);
+        let throws_condition = match broadcast_type.as_ref() {
+            BroadcastType::Live => player.throws != 0,
+            BroadcastType::PostLive => true,
+        };
+
+        if throws_condition && player.hole_shown_up_until <= 17 {
             let mut f = player.increase_score()?;
             self.add_state_to_leaderboard();
             let player = self.focused_player();
@@ -607,8 +649,14 @@ impl FlipUpVMixCoordinator {
     }
     pub fn reset_score(&mut self) {
         self.current_through = 0;
-        let f = self.focused_player_mut().reset_scores();
-        self.queue_add(&f)
+
+        match self.broadcast_type.as_ref() {
+            BroadcastType::Live => {
+                let f = self.focused_player_mut().reset_scores();
+                self.queue_add(&f)
+            }
+            BroadcastType::PostLive => self.vmix_function_on_card_mut(&Player::reset_scores),
+        }
     }
 
     pub fn reset_scores(&mut self) {
@@ -695,10 +743,10 @@ impl FlipUpVMixCoordinator {
 }
 
 use rocket_okapi::okapi::{schemars, schemars::JsonSchema};
-#[derive(Debug, Deserialize, JsonSchema, FromFormField, Default, Clone, Copy)]
+#[derive(Debug, Deserialize, JsonSchema, FromFormField, Default, Clone, Copy, PartialEq, Eq)]
 pub enum BroadcastType {
-    #[default]
     Live,
+    #[default]
     PostLive,
 }
 #[cfg(test)]

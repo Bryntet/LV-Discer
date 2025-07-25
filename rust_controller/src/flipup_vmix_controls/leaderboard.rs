@@ -4,6 +4,7 @@ use itertools::Itertools;
 use rayon::prelude::*;
 use rocket::http::ext::IntoCollection;
 
+use crate::controller::coordinator::BroadcastType;
 use crate::controller::fix_score;
 use crate::controller::get_data::HoleResult;
 use crate::controller::queries::Division;
@@ -18,6 +19,7 @@ pub struct Leaderboard {
     states: Vec<LeaderboardState>,
     pub skip: usize,
     pub cycle: bool,
+    broadcast_type: Arc<BroadcastType>,
 }
 #[derive(Debug, Clone)]
 pub struct LeaderboardState {
@@ -42,7 +44,10 @@ impl Leaderboard {
             .leaderboard_players(&division, self.previous_state(round))
     }
     fn current_state(&self, round: usize) -> Option<&LeaderboardState> {
-        self.states.get(round)
+        match self.broadcast_type.as_ref() {
+            BroadcastType::PostLive => self.states.get(round.checked_sub(1)?),
+            BroadcastType::Live => self.states.get(round),
+        }
     }
 
     /// Returns the previous state of the leaderboard if it exists
@@ -51,7 +56,10 @@ impl Leaderboard {
             return None;
         }
 
-        self.states.get(round - 1)
+        match self.broadcast_type.as_ref() {
+            BroadcastType::PostLive => self.states.get(round.checked_sub(2)?),
+            BroadcastType::Live => self.states.get(round.checked_sub(1)?),
+        }
     }
 
     pub fn update_players(&mut self, new_state: LeaderboardState) {

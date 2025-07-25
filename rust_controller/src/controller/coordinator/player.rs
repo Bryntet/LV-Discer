@@ -403,13 +403,15 @@ impl Player {
         {
             Some(res) => res,
             None => {
-                self.results
-                    .add_new_hole(
-                        &self.holes,
-                        (self.hole_shown_up_until + 1) as u8,
-                        self.throws,
-                    )
-                    .unwrap();
+                if self.hole_shown_up_until < 18 {
+                    self.results
+                        .add_new_hole(
+                            &self.holes,
+                            (self.hole_shown_up_until + 1) as u8,
+                            self.throws,
+                        )
+                        .unwrap();
+                }
                 self.results.results.last().unwrap()
             }
         }
@@ -440,11 +442,11 @@ impl Player {
         vec![
             VMixInterfacer::set_text(
                 self.first_name.clone(),
-                VMixPlayerInfo::Name(self.vmix_index()).into(),
+                VMixPlayerInfo::Name(self.vmix_index()),
             ),
             VMixInterfacer::set_text(
                 self.surname.clone(),
-                VMixPlayerInfo::Surname(self.vmix_index()).into(),
+                VMixPlayerInfo::Surname(self.vmix_index()),
             ),
         ]
     }
@@ -529,7 +531,7 @@ impl Player {
     pub fn vmix_index(&self) -> usize {
         match self.broadcast_type.as_ref() {
             BroadcastType::Live => 0,
-            BroadcastType::PostLive => self.group_index,
+            BroadcastType::PostLive => 0,
         }
     }
 
@@ -559,9 +561,10 @@ impl Player {
         second_values
     }
 
-    /// Used by leaderboard    
+    /// Used by leaderboard
     pub fn fix_round_score(&mut self, up_until: Option<u8>) {
         self.round_score = 0;
+
         for (i, result) in self.results.results.iter().enumerate() {
             if up_until.is_some_and(|up_until| i as u8 == up_until) {
                 break;

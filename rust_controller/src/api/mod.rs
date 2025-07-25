@@ -22,7 +22,7 @@ pub use websocket::channels::{DivisionUpdate, HoleUpdate, PlayerManagerUpdate};
 pub use crate::api::websocket::channels::GeneralChannel;
 use crate::api::websocket::htmx::division_updater;
 use crate::api::websocket::HoleFinishedAlert;
-use crate::controller::coordinator::FlipUpVMixCoordinator;
+use crate::controller::coordinator::{BroadcastType, FlipUpVMixCoordinator};
 use crate::util;
 
 mod coordinator_wrapper;
@@ -47,17 +47,19 @@ impl FlipUpVMixCoordinator {
         let next_group = self.next_group.clone();
         let coordinator = Arc::new(Mutex::new(self));
         let s = Coordinator(coordinator.clone());
-        let leaderboard_cycle =
-            leaderboard_cycle::start_leaderboard_cycle(coordinator.clone()).await;
-        tokio::spawn(async move {
-            update_loop::update_loop(
-                coordinator,
-                leaderboard_cycle,
-                hole_finished_alert,
-                next_group,
-            )
-            .await;
-        });
+        if BroadcastType::Live == *s.clone().lock().await.broadcast_type {
+            let leaderboard_cycle =
+                leaderboard_cycle::start_leaderboard_cycle(coordinator.clone()).await;
+            tokio::spawn(async move {
+                update_loop::update_loop(
+                    coordinator,
+                    leaderboard_cycle,
+                    hole_finished_alert,
+                    next_group,
+                )
+                .await;
+            });
+        }
 
         s
     }

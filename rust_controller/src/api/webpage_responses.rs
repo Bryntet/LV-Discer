@@ -47,7 +47,13 @@ pub async fn load(
     hole_finished_alert: GeneralChannel<HoleFinishedAlert>,
 ) -> Result<Template, Error> {
     let coordinator = builder.into_inner().into_coordinator().await?;
-    let groups = coordinator.groups().into_iter().cloned().collect_vec();
+    let groups = coordinator
+        .groups()
+        .iter()
+        .cloned()
+        .filter(|group| !group.players.is_empty())
+        .sorted_by_key(|group| group.group_number)
+        .collect_vec();
     *loader.0.lock().await = Some(
         coordinator
             .into_coordinator(hole_finished_alert.clone())

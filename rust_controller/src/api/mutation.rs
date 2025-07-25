@@ -186,14 +186,14 @@ pub async fn update_division_form(
 
 #[openapi(tag = "Featured hole")]
 #[post("/featured-hole/update-card")]
-pub async fn update_featured_hole_group(co: Coordinator) {
-    co.lock().await.update_featured_card();
+pub async fn update_featured_hole_group(co: Coordinator) -> Result<(), Error> {
+    co.lock().await.update_featured_card()
 }
 
 #[openapi(tag = "Featured hole")]
 #[post("/featured-hole/next-card")]
-pub async fn next_featured_hole_card(coordinator: Coordinator) {
-    coordinator.lock().await.next_featured_card();
+pub async fn next_featured_hole_card(coordinator: Coordinator) -> Result<(), Error> {
+    coordinator.lock().await.next_featured_card().await
 }
 
 #[openapi(tag = "Featured hole")]

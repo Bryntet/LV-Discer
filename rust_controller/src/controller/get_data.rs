@@ -359,13 +359,20 @@ impl RustHandler {
 
         for (round_number, round) in container.rounds_with_players.iter_mut().enumerate() {
             round.par_iter_mut().for_each(|player| {
-                if let Some(group_index) = groups[round_number]
-                    .iter()
-                    .flat_map(|group| &group.players)
-                    .enumerate()
-                    .find(|(_, group_player)| group_player.id == player.player_id)
-                    .map(|(group_index, _)| group_index)
-                {
+                if let Some(group_index) = groups[round_number].iter().find_map(|group| {
+                    group
+                        .players
+                        .iter()
+                        .filter(|player| !player.name.is_empty())
+                        .enumerate()
+                        .find_map(|(index, group_player)| {
+                            if player.player_id == group_player.id {
+                                Some(index)
+                            } else {
+                                None
+                            }
+                        })
+                }) {
                     player.group_index = group_index;
                 }
             });

@@ -7,9 +7,9 @@ import {LevandeVideoInstance} from "./index";
 
 
 export enum ActionId {
-	LeaderboardUpdate = 'leaderboard_update',
-	IncreaseScore = 'increase_score',
-	RevertScoreIncrease = 'revert_score_increase',
+    LeaderboardUpdate = 'leaderboard_update',
+    IncreaseScore = 'increase_score',
+    RevertScoreIncrease = 'revert_score_increase',
     ResetScore = 'reset_score',
     ChangeFocusedPlayer = 'change_focused_player',
     IncreaseThrow = 'increase_throw',
@@ -33,7 +33,7 @@ async function parseAuto(context: CompanionCommonCallbackContext): Promise<numbe
     return Number.parseInt(await context.parseVariablesInString("$(lvvmix:foc_player_ind)"));
 }
 
-async function initPlayerOption<T extends  InstanceBaseExt<Config>>(action: CompanionActionEvent, instance: T): Promise<Player> {
+async function initPlayerOption<T extends InstanceBaseExt<Config>>(action: CompanionActionEvent, instance: T): Promise<Player> {
     if (typeof action.options.focused_player === "number") {
         return await instance.coordinator.setFocusedPlayer(action.options.focused_player);
     } else {
@@ -41,7 +41,7 @@ async function initPlayerOption<T extends  InstanceBaseExt<Config>>(action: Comp
     }
 }
 
-async function exitPlayerOption<T extends InstanceBaseExt<Config>>(instance: T,context: CompanionCommonCallbackContext, currentIndex: number) {
+async function exitPlayerOption<T extends InstanceBaseExt<Config>>(instance: T, context: CompanionCommonCallbackContext, currentIndex: number) {
     const previousNum = await parseAuto(context);
     if (currentIndex !== previousNum) {
         await instance.coordinator.setFocusedPlayer(previousNum)
@@ -69,7 +69,7 @@ export const setActionDefinitions = (instance: LevandeVideoInstance): CompanionA
             },
         ],
         callback: async (action, context) => {
-            const focusedPlayer = await initPlayerOption(action,instance);
+            let focusedPlayer = await initPlayerOption(action, instance);
 
             await instance.coordinator.increaseScore();
 
@@ -85,7 +85,7 @@ export const setActionDefinitions = (instance: LevandeVideoInstance): CompanionA
         options: [],
         callback: async () => {
             await instance.coordinator.revertScore();
-            instance.setVariableValues({hole:await instance.coordinator.currentHole()});
+            instance.setVariableValues({hole: await instance.coordinator.currentHole()});
         },
     }
 
@@ -97,12 +97,12 @@ export const setActionDefinitions = (instance: LevandeVideoInstance): CompanionA
                 type: 'dropdown',
                 label: 'Choose an option',
                 id: 'focused_player',
-                default: 'none', 
+                default: 'none',
                 choices: instance.focused_players,
             },
         ],
         callback: async (action) => {
-            const focusedPlayer = await initPlayerOption(action, instance);
+            let focusedPlayer = await initPlayerOption(action, instance);
             instance.log("info", `Changing focused player to ${focusedPlayer.name} with index ${focusedPlayer.index}`)
             await instance.coordinator.setFocusedPlayer(focusedPlayer.index);
             instance.setVariableValues({
@@ -120,12 +120,12 @@ export const setActionDefinitions = (instance: LevandeVideoInstance): CompanionA
                 type: 'dropdown',
                 label: 'Choose an option',
                 id: 'focused_player',
-                default: 'none', 
+                default: 'none',
                 choices: instance.focused_players,
             },
         ],
         callback: async (action, context) => {
-            const focusedPlayer = await initPlayerOption(action, instance);
+            let focusedPlayer = await initPlayerOption(action, instance);
             await instance.coordinator.increaseThrow();
             await exitPlayerOption(instance, context, focusedPlayer.index);
         },
@@ -161,7 +161,7 @@ export const setActionDefinitions = (instance: LevandeVideoInstance): CompanionA
                 type: 'dropdown',
                 label: 'Focused player',
                 id: 'focused_player',
-                default: 'none', 
+                default: 'none',
                 choices: instance.focused_players,
             },
         ],
@@ -194,7 +194,7 @@ export const setActionDefinitions = (instance: LevandeVideoInstance): CompanionA
         ],
         callback: async (action) => {
             let div = action.options.division
-            if (typeof div === "string" ) {
+            if (typeof div === "string") {
                 await instance.coordinator.doOtherLeaderboard(div);
             }
         }

@@ -217,48 +217,27 @@ pub enum VMixPlayerInfo {
 impl VMixSelectionTrait for VMixPlayerInfo {
     fn get_selection_name(&self) -> String {
         match self {
-            /*VMixPlayerInfo::Score { hole, player } => {
-                format!("p{}s{}", player + 1, hole)
-            }*/
             VMixPlayerInfo::Score { hole, player } => {
-                format!("s{}p{}", hole, player + 1)
+                format!("p{}s{}", player + 1, hole)
             }
-            /*VMixPlayerInfo::ScoreColor { hole, player } => {
-                format!("p{}h{}", player + 1, hole)
-            }*/
             VMixPlayerInfo::ScoreColor { hole, player } => {
-                format!("h{}p{}", hole, player + 1)
+                format!("p{}h{}", player + 1, hole)
             }
-            /*VMixPlayerInfo::PositionArrow(n) => {
-                format!("p{}posarw", n + 1)
-            }*/
             VMixPlayerInfo::PositionArrow(n) => {
-                format!("RightTriangle{}", n + 1)
+                format!("p{}posarw", n + 1)
             }
-            /*VMixPlayerInfo::PositionMove(n) => {
-                format!("p{}posmove", n + 1)
-            }*/
             VMixPlayerInfo::PositionMove(n) => {
-                format!("posmovep{}", n + 1)
+                format!("p{}posmove", n + 1)
             }
-            //VMixPlayerInfo::Name(ind) => format!("p{}name", ind + 1),
-            VMixPlayerInfo::Name(ind) => format!("namep{}", ind + 1),
-            //VMixPlayerInfo::Surname(ind) => format!("p{}surname", ind + 1),
-            VMixPlayerInfo::Surname(ind) => format!("surnamep{}", ind + 1),
-            //VMixPlayerInfo::TotalScore(ind) => format!("p{}scoretot", ind + 1),
-            VMixPlayerInfo::TotalScore(ind) => format!("scoretotp{}", ind + 1),
-            //VMixPlayerInfo::RoundScore(ind) => format!("p{}scorernd", ind + 1),
-            VMixPlayerInfo::RoundScore(ind) => format!("scorerndp{}", ind + 1),
-            //VMixPlayerInfo::Throw(ind) => format!("p{}throw", ind + 1),
-            VMixPlayerInfo::Throw(ind) => format!("t#p{}", ind + 1),
-            //VMixPlayerInfo::PlayerPosition(pos) => format!("p{}pos", pos + 1),
-            VMixPlayerInfo::PlayerPosition(pos) => format!("posp{}", pos + 1),
-            //VMixPlayerInfo::HotRound(pos) => format!("p{}hotrnd", pos + 1),
-            VMixPlayerInfo::HotRound(pos) => format!("hotrndp{}", pos + 1),
-            //VMixPlayerInfo::CircleHit(pos) => format!("p{}c1reg", pos + 1),
-            VMixPlayerInfo::CircleHit(pos) => format!("c1regp{}", pos + 1),
-            //VMixPlayerInfo::InsidePutt(pos) => format!("p{}c1x", pos + 1),
-            VMixPlayerInfo::InsidePutt(pos) => format!("c1xp{}", pos + 1),
+            VMixPlayerInfo::Name(ind) => format!("p{}name", ind + 1),
+            VMixPlayerInfo::Surname(ind) => format!("p{}surname", ind + 1),
+            VMixPlayerInfo::TotalScore(ind) => format!("p{}scoretot", ind + 1),
+            VMixPlayerInfo::RoundScore(ind) => format!("p{}scorernd", ind + 1),
+            VMixPlayerInfo::Throw(ind) => format!("p{}throw", ind + 1),
+            VMixPlayerInfo::PlayerPosition(pos) => format!("p{}pos", pos + 1),
+            VMixPlayerInfo::HotRound(pos) => format!("p{}hotrnd", pos + 1),
+            VMixPlayerInfo::CircleHit(pos) => format!("p{}c1reg", pos + 1),
+            VMixPlayerInfo::InsidePutt(pos) => format!("p{}c1x", pos + 1),
         }
     }
 
@@ -284,7 +263,7 @@ impl VMixSelectionTrait for VMixPlayerInfo {
     }
 
     fn input_id(&self) -> &'static str {
-        "8db7c455-e05c-4e65-821b-048cd7057cb1"
+        "93bd7038-5ab9-48a4-b53d-717666579b32"
     }
 }
 
