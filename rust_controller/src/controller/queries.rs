@@ -1,25 +1,163 @@
 pub use group::Group;
 
-#[derive(cynic::QueryVariables, Debug)]
-pub struct RoundResultsQueryVariables {
-    pub event_id: cynic::Id,
-    pub round_id: cynic::Id,
+pub mod results_getter {
+    use super::schema;
+    use std::collections::HashMap;
+
+    #[derive(cynic::QueryVariables, Debug)]
+    struct RoundResultsQueryVariables {
+        pub round_id: cynic::Id,
+    }
+
+    #[derive(cynic::QueryFragment, Debug, Clone)]
+    #[cynic(graphql_type = "RootQuery", variables = "RoundResultsQueryVariables")]
+    struct RoundResultsQuery {
+        #[arguments(roundId: $round_id)]
+        pub round: Option<Round>,
+    }
+
+    #[derive(cynic::QueryFragment, Debug, Clone)]
+    #[cynic(graphql_type = "Round")]
+    struct Round {
+        pub pools: Vec<Pool>,
+    }
+    #[derive(cynic::QueryFragment, Debug, Clone)]
+    #[cynic(graphql_type = "Pool")]
+    struct Pool {
+        pub groups: Vec<Group>,
+    }
+
+    #[derive(cynic::QueryFragment, Debug, Clone)]
+    #[cynic(graphql_type = "Group")]
+    struct Group {
+        pub results: Vec<InternalHoleResult>,
+    }
+
+    #[derive(cynic::QueryFragment, Debug, Clone)]
+    #[cynic(graphql_type = "Result")]
+    struct InternalHoleResult {
+        score: f64,
+        hole: HoleNumber,
+        is_circle_hit: bool,
+        is_inside_putt: bool,
+        is_out_of_bounds: bool,
+        is_outside_putt: bool,
+        is_verified: bool,
+        player_connection: GroupPlayerConnection,
+    }
+    #[derive(cynic::QueryFragment, Debug, Clone)]
+    #[cynic(graphql_type = "Hole")]
+    struct HoleNumber {
+        pub number: f64,
+    }
+
+    #[derive(cynic::QueryFragment, Debug, Clone)]
+    #[cynic(graphql_type = "GroupPlayerConnection")]
+    struct GroupPlayerConnection {
+        pub player_id: cynic::Id,
+    }
+
+    pub struct PlayerResult {
+        pub player_id: cynic::Id,
+        pub results: Vec<HoleResult>,
+    }
+
+    pub struct PlayerResults(pub HashMap<cynic::Id, Vec<HoleResult>>);
+
+    #[derive(Debug, Clone)]
+    pub struct HoleResult {
+        pub score: usize,
+        pub number: usize,
+        pub is_circle_hit: bool,
+        pub is_inside_putt: bool,
+        pub is_out_of_bounds: bool,
+        pub is_outside_putt: bool,
+        pub is_verified: bool,
+    }
+
+    pub async fn get_round_results(round_id: cynic::Id) -> Option<PlayerResults> {
+        use cynic::QueryBuilder;
+        use itertools::Itertools;
+        let query = RoundResultsQuery::build(RoundResultsQueryVariables {
+            round_id: round_id.clone(),
+        });
+        if let Ok(response) = reqwest::Client::new()
+            .post("https://api.tjing.se/graphql")
+            .json(&query)
+            .send()
+            .await
+        {
+            match response.json::<RoundResultsQuery>().await {
+                Ok(RoundResultsQuery {
+                    round: Some(Round { pools }),
+                }) => {
+                    let results = pools
+                        .iter()
+                        .flat_map(|pool| pool.groups)
+                        .flat_map(|group| group.results)
+                        .collect_vec();
+                    let mut player_map = HashMap::new();
+
+                    for result in results {
+                        let player_id = result.player_connection.player_id.clone();
+                        let hole_number = result.hole.number as usize;
+                        let score = result.score as usize;
+
+                        let hole_result = HoleResult {
+                            score,
+                            number: hole_number,
+                            is_circle_hit: result.is_circle_hit,
+                            is_inside_putt: result.is_inside_putt,
+                            is_out_of_bounds: result.is_out_of_bounds,
+                            is_outside_putt: result.is_outside_putt,
+                            is_verified: result.is_verified,
+                        };
+
+                        player_map
+                            .entry(player_id)
+                            .or_insert_with(Vec::new)
+                            .push(hole_result);
+                    }
+                }
+                Ok(RoundResultsQuery { round: None }) => {
+                    eprintln!(
+                        "No results found for round with ID: {}",
+                        round_id.into_inner()
+                    );
+                    None
+                }
+                Err(e) => {
+                    eprintln!("Error parsing response: {}", e);
+                    None
+                }
+            }
+        }
+    }
 }
 
-#[derive(cynic::QueryFragment, Debug, Clone)]
-#[cynic(graphql_type = "RootQuery", variables = "RoundResultsQueryVariables")]
-pub struct RoundResultsQuery {
-    #[arguments(eventId: $ event_id)]
+#[derive(cynic::QueryVariables, Debug)]
+pub struct EventQueryVariables {
+    pub event_id: cynic::Id,
+}
+
+#[derive(cynic::QueryFragment, Debug)]
+#[cynic(graphql_type = "RootQuery", variables = "EventQueryVariables")]
+pub struct EventQuery {
+    #[arguments(eventId: $event_id)]
     pub event: Option<Event>,
 }
-
 #[derive(cynic::QueryFragment, Debug, Clone)]
-#[cynic(variables = "RoundResultsQueryVariables")]
+#[cynic(graphql_type = "Event")]
 pub struct Event {
-    pub players: Vec<Player>,
     pub divisions: Vec<Option<Division>>,
+    pub rounds: Vec<Option<Round>>,
+    pub players: Vec<Player>,
 }
 
+#[derive(cynic::QueryFragment, Debug, Clone)]
+pub struct Round {
+    pub id: cynic::Id,
+}
 #[derive(cynic::QueryFragment, Debug, Clone, PartialEq, Eq)]
 pub struct Division {
     pub name: String,
@@ -36,14 +174,11 @@ impl Default for Division {
 }
 
 #[derive(cynic::QueryFragment, Debug, Clone)]
-#[cynic(variables = "RoundResultsQueryVariables")]
 pub struct Player {
     pub user: User,
     pub dnf: Dnf,
     pub dns: Dns,
     pub division: Division,
-    #[arguments(roundId: $ round_id)]
-    pub results: Option<Vec<HoleResult>>,
     pub id: cynic::Id,
 }
 
@@ -226,7 +361,7 @@ pub mod layout {
 
     #[derive(cynic::QueryFragment, Debug, Clone)]
     pub struct Pool {
-        pub layout_version: LayoutVersion,
+        pub layout_version: Option<LayoutVersion>,
         pub id: cynic::Id,
         pub groups: Vec<Group>,
         pub name: Option<String>,
@@ -296,7 +431,7 @@ pub mod group {
     #[derive(cynic::QueryFragment, Debug, Clone)]
     pub struct Pool {
         pub groups: Vec<Group>,
-        pub layout_version: LayoutVersion,
+        pub layout_version: Option<LayoutVersion>,
     }
 
     #[derive(cynic::QueryFragment, Debug, Clone)]

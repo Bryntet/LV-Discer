@@ -31,7 +31,7 @@ pub struct HoleResult {
     pub hole: u8,
     pub throws: u8,
     pub hole_representation: Arc<Hole>,
-    pub tjing_result: Option<queries::HoleResult>,
+    pub tjing_result: Option<queries::results_getter::HoleResult>,
     pub ob: HashSet<usize>,
     pub finished: bool,
 }
@@ -62,7 +62,7 @@ impl HoleResult {
     pub fn from_tjing(
         hole: u8,
         holes: &controller::queries::layout::hole::Holes,
-        tjing: controller::queries::HoleResult,
+        tjing: controller::queries::results_getter::HoleResult,
     ) -> Option<Self> {
         let hole_rep = holes.find_hole(hole)?;
         Some(Self {
@@ -75,7 +75,7 @@ impl HoleResult {
         })
     }
 
-    pub fn tjing_result(self) -> Option<queries::HoleResult> {
+    pub fn tjing_result(self) -> Option<queries::results_getter::HoleResult> {
         self.tjing_result
     }
 
@@ -438,9 +438,8 @@ impl RustHandler {
         for (event_number, event_id) in event_ids.into_iter().enumerate() {
             let mut rounds = vec![];
             for round_id in &round_ids[event_number] {
-                let operation = RoundResultsQuery::build(RoundResultsQueryVariables {
+                let operation = EventQuery::build(EventQueryVariables {
                     event_id: event_id.into(),
-                    round_id: round_id.to_owned().into(),
                 });
                 let response = reqwest::Client::new()
                     .post("https://api.tjing.se/graphql")
@@ -449,12 +448,14 @@ impl RustHandler {
                     .await
                     .expect("failed to send request");
 
-                let out = response
-                    .json::<GraphQlResponse<queries::RoundResultsQuery>>()
-                    .await
-                    .expect("failed to parse response")
-                    .data
-                    .unwrap();
+                let out = dbg!(
+                    response
+                        .json::<GraphQlResponse<queries::EventQuery>>()
+                        .await
+                )
+                .expect("failed to parse response")
+                .data
+                .unwrap();
                 rounds.push(out.event.unwrap());
             }
             out.push(rounds);
@@ -529,7 +530,8 @@ impl RustHandler {
                 };
                 let mut return_map: HashMap<String, Holes> = HashMap::new();
                 for pool in round.pools {
-                    let holes = Holes::from_vec_hole(pool.layout_version.holes)?;
+                    let holes =
+                        Holes::from_vec_hole(pool.layout_version.expect("Some layout").holes)?;
                     for group in pool.groups {
                         return_map.insert(group.id.into_inner(), holes.clone());
                     }

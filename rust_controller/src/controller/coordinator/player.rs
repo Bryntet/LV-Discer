@@ -12,6 +12,7 @@ use crate::controller::get_data::{HoleResult, DEFAULT_FOREGROUND_COL_ALPHA};
 use crate::controller::hole::{DroneHoleInfo, HoleDifficulty, HoleStats};
 use crate::controller::queries::layout::hole::Hole;
 use crate::controller::queries::layout::Holes;
+use crate::controller::queries::results_getter::PlayerResults;
 use crate::controller::queries::Division;
 use crate::controller::{hole, queries};
 use crate::flipup_vmix_controls::{
@@ -53,7 +54,7 @@ impl PlayerRound {
     pub fn current_result_mut(&mut self, hole: usize) -> Option<&mut HoleResult> {
         for result in self.results.iter_mut() {
             if let Some(ref tjing_result) = result.tjing_result {
-                if tjing_result.hole.number as usize == hole && tjing_result.is_verified {
+                if tjing_result.number == hole && tjing_result.is_verified {
                     return Some(result);
                 }
             }
@@ -61,26 +62,25 @@ impl PlayerRound {
         None
     }
 
-    pub fn tjing_results(self) -> Vec<Option<queries::HoleResult>> {
+    pub fn tjing_results(self) -> Vec<Option<queries::results_getter::HoleResult>> {
         self.results
             .into_iter()
             .map(|res| res.tjing_result)
             .collect()
     }
 
-    pub fn update_tjing(&mut self, results: &[queries::HoleResult], holes: &Holes) {
+    pub fn update_tjing(&mut self, results: &[queries::results_getter::HoleResult], holes: &Holes) {
         for result in results {
             if let Some(res) = self
                 .results
                 .iter_mut()
-                .find(|hole| hole.hole == result.hole.number as u8)
+                .find(|hole| hole.hole == result.number as u8)
             {
                 res.tjing_result = Some(result.to_owned());
                 res.finished = true;
             } else {
                 self.results.push(
-                    HoleResult::from_tjing(result.hole.number as u8, holes, result.clone())
-                        .unwrap(),
+                    HoleResult::from_tjing(result.number as u8, holes, result.clone()).unwrap(),
                 )
             }
         }
@@ -277,6 +277,7 @@ pub struct Player {
 impl Player {
     pub fn from_query(
         player: queries::Player,
+        player_results: &PlayerResults,
         round: usize,
         holes: Holes,
         divisions: Vec<Arc<Division>>,
@@ -297,19 +298,19 @@ impl Player {
             .into_iter()
             .find(|div| div.id == player.division.id)
             .ok_or(Error::UnableToParse)?;
-        let results = player
-            .results
-            .unwrap_or_default()
+        let results = player_results
+            .0
+            .get(&player.id)
+            .expect("Player results' existence")
             .into_iter()
-            .map(|r: controller::queries::HoleResult| {
-                let hole_number = r.hole.number as u8;
-                match HoleResult::from_tjing(hole_number, &holes, r) {
+            .map(
+                |r| match HoleResult::from_tjing(r.number as u8, &holes, r.to_owned()) {
                     None => {
-                        panic!()
+                        panic!("No hole result")
                     }
                     Some(result) => result,
-                }
-            })
+                },
+            )
             .collect_vec();
 
         let results = PlayerRound::new(results, round, starts_at_hole);

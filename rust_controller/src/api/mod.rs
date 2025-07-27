@@ -159,7 +159,7 @@ pub fn launch() -> Rocket<Build> {
     };
 
     rocket::build()
-        .configure(conf)
+        //.configure(conf)
         .manage(CoordinatorLoader(Mutex::new(None)))
         .manage(group_selection_sender)
         .manage(hole_update_sender)
