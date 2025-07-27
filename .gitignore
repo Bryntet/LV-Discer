@@ -7,6 +7,8 @@ pkg/*
 .git.bak
 /pkg
 /pkg.tgz
+module/dist
+*.tgz
 rust_pkg
 rust_pkg/*
 lv-vmix.zip

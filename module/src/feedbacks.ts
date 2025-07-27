@@ -1,6 +1,6 @@
-import { CompanionFeedbackDefinitions, combineRgb} from "@companion-module/base";
-import { InstanceBaseExt } from "./util";
-import { Config } from "./config";
+import {combineRgb, CompanionFeedbackDefinitions} from "@companion-module/base";
+import {InstanceBaseExt} from "./util.js";
+import {Config} from "./config.js";
 
 export enum FeedbackId {
     FocusedPlayer = 'display_variable',

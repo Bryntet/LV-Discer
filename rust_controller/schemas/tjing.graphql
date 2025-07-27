@@ -2,227 +2,38 @@ schema {
   query: RootQuery
   mutation: RootMutation
 }
+
 type RootQuery {
   isAuthenticated: Boolean!
-  """
-  Information about the current logged in user
-  """
   me: Me
   player(playerId: ID!): Player
   tour(tourId: ID!): Tour
-  """
-  Published Tours
-  """
   tours(filter: ToursFilterInput): [Tour!]!
   event(eventId: ID!): Event
-  """
-  Checks if team or user has valid licence for the event, one of arguments must be specified alongside the eventId.
-  """
   hasLicenceForEvent(eventId: ID!, teamId: ID): Boolean
-  eventSearch(
-    """
-    For Pagination; From which index should the results start
-    """
-    skip: Int
-    """
-    matches multiple name fields, i.e event, city, course
-    """
-    query: String
-    """
-    Search from and to dates
-    """
-    dates: EventSearchDateInputType
-    """
-    Search either by ascending distance or ascending date.
-    """
-    sortBy: EventSearchSortInputType
-    """
-    Event course must be within given arguments
-    """
-    distance: EventSearchDistanceInputType
-    """
-    matches event pdga type name
-    """
-    pdgaTypes: [PdgaEventTypeEnum]
-    """
-    Im not sure what this is
-    """
-    tourTypes: [String]
-    """
-    Include this to specify if only to include doubles or singles events. Left undefined will include both.
-    """
-    singles: Boolean
-  ): EventSearchResultType!
+  eventGame(eventGameId: ID!): EventGame
+  eventGameScorecard(scorecardId: ID!): EventGameScorecard
+  eventGameRound(roundId: ID!): EventGameRound
+  eventSearch(skip: Int, query: String, dates: EventSearchDateInputType, sortBy: EventSearchSortInputType, distance: EventSearchDistanceInputType, pdgaTypes: [PdgaEventTypeEnum], tourTypes: [String], singles: Boolean): EventSearchResultType!
   shopItem(itemId: ID!): ShopItem
   eventItemShopImages(tourId: ID!): [EventShopItemImage]!
+  tourImages(tourId: ID!): [TourImage]!
   round(roundId: ID!): Round
   pool(poolId: ID!): Pool
   group(groupId: ID!): Group
   layout(layoutId: ID!): Layout
   layoutVersion(layoutVersionId: ID!): LayoutVersion
-  """
-  List of associations
-  """
   associations: [Organization!]!
-  """
-  Players in an event, based on their division and sorting criterias
-  """
-  eventPlayers(
-    """
-    Specify the event to get players from
-    """
-    eventId: ID!
-    """
-    Specify the event to get players from
-    """
-    divisionId: ID
-    """
-    Return the first x. Default is 50. Max is 100
-    """
-    first: Float!
-    """
-    Skip x. Default is 0.
-    """
-    skip: Float!
-    search: String
-    orderBy: EventPlayersOrderByInput
-    direction: SortOrderType
-  ): [Player!]!
-  """
-  Registrations in an event, based on their division and sorting criterias. 
-          Using USER_CANCELLED status will return all variations of cancelled registrations
-  """
-  eventRegistrations(
-    """
-    Specify the event to get players from
-    """
-    eventId: ID!
-    """
-    Specify the division to filter by, if un specified all divisions will be returned.
-    """
-    divisionId: ID
-    """
-    Specify what status to collect users from
-    """
-    status: RegistrationStatus!
-    """
-    Return the first x. Default is 50. Max is 100
-    """
-    first: Float!
-    """
-    Skip x. Default is 0.
-    """
-    skip: Float!
-    search: String
-    orderBy: EventRegistrationsOrderByInput
-    direction: SortOrderType
-  ): [Registration!]!
-  """
-  Team registrations based on their division and sorting criterias
-  """
-  eventTeamRegistrations(
-    """
-    Specify the event to get players from
-    """
-    eventId: ID!
-    """
-    Specify the division to filter by, if un specified all divisions will be returned.
-    """
-    divisionId: ID
-    """
-    Specify what status to collect users from
-    """
-    status: RegistrationStatus!
-    """
-    Return the first x. Default is 50. Max is 100
-    """
-    first: Float!
-    """
-    Skip x. Default is 0.
-    """
-    skip: Float!
-    orderBy: EventTeamsOrderByInput
-    direction: SortOrderType
-  ): [TeamRegistration!]!
-  """
-  Team registrations based on their division and sorting criterias
-  """
-  eventTeamPlayers(
-    """
-    Specify the event to get players from
-    """
-    eventId: ID!
-    """
-    Specify the division to filter by
-    """
-    divisionId: ID
-    """
-    Return the first x. Default is 50. Max is 100
-    """
-    first: Float!
-    """
-    Skip x. Default is 0.
-    """
-    skip: Float!
-    orderBy: EventTeamsOrderByInput
-    direction: SortOrderType
-  ): [TeamPlayer!]!
-  """
-  Search for clubs. When geolocation is passed the result will be ordered by distance otherwise by name
-  """
-  clubs(
-    """
-    Return the first x. Default is 50. Max is 100
-    """
-    first: Float
-    """
-    Skip x. Default is 0.
-    """
-    skip: Float
-    filter: NameAndDistanceInput
-  ): [Organization!]!
-  """
-  Search for public courses. When geolocation is passed the result will be ordered by distance otherwise by name
-  """
-  courses(
-    """
-    Return the first x. Default is 50. Max is 100
-    """
-    first: Float
-    """
-    Skip x. Default is 0.
-    """
-    skip: Float
-    filter: NameAndDistanceInput
-  ): [SearchCourse!]!
-  """
-  Load replies to a comment made on an event message
-  """
-  eventMessageCommentReplies(
-    replyId: ID
-    """
-    Return the first x. Default is 50. Max is 100
-    """
-    first: Float
-    """
-    Skip x. Default is 0.
-    """
-    skip: Float
-  ): [EventMessageReply!]!
-  """
-  Load replies to a comment made on an event message
-  """
-  eventMessageComments(
-    eventMessageId: ID
-    """
-    Return the first x. Default is 50. Max is 100
-    """
-    first: Float
-    """
-    Skip x. Default is 0.
-    """
-    skip: Float
-  ): [EventMessageReply!]!
+  promoters: [Organization!]!
+  eventPlayers(eventId: ID!, divisionId: ID, first: Float!, skip: Float!, search: String, orderBy: EventPlayersOrderByInput, direction: SortOrderType): [Player!]!
+  eventRegistrations(eventId: ID!, divisionId: ID, status: RegistrationStatus!, first: Float!, skip: Float!, search: String, orderBy: EventRegistrationsOrderByInput, direction: SortOrderType): [Registration!]!
+  eventTeamRegistrations(eventId: ID!, divisionId: ID, status: RegistrationStatus!, first: Float!, skip: Float!, orderBy: EventTeamsOrderByInput, direction: SortOrderType): [TeamRegistration!]!
+  eventTeamPlayers(eventId: ID!, divisionId: ID, first: Float!, skip: Float!, orderBy: EventTeamsOrderByInput, direction: SortOrderType): [TeamPlayer!]!
+  clubs(first: Float, skip: Float, filter: NameAndDistanceInput): [Organization!]!
+  courses(first: Float, skip: Float, filter: NameAndDistanceInput): [SearchCourse!]!
+  courseMapSearch(zoomLevel: Float!, minLat: Float!, maxLat: Float!, minLon: Float!, maxLon: Float!): [SearchCourseCombined!]!
+  eventMessageCommentReplies(replyId: ID, first: Float, skip: Float): [EventMessageReply!]!
+  eventMessageComments(eventMessageId: ID, first: Float, skip: Float): [EventMessageReply!]!
   team(teamId: ID!): Team
   teamPlayer(teamPlayerId: ID!): TeamPlayerType
   teamPlayers(teamId: ID!): [TeamPlayer!]!
@@ -233,66 +44,35 @@ type RootQuery {
   eventMessageAudienceTypes: [EventMessageAudience!]!
   eventMessageTypes: [EventMessageTypeType!]!
   pdgaEventTypes: [PdgaEventType!]!
+  userPlayedLayouts(userId: ID!): UserPlayedLayouts!
+  userEventCourseStats(userId: ID!, startDate: DateTime, endDate: DateTime, first: Float, skip: Float, layoutId: ID, sortBy: CourseStatsSortBy): CourseUserEventStats
+  userCasualCourseStats(userId: ID!, startDate: DateTime, endDate: DateTime, first: Float, skip: Float, layoutId: ID, sortBy: CourseStatsSortBy): CourseUserCasualStats
   userStats(userId: ID!, startDate: DateTime, endDate: DateTime): Stats
   userCasualStats(userId: ID!, startDate: DateTime, endDate: DateTime): Stats
   user(userId: ID!): PublicUser!
-  users(
-    """
-    Searches in firstName, lastName, email
-    """
-    search: String
-    first: Float
-    skip: Float
-  ): [User!]
+  users(search: String, first: Float, skip: Float): [User!]
   citySearch(query: String!, geolocation: GeolocationInput): [City!]
   scorecard(scorecardId: ID!): Scorecard
   currencies(isEnabledForPayments: Boolean): [Currency!]!
   meta: Meta!
-  """
-  Returns a custom point map if one has been created. If it is used or not is controlled by the ScoringType
-  """
   customPointSystem(systemId: ID!): EventCustomPointsMap
   stripeAccount(stripeAccountId: ID!): StripeConnectedAccount
   organization(slug: String, organizationId: ID): Organization
   organizationContent(contentId: ID!): OrganizationContent
   eventRegistrationInvitation(invitationId: ID!): EventRegistrationInvitation
-  """
-  Utility to find any event users that are not DNF/DNS and don't have a group for this round yet.
-  """
-  playersWithoutGroups(
-    roundId: ID!
-    eventId: ID!
-    """
-    Return the first x. Default is 50. Max is 100
-    """
-    first: Float
-    """
-    Skip x. Default is 0.
-    """
-    skip: Float
-  ): [Player]!
-  """
-  Utility to find any teams that are not DNF/DNS and don't have a group for this round yet.
-  """
-  teamsWithoutGroups(
-    roundId: ID!
-    eventId: ID!
-    """
-    Return the first x. Default is 50. Max is 100
-    """
-    first: Float
-    """
-    Skip x. Default is 0.
-    """
-    skip: Float
-  ): [TeamPlayer]!
+  organizationLeaderboard(leaderboardId: ID!, divisionType: String, page: Int): TourLeaderboardDivision
+  playersWithoutGroups(roundId: ID!, eventId: ID!, first: Float, skip: Float): [Player]!
+  teamsWithoutGroups(roundId: ID!, eventId: ID!, first: Float, skip: Float): [TeamPlayer]!
   subscriptions(returnUrl: String!): ManageSubscription
   packages(currency: String!): PackagePrices
+  casualRoundsLeaderboard(startDate: DateTime, endDate: DateTime, first: Float, skip: Float, sortBy: CasualRoundsSortBy = RATING, direction: SortOrderType = ASC, uniqueUsers: Boolean = false): [CasualRoundLeaderboardEntry!]!
+  competitiveRoundsLeaderboard(startDate: DateTime, endDate: DateTime, first: Float, skip: Float, sortBy: CompetitiveRoundsSortBy = RATING, direction: SortOrderType = ASC, uniqueUsers: Boolean = false): [CompetitiveRoundLeaderboardEntry!]!
 }
 
-"""
-Information about the current logged in user
-"""
+"""The `Boolean` scalar type represents `true` or `false`."""
+scalar Boolean
+
+"""Information about the current logged in user"""
 type Me {
   id: ID!
   firstName: String
@@ -301,195 +81,48 @@ type Me {
   isVerified: Boolean!
   profile: UserProfile!
   role: UserRole!
-  """
-  Events marked as favourite by user
-  """
-  favouriteEvents(
-    """
-    Return the first x. Default is 50. Max is 100
-    """
-    first: Float
-    """
-    Skip x. Default is 0.
-    """
-    skip: Float
-    """
-    ASC or DESC, DESC is default
-    """
-    order: SortOrderType
-  ): [FavouriteEvent!]!
-  myRegistrations(
-    """
-    Return the first x. Default is 50. Max is 100
-    """
-    first: Float
-    """
-    Skip x. Default is 0.
-    """
-    skip: Float
-    """
-    ASC or DESC, DESC is default
-    """
-    order: SortOrderType
-    filter: RegistrationFilterMetaInput
-  ): [UserRegistrationsCombined!]!
-  registrations(
-    """
-    Return the first x. Default is 50. Max is 100
-    """
-    first: Float
-    """
-    Skip x. Default is 0.
-    """
-    skip: Float
-    """
-    ASC or DESC, DESC is default
-    """
-    order: SortOrderType
-    filter: RegistrationFilterMetaInput
-  ): [Registration!]!
-  teamRegistrations(
-    """
-    Return the first x. Default is 50. Max is 100
-    """
-    first: Float
-    """
-    Skip x. Default is 0.
-    """
-    skip: Float
-    """
-    ASC or DESC, DESC is default
-    """
-    order: SortOrderType
-    filter: RegistrationFilterMetaInput
-  ): [TeamRegistration!]!
-  """
-  Courses created by current-user
-  """
+  favouriteEvents(first: Float, skip: Float, order: SortOrderType): [FavouriteEvent!]!
+  myRegistrations(first: Float, skip: Float, order: SortOrderType, filter: RegistrationFilterMetaInput): [UserRegistrationsCombined!]!
+  registrations(first: Float, skip: Float, order: SortOrderType, filter: RegistrationFilterMetaInput): [Registration!]!
+  teamRegistrations(first: Float, skip: Float, order: SortOrderType, filter: RegistrationFilterMetaInput): [TeamRegistration!]!
   courses: [Course!]!
-  """
-  Administrator roles for the current-user
-  """
-  administratorRoles(
-    """
-    Return the first x. Default is 20. Max is 50
-    """
-    first: Float
-    """
-    Skip x. Default is 0.
-    """
-    skip: Float
-    """
-    Exclude tours that have been archived
-    """
-    onlyCurrent: Boolean
-  ): [Administrator!]!
-  """
-  Administrator roles for the current-user
-  """
+  gameStationlayouts: [EventGameStationLayout]!
+  administratorRoles(first: Float, skip: Float, onlyCurrent: Boolean): [Administrator!]!
   courseAdministratorRoles: [CourseAdministrator!]!
-  """
-  Organization administrator roles for the current-user
-  """
   clubAdministratorRoles: [OrganizationAdministrator!]!
-  """
-  Pools which current user is participating in. Sorted by date descending.
-  """
-  pools(
-    """
-    Return the first x pools. Default is 50. Max is 100
-    """
-    first: Float
-    """
-    DEPRECATED - use filter instead. Filter by status
-    """
-    status: PoolStatus
-    filter: PoolFilterMetaInput
-  ): [Pool]!
-  """
-  Pools which current user's team is participating in. Sorted by date descending.
-  """
-  teamPools(
-    """
-    Return the first x pools. Default is 50. Max is 100
-    """
-    first: Float
-    """
-    DEPRECATED - use filter instead. Filter by status
-    """
-    status: PoolStatus
-    filter: PoolFilterMetaInput
-  ): [Pool]!
-  """
-  Groups which current user is participating in. Sorted by pool.date descending.
-  """
-  groups(
-    """
-    Return the first x groups. Default is 10. Max is 25
-    """
-    first: Float
-    filter: GroupsFilterInput
-  ): [Group]!
-  """
-  Groups which current user's team is participating in. Sorted by pool.date descending.
-  """
-  teamGroups(
-    """
-    Return the first x groups. Default is 10. Max is 25
-    """
-    first: Float
-    filter: GroupsFilterInput
-  ): [Group]!
-  """
-  Groups which current user is marshall in. Sorted by pool.date descending.
-  """
-  marshalls(
-    """
-    Return the first x groups. Default is 10. Max is 25
-    """
-    first: Float
-    """
-    Filter by status
-    """
-    status: GroupStatus
-  ): [Group]!
-  """
-  Active scorecards for user, doubles and singles
-  """
+  pools(first: Float, status: PoolStatus, filter: PoolFilterMetaInput): [Pool]!
+  teamPools(first: Float, status: PoolStatus, filter: PoolFilterMetaInput): [Pool]!
+  groups(first: Float, filter: GroupsFilterInput): [Group]!
+  teamGroups(first: Float, filter: GroupsFilterInput): [Group]!
+  marshalls(first: Float, status: GroupStatus): [Group]!
   activeEventScorecards: [Group]!
   connectedAccounts: [StripeConnectedAccount]!
   tourPasses: [TourPass]!
   teams: [Team]!
-  scorecards(
-    """
-    Return the first x. Default is 50. Max is 100
-    """
-    first: Float
-    """
-    Skip x. Default is 0.
-    """
-    skip: Float
-    filter: ScorecardFilterMetaInput
-  ): [Scorecard]!
-  orderHistory(
-    """
-    Return the first x orders. Default is 10
-    """
-    first: Int = 10
-    """
-    Skip x. Default is 0.
-    """
-    skip: Int = 0
-    eventIds: [ID]
-  ): [Order]!
+  discStorage: [DiscStorage]!
+  discs: [Disc]!
+  scorecards(first: Float, skip: Float, filter: ScorecardFilterMetaInput, startDate: DateTime, endDate: DateTime): [Scorecard]!
+  orderHistory(first: Int = 10, skip: Int = 0, eventIds: [ID]): [Order]!
   subscription: SubscriptionWithPackage
   clubs: [Organization]!
   mainClub: Organization
+  friendshipRequests: [FriendshipRequest]!
+  friendships(first: Int, skip: Int, search: String, blocked: Boolean): [Friendship]!
+  recentFriendsActivities(first: Int, skip: Int, search: String): [ActivityUnion]!
+  isPremium: Boolean!
+  isPremiumOverride: Boolean!
+  isPremiumOverrideExpiresAt: String
+  subscriptionStatus: String
+  lastSubscriptionSyncAt: String
 }
 
-"""
-Detailed information about a user
-"""
+"""The `ID` scalar type represents a unique identifier, often used to refetch an object or as key for a cache. The ID type appears in a JSON response as a String; however, it is not intended to be human-readable. When expected as an input type, any string (such as `"4"`) or integer (such as `4`) input value will be accepted as an ID."""
+scalar ID
+
+"""The `String` scalar type represents textual data, represented as UTF-8 character sequences. The String type is most often used by GraphQL to represent free-form human-readable text."""
+scalar String
+
+"""Detailed information about a user"""
 type UserProfile {
   id: ID!
   gender: String
@@ -497,12 +130,16 @@ type UserProfile {
   mainClubName: String
   mainClubSlug: String
   mainClubChangedAt: DateTime
+  isActivePdgaMember: Boolean
+  isPdgaOfficial: Boolean
+  isPdgaPro: Boolean
   pdgaNumber: Float
   pdgaRating: Float
+  pdgaOfficialExpirationDate: DateTime
+  tjingRating: Float
+  tjingCasualRating: Float
+  tjingCombinedRating: Float
   country: Country
-  """
-  Is only returned for the authenticated user
-  """
   phone: String
   instagram: String
   facebook: String
@@ -510,969 +147,505 @@ type UserProfile {
   youtube: String
   tiktok: String
   sponsor: String
+  sponsors: [UserSponsor]
   biography: String
-  """
-  Is only returned for the authenticated user
-  """
   pinCode: String
-  """
-  Used to determine if the profile details should be visible to other users
-  """
+  hasPinCode: Boolean
   isPublic: Boolean
-  """
-  Is only returned for the authenticated user
-  """
   isPinCodeLocked: Boolean
   profileImageUrl: String
   birthDate: DateTime
   socialSecurityId: String
+  teeOffSongUrl: String
 }
 
-"""
-A date-time string at UTC, such as 2007-12-03T10:15:30Z, compliant with the `date-time` format outlined in section 5.6 of the RFC 3339 profile of the ISO 8601 standard for representation of dates and times using the Gregorian calendar.
-"""
+"""A date-time string at UTC, such as 2007-12-03T10:15:30Z, compliant with the `date-time` format outlined in section 5.6 of the RFC 3339 profile of the ISO 8601 standard for representation of dates and times using the Gregorian calendar."""
 scalar DateTime
 
-"""
-List of countries with their name and 2-letter country code
-"""
+"""The `Float` scalar type represents signed double-precision fractional values as specified by [IEEE 754](https://en.wikipedia.org/wiki/IEEE_floating_point)."""
+scalar Float
+
+"""List of countries with their name and 2-letter country code"""
 type Country {
   name: String!
   code: CountryCode!
 }
 
-"""
-ISO-3166 2-letter country code. https://en.wikipedia.org/wiki/ISO_3166-1
-"""
+"""ISO-3166 2-letter country code. https://en.wikipedia.org/wiki/ISO_3166-1"""
 enum CountryCode {
-  """
-  Afghanistan
-  """
+  """Afghanistan"""
   AF
-  """
-  Albania
-  """
+  """Albania"""
   AL
-  """
-  Åland Islands
-  """
+  """Åland Islands"""
   AX
-  """
-  Algeria
-  """
+  """Algeria"""
   DZ
-  """
-  American Samoa
-  """
+  """American Samoa"""
   AS
-  """
-  Andorra
-  """
+  """Andorra"""
   AD
-  """
-  Angola
-  """
+  """Angola"""
   AO
-  """
-  Anguilla
-  """
+  """Anguilla"""
   AI
-  """
-  Antigua
-  """
+  """Antigua"""
   AG
-  """
-  Argentina
-  """
+  """Argentina"""
   AR
-  """
-  Armenia
-  """
+  """Armenia"""
   AM
-  """
-  Aruba
-  """
+  """Aruba"""
   AW
-  """
-  Australia
-  """
+  """Australia"""
   AU
-  """
-  Austria
-  """
+  """Austria"""
   AT
-  """
-  Azerbaijan
-  """
+  """Azerbaijan"""
   AZ
-  """
-  Bahrain
-  """
+  """Bahrain"""
   BH
-  """
-  Bangladesh
-  """
+  """Bangladesh"""
   BD
-  """
-  Barbados
-  """
+  """Barbados"""
   BB
-  """
-  Belarus
-  """
+  """Belarus"""
   BY
-  """
-  Belgium
-  """
+  """Belgium"""
   BE
-  """
-  Belize
-  """
+  """Belize"""
   BZ
-  """
-  Benin
-  """
+  """Benin"""
   BJ
-  """
-  Bermuda
-  """
+  """Bermuda"""
   BM
-  """
-  Bhutan
-  """
+  """Bhutan"""
   BT
-  """
-  Bolivia
-  """
+  """Bolivia"""
   BO
-  """
-  Bosnia and Herzegovina
-  """
+  """Bosnia and Herzegovina"""
   BA
-  """
-  Botswana
-  """
+  """Botswana"""
   BW
-  """
-  Brazil
-  """
+  """Brazil"""
   BR
-  """
-  British Indian Ocean Territory
-  """
+  """British Indian Ocean Territory"""
   IO
-  """
-  British Virgin Islands
-  """
+  """British Virgin Islands"""
   VG
-  """
-  Brunei
-  """
+  """Brunei"""
   BN
-  """
-  Bulgaria
-  """
+  """Bulgaria"""
   BG
-  """
-  Burkina Faso
-  """
+  """Burkina Faso"""
   BF
-  """
-  Burma Myanmar
-  """
+  """Burma Myanmar"""
   MM
-  """
-  Burundi
-  """
+  """Burundi"""
   BI
-  """
-  Cambodia
-  """
+  """Cambodia"""
   KH
-  """
-  Cameroon
-  """
+  """Cameroon"""
   CM
-  """
-  Canada
-  """
+  """Canada"""
   CA
-  """
-  Cape Verde
-  """
+  """Cape Verde"""
   CV
-  """
-  Cayman Islands
-  """
+  """Cayman Islands"""
   KY
-  """
-  Central African Republic
-  """
+  """Central African Republic"""
   CF
-  """
-  Indonesia
-  """
+  """Indonesia"""
   ID
-  """
-  Chile
-  """
+  """Chile"""
   CL
-  """
-  China
-  """
+  """China"""
   CN
-  """
-  Colombia
-  """
+  """Colombia"""
   CO
-  """
-  Comoros
-  """
+  """Comoros"""
   KM
-  """
-  Cook Islands
-  """
+  """Cook Islands"""
   CK
-  """
-  Costa Rica
-  """
+  """Costa Rica"""
   CR
-  """
-  Côte d'Ivoire
-  """
+  """Côte d'Ivoire"""
   CI
-  """
-  Croatia
-  """
+  """Croatia"""
   HR
-  """
-  Cuba
-  """
+  """Cuba"""
   CU
-  """
-  Cyprus
-  """
+  """Cyprus"""
   CY
-  """
-  Czech Republic
-  """
+  """Czech Republic"""
   CZ
-  """
-  Democratic Republic of Congo
-  """
+  """Democratic Republic of Congo"""
   CD
-  """
-  Denmark
-  """
+  """Denmark"""
   DK
-  """
-  Djibouti
-  """
+  """Djibouti"""
   DJ
-  """
-  Dominica
-  """
+  """Dominica"""
   DM
-  """
-  Dominican Republic
-  """
+  """Dominican Republic"""
   DO
-  """
-  Ecuador
-  """
+  """Ecuador"""
   EC
-  """
-  Egypt
-  """
+  """Egypt"""
   EG
-  """
-  El Salvador
-  """
+  """El Salvador"""
   SV
-  """
-  Equatorial Guinea
-  """
+  """Equatorial Guinea"""
   GQ
-  """
-  Eritrea
-  """
+  """Eritrea"""
   ER
-  """
-  Estonia
-  """
+  """Estonia"""
   EE
-  """
-  Ethiopia
-  """
+  """Ethiopia"""
   ET
-  """
-  Falkland Islands
-  """
+  """Falkland Islands"""
   FK
-  """
-  Faroe Islands
-  """
+  """Faroe Islands"""
   FO
-  """
-  Federated States of Micronesia
-  """
+  """Federated States of Micronesia"""
   FM
-  """
-  Fiji
-  """
+  """Fiji"""
   FJ
-  """
-  Finland
-  """
+  """Finland"""
   FI
-  """
-  France
-  """
+  """France"""
   FR
-  """
-  French Guiana
-  """
+  """French Guiana"""
   GF
-  """
-  French Polynesia
-  """
+  """French Polynesia"""
   PF
-  """
-  Gabon
-  """
+  """Gabon"""
   GA
-  """
-  Georgia
-  """
+  """Georgia"""
   GE
-  """
-  Germany
-  """
+  """Germany"""
   DE
-  """
-  Ghana
-  """
+  """Ghana"""
   GH
-  """
-  Gibraltar
-  """
+  """Gibraltar"""
   GI
-  """
-  Greece
-  """
+  """Greece"""
   GR
-  """
-  Greenland
-  """
+  """Greenland"""
   GL
-  """
-  Grenada
-  """
+  """Grenada"""
   GD
-  """
-  Guadeloupe
-  """
+  """Guadeloupe"""
   GP
-  """
-  Guam
-  """
+  """Guam"""
   GU
-  """
-  Guatemala
-  """
+  """Guatemala"""
   GT
-  """
-  Guinea
-  """
+  """Guinea"""
   GN
-  """
-  Guinea-Bissau
-  """
+  """Guinea-Bissau"""
   GW
-  """
-  Guyana
-  """
+  """Guyana"""
   GY
-  """
-  Haiti
-  """
+  """Haiti"""
   HT
-  """
-  Honduras
-  """
+  """Honduras"""
   HN
-  """
-  Hong Kong
-  """
+  """Hong Kong"""
   HK
-  """
-  Hungary
-  """
+  """Hungary"""
   HU
-  """
-  Iceland
-  """
+  """Iceland"""
   IS
-  """
-  India
-  """
+  """India"""
   IN
-  """
-  Iran
-  """
+  """Iran"""
   IR
-  """
-  Iraq
-  """
+  """Iraq"""
   IQ
-  """
-  Ireland
-  """
+  """Ireland"""
   IE
-  """
-  Israel
-  """
+  """Israel"""
   IL
-  """
-  Italy
-  """
+  """Italy"""
   IT
-  """
-  Jamaica
-  """
+  """Jamaica"""
   JM
-  """
-  Japan
-  """
+  """Japan"""
   JP
-  """
-  Jordan
-  """
+  """Jordan"""
   JO
-  """
-  Kazakhstan
-  """
+  """Kazakhstan"""
   KZ
-  """
-  Kenya
-  """
+  """Kenya"""
   KE
-  """
-  Kiribati
-  """
+  """Kiribati"""
   KI
-  """
-  Kosovo
-  """
+  """Kosovo"""
   XK
-  """
-  Kuwait
-  """
+  """Kuwait"""
   KW
-  """
-  Kyrgyzstan
-  """
+  """Kyrgyzstan"""
   KG
-  """
-  Laos
-  """
+  """Laos"""
   LA
-  """
-  Latvia
-  """
+  """Latvia"""
   LV
-  """
-  Lebanon
-  """
+  """Lebanon"""
   LB
-  """
-  Lesotho
-  """
+  """Lesotho"""
   LS
-  """
-  Liberia
-  """
+  """Liberia"""
   LR
-  """
-  Libya
-  """
+  """Libya"""
   LY
-  """
-  Liechtenstein
-  """
+  """Liechtenstein"""
   LI
-  """
-  Lithuania
-  """
+  """Lithuania"""
   LT
-  """
-  Luxembourg
-  """
+  """Luxembourg"""
   LU
-  """
-  Macau
-  """
+  """Macau"""
   MO
-  """
-  Macedonia
-  """
+  """Macedonia"""
   MK
-  """
-  Madagascar
-  """
+  """Madagascar"""
   MG
-  """
-  Malawi
-  """
+  """Malawi"""
   MW
-  """
-  Malaysia
-  """
+  """Malaysia"""
   MY
-  """
-  Maldives
-  """
+  """Maldives"""
   MV
-  """
-  Mali
-  """
+  """Mali"""
   ML
-  """
-  Malta
-  """
+  """Malta"""
   MT
-  """
-  Marshall Islands
-  """
+  """Marshall Islands"""
   MH
-  """
-  Martinique
-  """
+  """Martinique"""
   MQ
-  """
-  Mauritania
-  """
+  """Mauritania"""
   MR
-  """
-  Mauritius
-  """
+  """Mauritius"""
   MU
-  """
-  Mayotte
-  """
+  """Mayotte"""
   YT
-  """
-  Mexico
-  """
+  """Mexico"""
   MX
-  """
-  Moldova
-  """
+  """Moldova"""
   MD
-  """
-  Monaco
-  """
+  """Monaco"""
   MC
-  """
-  Mongolia
-  """
+  """Mongolia"""
   MN
-  """
-  Montenegro
-  """
+  """Montenegro"""
   ME
-  """
-  Montserrat
-  """
+  """Montserrat"""
   MS
-  """
-  Morocco
-  """
+  """Morocco"""
   MA
-  """
-  Mozambique
-  """
+  """Mozambique"""
   MZ
-  """
-  Namibia
-  """
+  """Namibia"""
   NA
-  """
-  Nauru
-  """
+  """Nauru"""
   NR
-  """
-  Nepal
-  """
+  """Nepal"""
   NP
-  """
-  Netherlands
-  """
+  """Netherlands"""
   NL
-  """
-  Netherlands Antilles
-  """
+  """Netherlands Antilles"""
   AN
-  """
-  New Caledonia
-  """
+  """New Caledonia"""
   NC
-  """
-  New Zealand
-  """
+  """New Zealand"""
   NZ
-  """
-  Nicaragua
-  """
+  """Nicaragua"""
   NI
-  """
-  Niger
-  """
+  """Niger"""
   NE
-  """
-  Nigeria
-  """
+  """Nigeria"""
   NG
-  """
-  Niue
-  """
+  """Niue"""
   NU
-  """
-  Norfolk Island
-  """
+  """Norfolk Island"""
   NF
-  """
-  North Korea
-  """
+  """North Korea"""
   KP
-  """
-  Northern Mariana Islands
-  """
+  """Northern Mariana Islands"""
   MP
-  """
-  Norway
-  """
+  """Norway"""
   NO
-  """
-  Oman
-  """
+  """Oman"""
   OM
-  """
-  Pakistan
-  """
+  """Pakistan"""
   PK
-  """
-  Palau
-  """
+  """Palau"""
   PW
-  """
-  Palestine
-  """
+  """Palestine"""
   PS
-  """
-  Panama
-  """
+  """Panama"""
   PA
-  """
-  Papua New Guinea
-  """
+  """Papua New Guinea"""
   PG
-  """
-  Paraguay
-  """
+  """Paraguay"""
   PY
-  """
-  Peru
-  """
+  """Peru"""
   PE
-  """
-  Philippines
-  """
+  """Philippines"""
   PH
-  """
-  Poland
-  """
+  """Poland"""
   PL
-  """
-  Portugal
-  """
+  """Portugal"""
   PT
-  """
-  Puerto Rico
-  """
+  """Puerto Rico"""
   PR
-  """
-  Qatar
-  """
+  """Qatar"""
   QA
-  """
-  Republic of the Congo
-  """
+  """Republic of the Congo"""
   CG
-  """
-  Réunion
-  """
+  """Réunion"""
   RE
-  """
-  Romania
-  """
+  """Romania"""
   RO
-  """
-  Russia
-  """
+  """Russia"""
   RU
-  """
-  Rwanda
-  """
+  """Rwanda"""
   RW
-  """
-  Saint Barthélemy
-  """
+  """Saint Barthélemy"""
   BL
-  """
-  Saint Helena
-  """
+  """Saint Helena"""
   SH
-  """
-  Saint Kitts and Nevis
-  """
+  """Saint Kitts and Nevis"""
   KN
-  """
-  Saint Martin
-  """
+  """Saint Martin"""
   MF
-  """
-  Saint Pierre and Miquelon
-  """
+  """Saint Pierre and Miquelon"""
   PM
-  """
-  Saint Vincent and the Grenadines
-  """
+  """Saint Vincent and the Grenadines"""
   VC
-  """
-  Samoa
-  """
+  """Samoa"""
   WS
-  """
-  San Marino
-  """
+  """San Marino"""
   SM
-  """
-  São Tomé and Príncipe
-  """
+  """São Tomé and Príncipe"""
   ST
-  """
-  Saudi Arabia
-  """
+  """Saudi Arabia"""
   SA
-  """
-  Senegal
-  """
+  """Senegal"""
   SN
-  """
-  Serbia
-  """
+  """Serbia"""
   RS
-  """
-  Seychelles
-  """
+  """Seychelles"""
   SC
-  """
-  Sierra Leone
-  """
+  """Sierra Leone"""
   SL
-  """
-  Singapore
-  """
+  """Singapore"""
   SG
-  """
-  Slovakia
-  """
+  """Slovakia"""
   SK
-  """
-  Slovenia
-  """
+  """Slovenia"""
   SI
-  """
-  Solomon Islands
-  """
+  """Solomon Islands"""
   SB
-  """
-  Somalia
-  """
+  """Somalia"""
   SO
-  """
-  South Africa
-  """
+  """South Africa"""
   ZA
-  """
-  South Korea
-  """
+  """South Korea"""
   KR
-  """
-  Spain
-  """
+  """Spain"""
   ES
-  """
-  Sri Lanka
-  """
+  """Sri Lanka"""
   LK
-  """
-  St. Lucia
-  """
+  """St. Lucia"""
   LC
-  """
-  Sudan
-  """
+  """Sudan"""
   SD
-  """
-  Suriname
-  """
+  """Suriname"""
   SR
-  """
-  Swaziland
-  """
+  """Swaziland"""
   SZ
-  """
-  Sweden
-  """
+  """Sweden"""
   SE
-  """
-  Switzerland
-  """
+  """Switzerland"""
   CH
-  """
-  Syria
-  """
+  """Syria"""
   SY
-  """
-  Taiwan
-  """
+  """Taiwan"""
   TW
-  """
-  Tajikistan
-  """
+  """Tajikistan"""
   TJ
-  """
-  Tanzania
-  """
+  """Tanzania"""
   TZ
-  """
-  Thailand
-  """
+  """Thailand"""
   TH
-  """
-  The Bahamas
-  """
+  """The Bahamas"""
   BS
-  """
-  The Gambia
-  """
+  """The Gambia"""
   GM
-  """
-  Timor-Leste
-  """
+  """Timor-Leste"""
   TL
-  """
-  Togo
-  """
+  """Togo"""
   TG
-  """
-  Tokelau
-  """
+  """Tokelau"""
   TK
-  """
-  Tonga
-  """
+  """Tonga"""
   TO
-  """
-  Trinidad and Tobago
-  """
+  """Trinidad and Tobago"""
   TT
-  """
-  Tunisia
-  """
+  """Tunisia"""
   TN
-  """
-  Turkey
-  """
+  """Turkey"""
   TR
-  """
-  Turkmenistan
-  """
+  """Turkmenistan"""
   TM
-  """
-  Turks and Caicos Islands
-  """
+  """Turks and Caicos Islands"""
   TC
-  """
-  Tuvalu
-  """
+  """Tuvalu"""
   TV
-  """
-  Uganda
-  """
+  """Uganda"""
   UG
-  """
-  Ukraine
-  """
+  """Ukraine"""
   UA
-  """
-  United Arab Emirates
-  """
+  """United Arab Emirates"""
   AE
-  """
-  United Kingdom
-  """
+  """United Kingdom"""
   GB
-  """
-  United States
-  """
+  """United States"""
   US
-  """
-  Uruguay
-  """
+  """Uruguay"""
   UY
-  """
-  US Virgin Islands
-  """
+  """US Virgin Islands"""
   VI
-  """
-  Uzbekistan
-  """
+  """Uzbekistan"""
   UZ
-  """
-  Vanuatu
-  """
+  """Vanuatu"""
   VU
-  """
-  Vatican City
-  """
+  """Vatican City"""
   VA
-  """
-  Venezuela
-  """
+  """Venezuela"""
   VE
-  """
-  Vietnam
-  """
+  """Vietnam"""
   VN
-  """
-  Wallis and Futuna
-  """
+  """Wallis and Futuna"""
   WF
-  """
-  Yemen
-  """
+  """Yemen"""
   YE
-  """
-  Zambia
-  """
+  """Zambia"""
   ZM
-  """
-  Zimbabwe
-  """
+  """Zimbabwe"""
   ZW
+}
+
+"""Information about user sponsor"""
+type UserSponsor {
+  id: ID!
+  name: String!
+  url: String
+  createdAt: Boolean!
+  updatedAt: Boolean!
 }
 
 enum UserRole {
@@ -1480,26 +653,24 @@ enum UserRole {
   USER
 }
 
-"""
-Events marked as favourite by the user
-"""
+"""Events marked as favourite by the user"""
 type FavouriteEvent {
   id: ID!
   event: Event!
   createdAt: DateTime!
 }
 
-"""
-Information about Event
-"""
+"""Information about Event"""
 type Event {
   id: ID!
   name: String!
   description: String
   isPublished: Boolean
   maxSpots: Float
+  minGroupStartSize: Float
   maxRegistrations: Float
   maxWildcards: Float
+  registrationMethod: RegistrationMethod!
   isRegistrationOpen: Boolean!
   registrationOpenAt: DateTime
   registrationCloseAt: DateTime
@@ -1517,16 +688,17 @@ type Event {
   website: String
   isResultSigningEnabled: Boolean!
   multipleScorecardModeEnabled: Boolean!
-  """
-  With this enabled all results need to be verified by another user
-  """
   isVerifyMode: Boolean!
+  ratingEnabled: Boolean!
   groupSize: Float
   checkInStartsAt: DateTime
   checkInEndsAt: DateTime
   autoOpenRegistration: Boolean
   autoCloseInactivePools: Boolean
+  type: EventCategoryEnum!
   singles: Boolean
+  scoringAs: ScoringAs!
+  autoConfirmRegistrations: Boolean
   teamSize: Float
   defaultToTeamName: Boolean
   pdgaEventId: String
@@ -1534,154 +706,67 @@ type Event {
   waitinglistType: WaitinglistType
   agreementName: String
   agreementUrl: String
-  """
-  Date when the first pool in event starts
-  """
   startDate: DateTime
-  """
-  Date when the last pool in event starts
-  """
   endDate: DateTime
-  """
-  Is false if there are any registration or player for event
-  """
   isDeletable: Boolean!
   stripeAccountId: ID
-  """
-  Only available for the TD
-  """
   registrationInvitations: [EventRegistrationInvitation!]!
-  """
-  Only available for the TD
-  """
   contactList: [EventContactList!]!
-  """
-  Only available for TDs
-  """
   connectedAccount: StripeConnectedAccount
-  """
-  CLOSED=All pools are closed, COMPLETED=all pools are completed, ONGOING=If any pool are prepare or open
-  """
   status: EventStatus!
-  """
-  Total number of registrations with status 'PENDING'
-  """
   waitingListLength: Float!
-  """
-  Total number of registrations across all divisions in this Event
-  """
   registrationsCount: Float!
   registrations: [SingleAndDoubleRegistration!]!
   groupRegistrationReservations: [GroupRegistrationReservation!]!
-  """
-  Total number of players across all divisions in this Event
-  """
   playersCount: Float!
-  """
-  Total number of player who have been granted wildcards
-  """
   wildcardsCount: Float!
-  """
-  Count of players in an event, based on their division
-  """
   registrationsCountPerDivision: EventRegistrationCount!
-  """
-  Returns true if the logged in user has this event marked as a favourite.
-  """
   isUserFavourite: Boolean!
   dnfDnsCount: [Player!]!
   players: [Player!]!
   teams: [TeamPlayer!]!
   tour: Tour!
-  """
-  Rounds are ordered by ascending pool date
-  """
   rounds: [Round]!
-  """
-  Counting existing eventmessages and unread if user is logged in.
-  """
   eventMessageMeta: EventMessageCount
-  """
-  Counting existing eventmessages and unread if user is logged in.
-  """
   userIsAdmin: Boolean
-  """
-  Event messages are ordered by ascending date
-  """
   eventMessages: [EventMessage]!
-  tiebreaks: [Tiebreak]!
+  tiebreaks: [EventTiebreakTypeCombined]!
+  ties: [EventTiesTypeCombined!]!
   registrationStages: [RegistrationStage]!
-  ties: [Tie!]!
-  """
-  Caching result for 90 seconds
-  """
   stats(divisionId: ID): Stats
-  """
-  Caching result for 0 seconds
-  """
+  leaderboardPreviews: [EventLeaderboardDivisionCombined]!
   leaderboard(divisionId: ID, page: Int): EventLeaderboardDivisionCombined
-  """
-  Caching result for 90 seconds
-  """
-  statsLeaderboards(
-    divisionId: ID
-    page: Float
-    direction: SortOrderType
-    orderBy: TourStatsOrderByInput
-  ): EventStatsLeaderboard!
-  """
-  If provided a userid returns a summary of the users stats for the entire event. 
-          Only applicable to singles events.
-        
-  """
+  statsLeaderboards(divisionId: ID, page: Float, direction: SortOrderType, orderBy: TourStatsOrderByInput): StatsLeaderboard!
   userStats(userId: ID!): Stats
   shopItems: [ShopItem]!
-  orders(
-    """
-    Return the first x orders. Default is 10
-    """
-    first: Int = 10
-    """
-    Skip x. Default is 0.
-    """
-    skip: Int = 0
-    """
-    Specify order type to get, default is ALL.
-    """
-    orderContentType: OrderContentType = ALL
-  ): GeneralOrderType
+  orders(first: Int = 10, skip: Int = 0, orderContentType: OrderContentType = ALL): GeneralOrderType
   userEventMeta: UserEventMetaTypeCombined
   ordersCount: Int!
   productsCount: Int!
-  """
-  Check if the current event/tour has an active subscription
-  """
   subscriptionTier: PackageTierEnum
   divisionInPool: [DivisionInPoolType]!
   divisions: [Division]!
-  """
-  Require licence from association to register
-  """
   requireLicenceFrom: Organization
-  """
-  Define if licence is required from foreign players, only applicable if requireLicenceFrom is set
-  """
   requireLicenceFromForeignPlayers: Boolean
+  requireOfficialStatus: Boolean
+  requireOrganizationMembership: Boolean
   documents: [EvenDocument]!
   registrationQuestions: [RegistrationQuestion]!
-  """
-  Returns a custom point map if one has been created. If it is used or not is controlled by the ScoringType
-  """
   customPointSystem: EventCustomPointsMap
-  """
-  Returns a list of country restrictions if any has been created. 
-  """
   countryRestrictions: [EventCountryRestriction]!
+  coverImage: EventCoverImage
+  penalties: [EventPlayerPenalty]!
+  games: [EventGame]!
+  galleryImages(first: Int = 10, skip: Int = 0, includePending: Boolean = false): [EventGalleryImage]!
 }
 
-"""
-An event level override for the registration fees specified on the tour divisions
-"""
+enum RegistrationMethod {
+  LIST
+  GROUPS
+  FLEX
+}
+
+"""An event level override for the registration fees specified on the tour divisions"""
 type EventDivisionOverride {
   id: ID!
   eventId: ID!
@@ -1692,13 +777,13 @@ type EventDivisionOverride {
   maxSpots: Float
   reservedSpots: Float
   maxRegistrations: Float
+  refundPercentage: Float
+  disabled: Boolean!
   createdAt: DateTime!
   updatedAt: DateTime!
 }
 
-"""
-Information about Division
-"""
+"""Information about Division"""
 type Division {
   id: ID!
   type: String!
@@ -1709,6 +794,7 @@ type Division {
   maxSpots: Float
   reservedSpots: Float
   maxRegistrations: Float
+  refundPercentage: Float
   canBeGenderLocked: Boolean
   isGenderLockedTo: GenderType
   canBeAgeRestricted: Boolean
@@ -1716,13 +802,14 @@ type Division {
   ageRequirement: Float
   mustBeOrBelowAge: Boolean
   registrationFee: Money
+  membershipRegistrationFee: Money
   tourPassFee: Money
+  membershipTourPassFee: Money
   taxRate: TaxRate
-  """
-  Is false if there are any registration or player for division
-  """
   isDeletable: Boolean!
   tour: Tour!
+  tourPasses: [DivisionTourPass!]!
+  hasSamePriceEntireTour: Boolean!
 }
 
 enum GenderType {
@@ -1733,9 +820,6 @@ enum GenderType {
 type Money {
   value: Float!
   formatted: String!
-  """
-  3-letter ISO-4217 code. https://en.wikipedia.org/wiki/ISO_4217
-  """
   currency: String!
 }
 
@@ -1748,107 +832,49 @@ type TaxRate {
   percentage: Float!
 }
 
-"""
-Information about Tour
-"""
+"""Information about Tour"""
 type Tour {
   id: ID!
   name: String!
+  description: String
   type: TourType
   scoringType: ScoringType!
-  registrationMethod: RegistrationMethod!
   scoreBasedOnNrOfEvents: Float
+  sortLeaderboardByEventsPlayed: Boolean
   isPublished: Boolean!
-  """
-  Tour privacy
-  """
   isPrivate: Boolean!
   paymentType: TourPaymentType!
   tourPasses: [TourPassCombined!]!
+  userHasTourPass: Boolean
   usersTourPass(teamId: ID): TourPassCombined
-  """
-  Only applicable if paymentType=MANAGED
-  """
   automaticRefunds: Boolean!
   allowRegistrationMessage: Boolean!
-  """
-  Checks if logged in user is admin
-  """
   userIsAdmin: Boolean
   isArchived: Boolean!
-  """
-  Is false if tour has registrations or players
-  """
   isDeletable: Boolean!
-  """
-  Only available for TDs
-  """
   connectedAccount: StripeConnectedAccount
   status: TourStatus!
   eventsCount: Float!
-  """
-  Events are ordered by the date of the earliest round
-  """
   events: [Event]!
   administrators: [Administrator]!
-  """
-  Upcoming event
-  """
   nextEvent: Event
   divisions: [Division]!
-  """
-  Caching result for 90 seconds
-  """
-  statsLeaderboards(
-    divisionId: ID
-    page: Float
-    direction: SortOrderType
-    orderBy: TourStatsOrderByInput
-  ): StatsLeaderboard!
-  """
-  Caching result for 0 seconds. Must specify a divisionId.
-  """
-  leaderboard(
-    divisionId: ID
-    page: Int
-    numberOfEvents: Int
-    includeEventsWithoutResults: Boolean = false
-    includeUncompletedEvents: Boolean = false
-    scoringType: EventsScoringType
-  ): TourLeaderboardDivision
-  """
-  Returns a custom point map if one has been created. If it is used or not is controlled by the ScoringType
-  """
+  statsLeaderboards(divisionId: ID, page: Float, direction: SortOrderType, orderBy: TourStatsOrderByInput, minEventsPlayed: Int): StatsLeaderboard!
+  leaderboard(divisionId: ID, page: Int, numberOfEvents: Int, includeEventsWithoutResults: Boolean = false, includeUncompletedEvents: Boolean = false, scoringType: EventsScoringType): TourLeaderboardDivision
+  gameLeaderboard(gameType: EventGameCategory!, divisionId: ID!): GameTourLeaderboardDivision
   customPointSystem: EventCustomPointsMap
-  """
-  Tour is fee included or not
-  """
   feeIncluded: Boolean!
-  """
-  Tour currency
-  """
+  maxTourPassCount: Int
   currency: String!
-  """
-  Tour currency
-  """
   organizations: [Organization]!
-  """
-  Allow adjusting the currency, until a transaction has been made.
-  """
   allowChangeCurrency: Boolean!
-  """
-  Check if the current event/tour has an active subscription
-  """
   subscriptionTier: PackageTierEnum
-  """
-  Check if the current event/tour has an active subscription
-  """
   hasActiveSubscription: Boolean
-  """
-  Check if there is an active transfor of ownership in progress
-  """
   ownershipTransfer: [TransferTourOwnershipType]!
   documents: [EvenDocument]!
+  tourImages: [TourImage]!
+  coverImage: EventCoverImage
+  galleryImages(first: Int = 10, skip: Int = 0, includePending: Boolean = false): [EventGalleryImage]!
 }
 
 type TourType {
@@ -1865,11 +891,6 @@ enum ScoringType {
   PAR
 }
 
-enum RegistrationMethod {
-  LIST
-  GROUPS
-}
-
 enum TourPaymentType {
   MANUAL
   MANAGED
@@ -1884,38 +905,32 @@ type TourPass {
   division: Division!
   payment: Payment!
   order: Order
+  divisionTourPass: DivisionTourPass
   createdAt: DateTime
 }
 
-"""
-Information about a user
-"""
+"""Information about a user"""
 type User {
   id: ID!
   firstName: String
   lastName: String
   isAnonymous: Boolean!
-  """
-  Only visible for Admins
-  """
   email: String
-  """
-  Only visible for Admins
-  """
   isDisabled: Boolean
   profile: UserProfile!
   teams: [Team]!
 }
 
-"""
-Information about Team
-"""
+"""Information about Team"""
 type Team {
   id: ID!
   name: String!
   type: TeamType
   archived: Boolean!
   teamPlayers: [TeamPlayerType!]!
+  tjingRating: Float
+  tjingCasualRating: Float
+  tjingCombinedRating: Float
   createdByUser: User!
   updatedByUser: User!
 }
@@ -1925,9 +940,7 @@ enum TeamType {
   TEMPORARY
 }
 
-"""
-Information about Team Player
-"""
+"""Information about Team Player"""
 type TeamPlayerType {
   id: ID!
   userId: String!
@@ -1950,9 +963,7 @@ type Payment {
   createdAt: DateTime!
 }
 
-"""
-Information about an order.
-"""
+"""Information about an order."""
 type Order {
   id: ID!
   eventId: ID!
@@ -1970,9 +981,10 @@ type Order {
   team: Team
 }
 
-"""
-Line Item of Order
-"""
+"""The `Int` scalar type represents non-fractional signed whole numeric values. Int can represent values between -(2^31) and 2^31 - 1."""
+scalar Int
+
+"""Line Item of Order"""
 type LineItem {
   id: ID!
   orderId: ID!
@@ -1984,9 +996,7 @@ type LineItem {
   isDelivered: Boolean!
 }
 
-"""
-Information about a shop item.
-"""
+"""Information about a shop item."""
 type ShopItem {
   id: ID!
   eventId: String!
@@ -2003,17 +1013,13 @@ type ShopItem {
   isDeletable: Boolean!
 }
 
-"""
-Information about available images
-"""
+"""Information about available images"""
 type EventShopItemImage {
   id: ID!
   imageUrl: String!
 }
 
-"""
-Order Refund
-"""
+"""Order Refund"""
 type Refund {
   id: String!
   amount: Int!
@@ -2022,9 +1028,7 @@ type Refund {
   reason: String
 }
 
-"""
-Registration Line Item of Order
-"""
+"""Registration Line Item of Order"""
 type OrderRegistrationType {
   hasTourPass: Boolean!
   amountSubTotal: Int!
@@ -2035,9 +1039,7 @@ type OrderRegistrationType {
 
 union SingleAndDoubleRegistration = Registration | TeamRegistration
 
-"""
-Registration to Division
-"""
+"""Registration to Division"""
 type Registration {
   id: ID!
   date: DateTime!
@@ -2049,13 +1051,10 @@ type Registration {
   user: User!
   event: Event!
   logs: [RegistrationLog!]
-  """
-  Player in the event. Possible null if the registration is not accepted
-          or if the player has been removed
-  """
   player: Player
   message: String
   responses: [RegistrationQuestionResponse]
+  eventResult: EventResult
 }
 
 enum RegistrationStatus {
@@ -2073,9 +1072,7 @@ type RegistrationLog {
   createdAt: DateTime!
 }
 
-"""
-Information about a Player
-"""
+"""Information about a Player"""
 type Player {
   id: ID!
   userId: ID!
@@ -2092,21 +1089,18 @@ type Player {
   division: Division!
   event: Event!
   tiebreak: Tiebreak
-  results(roundId: ID!): [Result!]
+  penalties: [EventPlayerPenalty!]
+  boons: [EventPlayerBoon!]
 }
 
-"""
-Did not finish (DNF)
-"""
+"""Did not finish (DNF)"""
 type DNF {
   isDnf: Boolean!
   reportedByUserId: ID
   reportedByUser: User
 }
 
-"""
-Did not start (DNS)
-"""
+"""Did not start (DNS)"""
 type DNS {
   isDns: Boolean!
   reportedByUserId: ID
@@ -2120,94 +1114,597 @@ type Tiebreak {
   player: Player!
 }
 
-type Result {
+"""Penalties incurred by a player or team in an event outside of normal scoring."""
+type EventPlayerPenalty {
   id: ID!
-  score: Float!
-  isCircleHit: Boolean!
-  isOutsidePutt: Boolean!
-  isInsidePutt: Boolean!
-  isOutOfBounds: Boolean!
-  createdByUserId: ID!
+  eventId: ID!
+  event: Event!
+  poolId: ID
+  pool: ID
+  eventUserId: ID
+  eventUser: ID
+  eventTeamId: ID
+  eventTeam: ID
+  penalty: Float!
+  reason: String!
   createdAt: DateTime!
   updatedAt: DateTime!
-  hash: String!
-  createdByUser: User!
-  updatedByUserId: ID!
-  updatedByUser: User!
-  isVerified: Boolean!
-  verifiedByUserId: ID
-  verifiedByUser: User
-  playerConnection: GroupPlayerConnection!
-  playerConnectionV2: GroupPlayerConnectionTypeCombined!
-  hole: Hole!
 }
 
-"""
-Information about a connection between a Group and a Player
-"""
-type GroupPlayerConnection {
+"""Boons awarded to a player or team in an event to improve their score, par, or points."""
+type EventPlayerBoon {
   id: ID!
-  """
-  The Player's position(order) on the scorecard
-  """
-  position: Float!
-  playerId: ID!
-  groupId: ID!
-  roundTotal: Float
-  player: Player!
-  hasSignedResult: Boolean!
-  group: Group!
-}
-
-type Group {
-  id: ID!
-  status: GroupStatus!
-  position: Float!
-  startsAt: DateTime
-  startHole: Hole
-  pool: Pool!
-  designatedSinglesScorer: User
-  designatedTeamsScorer: Team
-  playerConnections: [GroupPlayerConnection!]!
-  results(isVerified: Boolean): [Result!]!
-  playerConnectionsV2: [GroupPlayerConnectionTypeCombined!]!
-  resultsV2(isVerified: Boolean): [Result!]
-  marshall: User
-}
-
-enum GroupStatus {
-  CLOSED
-  OPEN
-  DONE
-}
-
-"""
-Information about Hole
-"""
-type Hole {
-  id: ID!
-  number: Float!
+  eventId: ID!
+  event: Event!
+  poolId: ID
+  pool: ID
+  eventPlayerId: ID
+  eventPlayer: Player
+  eventTeamId: ID
+  eventTeam: TeamPlayerType
   par: Float
-  name: String
-  length: Float
-  measureInMeters: Boolean
-  note: String
-  userNote: [HoleUserNote]
-  hasOb: Boolean!
-  hasMandatory: Boolean!
-  hasHazard: Boolean!
-  hasLocalRule: Boolean!
-  geolocation: [Geolocation]
+  score: Float
+  points: Float
+  onlyApplicableForTour: Boolean!
+  icon: BoonIcon
+  reason: String!
+  createdAt: DateTime!
+  updatedAt: DateTime!
 }
 
-"""
-Users private note about a hole
-"""
-type HoleUserNote {
+enum BoonIcon {
+  QUALIFIED
+  CTP
+  LONGEST_DRIVE
+}
+
+"""Response give by user to a specific question"""
+type RegistrationQuestionResponse {
   id: ID!
-  holeId: ID!
-  note: String!
+  eventRegistrationId: ID
+  question: String!
+  response: String
+  options: [RegistrationQuestionOption]!
   createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+"""Option attached to a registration question"""
+type RegistrationQuestionOption {
+  id: ID!
+  questionId: ID!
+  value: String!
+  position: Float!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+type EventResult {
+  totalScore: Float!
+  totalPar: Float!
+  totalPoints: Float!
+  place: Float!
+}
+
+"""Team registration to Event & Division"""
+type TeamRegistration {
+  id: ID!
+  date: DateTime!
+  status: RegistrationStatus!
+  createdAt: DateTime!
+  statusUpdatedAt: DateTime!
+  division: Division!
+  team: Team!
+  hasPaid: Boolean!
+  player: TeamPlayer
+  event: Event!
+  logs: [RegistrationLog!]
+  message: String
+  responses: [RegistrationQuestionResponse]
+  eventResult: EventResult
+}
+
+"""Information about a Team Player"""
+type TeamPlayer {
+  id: ID!
+  teamId: ID!
+  divisionId: ID!
+  eventId: ID!
+  isWildcard: Boolean!
+  onSite: Boolean!
+  hasPaid: Boolean!
+  dnfDns: DNFDNS!
+  registration: TeamRegistration!
+  team: Team!
+  division: Division!
+  event: Event!
+  eventTotal: Float
+  tiebreak: Tiebreak
+  penalties: [EventPlayerPenalty!]
+  boons: [EventPlayerBoon]
+}
+
+"""Did not finish (DNF) - Did not start (DNS)"""
+type DNFDNS {
+  dnfDns: String
+  dnfDnsErType: String
+  reportedById: ID
+}
+
+"""Tour pass for a division"""
+type DivisionTourPass {
+  id: ID!
+  divisionId: ID!
+  name: String
+  uses: Int
+  stock: Int
+  stockAvailable: Int
+  usersUsesLeft: Int
+  fee: Money
+  membershipFee: Money
+  active: Boolean!
+  alwaysAvailable: Boolean!
+  canBeDeleted: Boolean!
+}
+
+type TeamTourPass {
+  id: ID!
+  team: Team!
+  tour: Tour!
+  divisionTourPass: DivisionTourPass
+  division: Division!
+  payment: Payment!
+  order: Order
+  createdAt: DateTime
+}
+
+type StripeConnectedAccount {
+  id: ID!
+  name: String
+  createdAt: DateTime!
+  owner: User!
+  taxRates: [TaxRate]!
+}
+
+enum TourStatus {
+  CLOSED
+  ONGOING
+  COMPLETED
+}
+
+"""Information about an administrator"""
+type Administrator {
+  userId: ID!
+  tourId: ID!
+  role: AdministratorRole!
+  user: User!
+  tour: Tour!
+}
+
+enum AdministratorRole {
+  OWNER
+  ADMIN
+}
+
+type StatsLeaderboard {
+  bestRound: StatsLeaderboardTop
+  mostAces: StatsLeaderboardTop
+  mostEagles: StatsLeaderboardTop
+  mostBirdies: StatsLeaderboardTop
+  mostPars: StatsLeaderboardTop
+  mostCircleHits: StatsLeaderboardTop
+  mostCircleHitConversions: StatsLeaderboardTop
+  mostInsidePutts: StatsLeaderboardTop
+  mostOutsidePutts: StatsLeaderboardTop
+  leaderboardCount: Float!
+  totalEventsCount: Float!
+  leaderboard: [StatsLeaderboardPlayer]
+  availableDivisionTypes: [DivisionTypeItem]!
+}
+
+type StatsLeaderboardTop {
+  user: User
+  team: Team
+  par: Float
+  part: Float
+  count: Float
+}
+
+type StatsLeaderboardPlayer {
+  position: Float!
+  user: User
+  team: Team
+  division: Division
+  bestRound: BestTourRound
+  birdies: TourStat
+  pars: TourStat
+  aces: TourStat
+  eagles: TourStat
+  bogeys: TourStat
+  doubleBogeys: TourStat
+  trippleBogeysAbove: TourStat
+  circleHits: TourStat
+  circleHitConversions: TourStat
+  insidePutts: TourStat
+  outsidePutts: TourStat
+  outOfBounds: TourStat
+  penaltyStrokes: TourStat
+}
+
+type BestTourRound {
+  poolId: ID
+  eventId: ID
+  roundId: ID
+  par: Float
+}
+
+type TourStat {
+  count: Float!
+  part: Float!
+}
+
+type DivisionTypeItem {
+  id: ID!
+  position: Float!
+  name: String!
+  type: String!
+  canBeGenderLocked: Boolean!
+  canBeAgeRestricted: Boolean!
+  ageRequirement: Float
+}
+
+enum SortOrderType {
+  ASC
+  DESC
+}
+
+enum TourStatsOrderByInput {
+  BEST_ROUND
+  ACE
+  EAGLE
+  BIRDIE
+  PAR
+  BOGEY
+  DOUBLE_BOGEY
+  TRIPLE_BOGEY_ABOVE
+  CIRCLE_HIT
+  CIRCLE_HIT_CONVERSION
+  INSIDE_PUTT
+  OUTSIDE_PUTT
+  OUT_OF_BOUNDS
+  PENALTY_STROKES
+}
+
+type TourLeaderboardDivision {
+  id: ID!
+  name: String!
+  type: String!
+  leaderboardCount: Float!
+  players: [TourLeaderboardDivisionTypeCombined!]!
+}
+
+union TourLeaderboardDivisionTypeCombined = TourLeaderboardPlayer | TourLeaderboardTeamPlayer
+
+type TourLeaderboardPlayer {
+  place: Float!
+  userId: ID!
+  firstName: String!
+  lastName: String!
+  profileImageUrl: String
+  pdgaNumber: Float
+  pdgaRating: Float
+  score: Float
+  averageScore: Float
+  par: Float
+  points: Float
+  eventScores: [TourLeaderboardEvent]!
+  boons: [EventPlayerBoon]!
+}
+
+type TourLeaderboardEvent {
+  eventId: ID!
+  place: Float!
+  score: Float!
+  par: Float!
+  points: Float!
+  noResults: Boolean
+}
+
+type TourLeaderboardTeamPlayer {
+  place: Float!
+  team: Team!
+  score: Float
+  averageScore: Float
+  par: Float
+  points: Float
+  eventScores: [TourLeaderboardEvent]!
+  boons: [EventPlayerBoon]!
+}
+
+enum EventsScoringType {
+  AVERAGE_THROWS
+  PAR
+  POINTS
+  CUSTOM_POINTS
+  THROWS
+}
+
+type GameTourLeaderboardDivision {
+  id: ID!
+  name: String!
+  type: String!
+  leaderboardCount: Float!
+  players: [GameTourLeaderboardPlayer!]!
+}
+
+type GameTourLeaderboardPlayer {
+  place: Float!
+  userId: ID!
+  firstName: String!
+  lastName: String!
+  profileImageUrl: String
+  pdgaNumber: Float
+  pdgaRating: Float
+  score: Float
+  averageScore: Float
+}
+
+enum EventGameCategory {
+  PUTTING
+  DISTANCE
+  DISCGOLF
+}
+
+"""Message posted by an Admin for the event audience"""
+type EventCustomPointsMap {
+  id: ID!
+  tourId: ID!
+  eventId: ID
+  positions: [EventCustomPoint]!
+  defaultPoint: Float!
+  tiePoints: TiePoint!
+  createdAt: Float!
+  updatedAt: Float!
+}
+
+type EventCustomPoint {
+  place: Float!
+  points: Float!
+}
+
+enum TiePoint {
+  HIGHEST
+  LOWEST
+  AVERAGE
+}
+
+"""Information about an organization"""
+type Organization {
+  id: ID!
+  administrators: [OrganizationAdministrator]!
+  usersMembership: OrganizationMember
+  type: OrganizationType!
+  acceptMembers: AcceptMembers!
+  tours: [Tour]!
+  combinedLeaderboards: [OrganizationLeaderboard]!
+  organizationStatsLeaderboards(tourIds: [ID], startDate: DateTime, endDate: DateTime, divisionType: String, page: Float, direction: SortOrderType, orderBy: TourStatsOrderByInput, minEventsPlayed: Int): StatsLeaderboard!
+  organizationMemberStatsLeaderboards(startDate: DateTime, endDate: DateTime, divisionType: String, page: Float, direction: SortOrderType, orderBy: TourStatsOrderByInput, minEventsPlayed: Int): StatsLeaderboard!
+  connectedOrganizationsCountByStatus: OrganizationConnectedOrganizationsCount!
+  pendingConnectedOrganizations: [Organization]!
+  connectedOrganizations(first: Float, skip: Float, order: SortOrderType): [Organization]!
+  connectedOrganization: Organization
+  organizationConnectionStatus: OrganizationConnectionStatus
+  organizationConnectionUpdatedAt: DateTime!
+  publicMembersList: Boolean!
+  hidden: Boolean!
+  name: String!
+  slug: String!
+  logoUrl: String
+  coverImageUrl: String
+  contactName: String
+  contactMail: String
+  contactPhone: String
+  contactWebsite: String
+  officials: [OrganizationOfficialType]!
+  fiscalYearStartMonth: Int!
+  shopItems: [ShopItem]!
+  pendingMembers: [OrganizationMember]!
+  memberCountByStatus: OrganizationMemberCount!
+  members(order: SortOrderType, orderBy: OrderMembersByType, search: String): [OrganizationMember]!
+  membersCount: Float!
+  contactList: [OrganizationContactList!]!
+  courseRelations: [OrganizationCourseRelation]!
+  membershipTypes: [OrganizationMemberType]!
+  sections: [OrganizationContent]!
+  news(first: Float, skip: Float, order: SortOrderType): [OrganizationContent]!
+  connectedAccount: StripeConnectedAccount
+  currency: String!
+  city: City
+  orders(first: Int = 10, skip: Int = 0): [MembershipOrder]!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+"""Information about an Organization administrator"""
+type OrganizationAdministrator {
+  role: OrganizationAdministrationRole!
+  user: User!
+  organization: Organization!
+}
+
+"""Roles for an organization"""
+enum OrganizationAdministrationRole {
+  ADMIN
+  OWNER
+}
+
+"""Information about an organizations member"""
+type OrganizationMember {
+  id: ID!
+  membershipType: OrganizationMemberType!
+  organization: Organization!
+  user: User!
+  status: ID!
+  usersMainClub: Boolean!
+  usersMainClubUpdatedAt: DateTime
+  expiresAt: DateTime!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+"""Information about an organizations member"""
+type OrganizationMemberType {
+  id: ID!
+  name: String!
+  description: String!
+  fee: Float!
+  fullMember: Boolean!
+  archived: Boolean!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+enum OrganizationType {
+  CLUB
+  BUSINESS
+  ASSOCIATION
+  TEAM
+}
+
+enum AcceptMembers {
+  DIRECT
+  APPROVAL
+  INVITATION
+  CLOSED
+}
+
+"""A leaderboar created by handpicked events the organization is organizer for."""
+type OrganizationLeaderboard {
+  id: ID!
+  title: String!
+  description: String
+  divisionTypes: [String!]!
+  events: [Event]!
+  configuration: [OrganizationLeaderboardConfiguration]!
+  divisions(includeAllDivisions: Boolean = false): [OrganizationLeaderboardDivision]!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+"""Configuration for organization leaderbaords detemening best of for each tour in the leaderboard."""
+type OrganizationLeaderboardConfiguration {
+  id: ID!
+  leaderboardId: ID!
+  tourId: ID!
+  bestOfNumberOfEvents: Float
+}
+
+"""Information about Division"""
+type OrganizationLeaderboardDivision {
+  name: String!
+  type: String!
+}
+
+"""Information about an organizations number of connections with each status"""
+type OrganizationConnectedOrganizationsCount {
+  cancelled: Float!
+  rejected: Float!
+  approved: Float!
+  pendingApproval: Float!
+}
+
+enum OrganizationConnectionStatus {
+  PENDING_APPROVAL
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+"""Information about an organizations member"""
+type OrganizationOfficialType {
+  id: ID!
+  role: String!
+  email: String
+  phone: String
+  user: User!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+"""Information about an organizations number of members with each status"""
+type OrganizationMemberCount {
+  pendingReview: Float!
+  pendingPayment: Float!
+  active: Float!
+  expired: Float!
+}
+
+enum OrderMembersByType {
+  NAME
+  REPRESENTING
+  MEMBERSHIP
+  JOINED
+  STATUS
+}
+
+"""Member contact information for the administrators"""
+type OrganizationContactList {
+  membershipTypeId: ID!
+  userId: ID!
+  profileImageUrl: String
+  firstName: String!
+  lastName: String!
+  pdgaNumber: Float
+  pdgaRating: Float
+  phone: String
+  email: String!
+}
+
+"""Information about an organizations relation to a specific course"""
+type OrganizationCourseRelation {
+  id: ID!
+  course: Course!
+  type: OrganizationCourseRelationType!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+"""Information about Course"""
+type Course {
+  id: ID!
+  name: String!
+  address: String
+  phone: String
+  website: String
+  description: String
+  access: CourseAccessType
+  paymentInformation: String
+  type: CourseType
+  geolocation: Geolocation
+  facilities: [CourseFacility]
+  isPublished: Boolean
+  publicStats: Boolean
+  disableReviews: Boolean
+  layouts(onlyPublished: Boolean): [Layout!]!
+  courseAdmins: [CourseAdministrator!]!
+  ratings(start: DateTime, end: DateTime): CourseLayoutRatings!
+  casualUsageByWeekday(startDate: DateTime, endDate: DateTime): CourseWeekdayUsage!
+  casualUsageByMonth(startDate: DateTime, endDate: DateTime): CourseMonthUsage!
+  eventsByMonth(startDate: DateTime, endDate: DateTime): CourseMonthEvents!
+  events: [Event!]!
+  courseImages: [CourseImage]!
+  coverImage: CourseImage
+}
+
+enum CourseAccessType {
+  PUBLIC
+  PRIVATE
+  RESERVE
+}
+
+enum CourseType {
+  PUBLIC
+  CUSTOM
 }
 
 type Geolocation {
@@ -2215,97 +1712,29 @@ type Geolocation {
   lng: Float!
 }
 
-"""
-Information about Pool
-"""
-type Pool {
+"""Information about Course"""
+type CourseFacility {
   id: ID!
-  date: DateTime!
-  status: PoolStatus!
-  position: Float!
-  name: String
-  startMethod: PoolStartMethod!
-  playFormat: PoolPlayFormat
-  areGroupsPublic: Boolean!
-  layoutVersion: LayoutVersion!
-  round: Round!
-  """
-  Is false if status is PREPARE, ONGOING or COMPLETED
-  """
-  isDeletable: Boolean!
-  """
-  Groups are ordered by position ascending. If an ID is provided only the group containing that user / team is returned.
-  """
-  groups(userId: ID): [Group!]!
-  """
-  Caching result for 90 seconds
-  """
-  holeStats(divisionId: ID): [HoleStats!]
-  """
-  Caching result for 90 seconds
-  """
-  stats(divisionId: ID): Stats
-  """
-  If provided a userid returns a summary of the users stats for the pool. 
-          Only applicable to singles events.
-        
-  """
-  userStats(userId: ID!): Stats
-  """
-  Caching result for 60 seconds. Fixed pagination to 144 players. Can only be fetched if the pool is in status OPEN or PAUSE.
-  """
-  livescore(divisionId: ID, page: Int): PoolLivescoreDivisionCombined
-  """
-
-        Caching result for 0 seconds. Fixed pagination to 144 players. Can only be fetched while the pool is in status COMPLETED.
-      
-  """
-  leaderboard(divisionId: ID, page: Int): PoolLeaderboardDivisionCombined
+  courseId: ID!
+  name: String!
+  type: CourseFacilityEnum!
+  geolocation: Geolocation
 }
 
-enum PoolStatus {
-  CLOSED
-  PREPARE
-  OPEN
-  PAUSE
-  COMPLETED
+enum CourseFacilityEnum {
+  COURSE_SHOP
+  GROCERY_STORE
+  CAFE
+  GAS_STATION
+  WATER
+  PARKING
+  RESTAURANT
+  INFORMATION
+  RESTROOMS
+  OTHER
 }
 
-enum PoolStartMethod {
-  SHOTGUN
-  TEETIME
-}
-
-enum PoolPlayFormat {
-  BEST_SCORE
-  BEST_SHOT
-  MODIFIED_BEST_SHOT
-  GREENSOME
-  COMBINED_SCORE
-  TOUGH_SHOT
-  WORST_SHOT
-}
-
-type LayoutVersion {
-  id: ID!
-  version: Float!
-  holes: [Hole!]!
-  """
-  This is `false` when there are groups created with this layout. When 'false' its not possible to add or remove holes but its still possible to update pars
-  """
-  canAddOrRemoveHoles: Boolean!
-  """
-  This is `true` when there are hole-results created with this layout.
-  """
-  hasResults: Boolean!
-  isDeletable: Boolean!
-  createdAt: DateTime!
-  layout: Layout!
-}
-
-"""
-Information about Layout
-"""
+"""Information about Layout"""
 type Layout {
   id: ID!
   published: Boolean!
@@ -2325,60 +1754,17 @@ type Layout {
   upkeep: LayoutUpkeepType
   canBeDeleted: Boolean!
   course: Course
-  reviewsCount(
-    """
-    Return reviews made after X.
-    """
-    start: DateTime
-    """
-    Return reviews made before Y.
-    """
-    end: DateTime
-  ): Float!
+  reviewsCount(start: DateTime, end: DateTime): Float!
   usersLatestReview: CourseLayoutReview
-  reviews(
-    """
-    Return reviews made after X.
-    """
-    start: DateTime
-    """
-    Return reviews made before Y.
-    """
-    end: DateTime
-    """
-    Return the first x. Default is 20. Max is 50
-    """
-    first: Float
-    """
-    Skip x. Default is 0.
-    """
-    skip: Float
-  ): [CourseLayoutReview!]!
-  ratings(
-    """
-    Return reviews made after X.
-    """
-    start: DateTime
-    """
-    Return reviews made before Y.
-    """
-    end: DateTime
-    """
-    Return the first x. Default is 20. Max is 50
-    """
-    first: Float
-    """
-    Skip x. Default is 0.
-    """
-    skip: Float
-  ): CourseLayoutRatings!
+  casualLeaderboard(layoutVersionId: ID, start: DateTime, end: DateTime, first: Float, skip: Float): LayoutCasualStats
+  competitionLeaderboard(layoutVersionId: ID, start: DateTime, end: DateTime, first: Float, skip: Float): LayoutEventStats
+  casualUsageByWeekday(startDate: DateTime, endDate: DateTime): CourseWeekdayUsage!
+  casualUsageByMonth(startDate: DateTime, endDate: DateTime): CourseMonthUsage!
+  eventsByMonth(startDate: DateTime, endDate: DateTime): CourseMonthEvents!
+  reviews(start: DateTime, end: DateTime, first: Float, skip: Float): [CourseLayoutReview!]!
+  ratings(start: DateTime, end: DateTime): CourseLayoutRatings!
   versions: [LayoutVersion]!
   latestVersion: LayoutVersion!
-}
-
-enum CourseType {
-  PUBLIC
-  CUSTOM
 }
 
 enum LayoutColorType {
@@ -2405,125 +1791,7 @@ enum LayoutUpkeepType {
   GREAT
 }
 
-"""
-Information about Course
-"""
-type Course {
-  id: ID!
-  name: String!
-  address: String
-  phone: String
-  website: String
-  description: String
-  access: CourseAccessType
-  paymentInformation: String
-  type: CourseType
-  geolocation: Geolocation
-  facilities: [CourseFacility]
-  isPublished: Boolean
-  publicStats: Boolean
-  layouts: [Layout!]!
-  courseAdmins: [CourseAdministrator!]!
-  casualUsageByWeekday(startDate: DateTime, endDate: DateTime): CourseWeekdayUsage!
-  casualUsageByMonth(startDate: DateTime, endDate: DateTime): CourseMonthUsage!
-  eventsByMonth(startDate: DateTime, endDate: DateTime): CourseMonthEvents!
-}
-
-enum CourseAccessType {
-  PUBLIC
-  PRIVATE
-  RESERVE
-}
-
-"""
-Information about Course
-"""
-type CourseFacility {
-  id: ID!
-  courseId: ID!
-  name: String!
-  type: CourseFacilityEnum!
-  geolocation: Geolocation
-}
-
-enum CourseFacilityEnum {
-  COURSE_SHOP
-  GROCERY_STORE
-  CAFE
-  GAS_STATION
-  WATER
-  PARKING
-  RESTAURANT
-  INFORMATION
-  RESTROOMS
-  OTHER
-}
-
-"""
-Information about a Course administrator
-"""
-type CourseAdministrator {
-  userId: ID!
-  courseId: ID!
-  course: Course!
-  role: CourseAdministratorRole!
-  user: User!
-}
-
-enum CourseAdministratorRole {
-  OWNER
-  ADMIN
-}
-
-"""
-Information about casual rounds per weekday
-"""
-type CourseWeekdayUsage {
-  totalUsers: Float!
-  monday: Float!
-  tuesday: Float!
-  wednesday: Float!
-  thursday: Float!
-  friday: Float!
-  saturday: Float!
-  sunday: Float!
-}
-
-"""
-Information about casual rounds per weekday
-"""
-type CourseMonthUsage {
-  totalUsers: Float!
-  totalUniqueUsers: Float!
-  totalScorecards: Float!
-  january: Float!
-  february: Float!
-  march: Float!
-  april: Float!
-  may: Float!
-  june: Float!
-  july: Float!
-  august: Float!
-  september: Float!
-  october: Float!
-  november: Float!
-  december: Float!
-}
-
-"""
-Information about events on the course by month
-"""
-type CourseMonthEvents {
-  totalPlayers: Float!
-  uniquePlayers: Float!
-  totalEvents: Float!
-  totalRounds: Float!
-  sanctionedEvents: Float!
-}
-
-"""
-Reviews for a specific layout
-"""
+"""Reviews for a specific layout"""
 type CourseLayoutReview {
   id: ID!
   layoutId: ID!
@@ -2539,34 +1807,425 @@ type CourseLayoutReview {
   updatedAt: DateTime!
 }
 
-"""
-Ratings for various aspects of the layout
-"""
-type CourseLayoutRatings {
-  layout: Float
-  teepads: Float
-  baskets: Float
-  upkeep: Float
-  navigation: Float
+type LayoutCasualStats {
+  numberOfRoundsPlayed: Float!
+  averageRound: Float!
+  averagePar: Float!
+  rounds: [LayoutCasualRound]
 }
 
-"""
-Information about Round
-"""
+type LayoutCasualRound {
+  userId: ID!
+  user: User!
+  scorecardId: ID!
+  scorecard: Scorecard!
+  date: DateTime!
+  position: Float!
+  layoutPar: Float!
+  totalThrows: Float!
+  totalPar: Float!
+  rating: Float
+}
+
+type Scorecard {
+  id: ID!
+  date: DateTime!
+  status: ScorecardStatus!
+  name: String
+  playFormat: ScorecardPlayFormat!
+  currentResultsCount: Float!
+  maxResultsCount: Float!
+  layoutVersion: LayoutVersion!
+  startHole: Hole!
+  players: [ScorecardPlayer!]!
+  weather: Weather
+  createdAt: DateTime!
+  createdById: ID!
+}
+
+enum ScorecardStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETED
+}
+
+enum ScorecardPlayFormat {
+  STANDARD
+  PRACTICE
+  MULLIGAN
+  BEST_SHOT
+  MODIFIED_BEST_SHOT
+  GREENSOME
+  TOUGH_SHOT
+  WORST_SHOT
+  TWO_DISC
+  THREE_DISC
+  X_DISC
+  MATCH_PLAY
+}
+
+type LayoutVersion {
+  id: ID!
+  version: Float!
+  holes: [Hole!]!
+  canAddOrRemoveHoles: Boolean!
+  hasResults: Boolean!
+  isDeletable: Boolean!
+  difficultyDistance: Float
+  difficultyTerrain: Float
+  difficultyPrecision: Float
+  difficultyObstacles: Float
+  difficultyRating: Float
+  createdAt: DateTime!
+  layout: Layout!
+}
+
+"""Information about Hole"""
+type Hole {
+  id: ID!
+  number: Float!
+  par: Float
+  name: String
+  length: Float
+  measureInMeters: Boolean
+  note: String
+  userNote: [HoleUserNote]
+  hasOb: Boolean!
+  hasMandatory: Boolean!
+  hasHazard: Boolean!
+  hasLocalRule: Boolean!
+  geolocation: [Geolocation]
+}
+
+"""Users private note about a hole"""
+type HoleUserNote {
+  id: ID!
+  holeId: ID!
+  note: String!
+  createdAt: DateTime!
+}
+
+type ScorecardPlayer {
+  id: ID!
+  position: Float!
+  scoringMode: ScoringModeType!
+  user: TeamAndUserAndAnonymousUser!
+  results: [ScorecardResult!]!
+  throws: [Throw!]!
+  throwStats: ExtendedStatsSummaryType!
+  tjingRating: Float
+}
+
+enum ScoringModeType {
+  STANDARD
+  EXTENDED
+}
+
+union TeamAndUserAndAnonymousUser = User | AnonymousUser | Team
+
+type AnonymousUser {
+  id: ID!
+  name: String!
+  isAnonymous: Boolean!
+}
+
+type ScorecardResult {
+  id: ID!
+  score: Float!
+  isTapIn: Boolean!
+  isCircleHit: Boolean!
+  isOutsidePutt: Boolean!
+  isInsidePutt: Boolean!
+  isOutOfBounds: Boolean!
+  penaltyStrokes: Float!
+  hole: Hole!
+  throws: [Throw]!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+type Throw {
+  id: ID!
+  hole: Hole!
+  userId: ID
+  teamId: ID
+  disc: Disc
+  throwNumber: Float!
+  inTheBasket: Boolean!
+  distanceToBasket: Float!
+  lie: Lie!
+  lieGeolocation: Geolocation
+  lieDifficulty: LieDifficulty
+  throwType: ThrowType
+  restriction: ThrowRestriction
+  shotShape: ShotShape
+  nearMiss: NearMiss
+  penalties: Float
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+"""Information about a specific disc"""
+type Disc {
+  id: ID!
+  owner: User!
+  ownerHistory: [User!]!
+  measuredThrows: [User!]!
+  brand: String!
+  mold: String!
+  plastic: String!
+  color: String!
+  speed: Float!
+  glide: Float!
+  turn: Float!
+  fade: Float!
+  userEstimatedSpeed: Float
+  userEstimatedGlide: Float
+  userEstimatedTurn: Float
+  userEstimatedFade: Float
+  condition: Float
+  description: String
+  storagePosition: Float
+  storageId: ID
+  imageUrl: String
+  updatedAt: DateTime!
+  createdAt: DateTime!
+}
+
+enum Lie {
+  TEE
+  FAIRWAY
+  OFF_FAIRWAY
+  C1
+  C2
+  TAP_IN
+  DROPZONE
+  RE_THROW
+  RE_TEE
+  OTHER
+}
+
+enum LieDifficulty {
+  CLEAR
+  OBSTRUCTED
+  BLOCKED
+}
+
+enum ThrowType {
+  BACKHAND
+  FOREHAND
+  TOMAHAWK
+  THUMBER
+  ROLLER
+  PUTT
+}
+
+enum ThrowRestriction {
+  MANDO_MISS
+  OUT_OF_BOUNDS
+  HAZARD
+  LOST_DISC
+}
+
+enum ShotShape {
+  HYZER
+  FLAT
+  ANHYZER
+}
+
+enum NearMiss {
+  BAND
+  RIM
+  WEAK_SIDE_CHAINS
+  STRONG_SIDE_CHAINS
+}
+
+"""Summary view of extended stats and throw by throw."""
+type ExtendedStatsSummaryType {
+  throwsCount: Float!
+  fairwayHits: ExtendedStatsDetail!
+  totalPossibleFairwayHits: Float!
+  scrambles: ExtendedStatsDetail!
+  totalPossibleScrambles: Float!
+  averageDistanceFromTee: Float!
+  longestDistanceFromTee: Float!
+  totalDistanceFromTee: Float!
+  bullsEyeHits: ExtendedStatsDetail!
+  bullsEyeHitConversions: ExtendedStatsDetail!
+  c1xHits: ExtendedStatsDetail!
+  c1xHitConversions: ExtendedStatsDetail!
+  c1xPutts: Float!
+  c1xPuttConversions: Float!
+  c2Hits: ExtendedStatsDetail!
+  c2HitConversions: ExtendedStatsDetail!
+  c2Putts: ExtendedStatsDetail!
+  shortestPuttDistance: Float!
+  longestPuttDistance: Float!
+  averagePuttDistance: Float!
+  totalPuttDistance: Float!
+  penalties: Float!
+  lostDiscs: Float!
+  reThrows: Float!
+  mandatoryMisses: Float!
+  hazards: Float!
+  outOfBounds: Float!
+  dropzones: Float!
+  lieDifficulties: ExtendedStatsLieDifficulty!
+  shotShapes: ExtendedStatsShotShape!
+  throwTypes: ExtendedStatsThrowType!
+  nearMisses: ExtendedStatsNearMiss!
+  madePutts: Float!
+  throwIns: Float!
+  longestThrowInDistance: Float!
+  inTheBasketFromOutsideC2: [Throw]!
+}
+
+type ExtendedStatsDetail {
+  count: Float!
+  part: Float!
+}
+
+type ExtendedStatsLieDifficulty {
+  clear: ExtendedStatsDetail!
+  obstructed: ExtendedStatsDetail!
+  blocked: ExtendedStatsDetail!
+}
+
+type ExtendedStatsShotShape {
+  hyzer: ExtendedStatsDetail!
+  flat: ExtendedStatsDetail!
+  anhyzer: ExtendedStatsDetail!
+}
+
+type ExtendedStatsThrowType {
+  backhand: ExtendedStatsDetail!
+  forehand: ExtendedStatsDetail!
+  tomahawk: ExtendedStatsDetail!
+  thumber: ExtendedStatsDetail!
+  roller: ExtendedStatsDetail!
+}
+
+type ExtendedStatsNearMiss {
+  strongSide: ExtendedStatsDetail!
+  weakSide: ExtendedStatsDetail!
+  rim: ExtendedStatsDetail!
+  band: ExtendedStatsDetail!
+}
+
+type Weather {
+  id: ID!
+  windDirection: WindDirection!
+  condition: String!
+  windKph: String!
+  gustKph: String!
+  precipitationMm: String!
+  temperatureC: String!
+  feelsLikeC: String!
+  createdAt: String!
+  updatedAt: String!
+}
+
+enum WindDirection {
+  N
+  NNE
+  NE
+  ENE
+  E
+  ESE
+  SE
+  SSE
+  S
+  SSW
+  SW
+  WSW
+  W
+  WNW
+  NW
+  NNW
+}
+
+type LayoutEventStats {
+  numberOfRoundsPlayed: Float!
+  averageRound: Float!
+  averagePar: Float!
+  rounds: [LayoutEventRoundType]
+}
+
+type LayoutEventRoundType {
+  userId: ID!
+  user: User!
+  groupId: ID!
+  poolId: ID!
+  pool: Pool!
+  roundId: ID!
+  round: Round!
+  eventId: ID!
+  event: Event!
+  date: DateTime!
+  position: Float!
+  layoutPar: Float!
+  totalThrows: Float!
+  totalPar: Float!
+  rating: Float
+}
+
+"""Information about Pool"""
+type Pool {
+  id: ID!
+  date: DateTime!
+  endDate: DateTime
+  status: PoolStatus!
+  position: Float!
+  name: String
+  startMethod: PoolStartMethod!
+  playFormat: PoolPlayFormat
+  areGroupsPublic: Boolean!
+  layoutVersion: LayoutVersion
+  round: Round!
+  isDeletable: Boolean!
+  hasResults: Boolean!
+  groups(userId: ID): [Group!]!
+  holeStats(divisionId: ID): [HoleStats!]
+  stats(divisionId: ID): Stats
+  userStats(userId: ID!): Stats
+  livescore(divisionId: ID, page: Int, watchedUserIds: [ID], watchedTeamIds: [ID]): PoolLivescoreDivisionCombined
+  leaderboard(divisionId: ID, page: Int): PoolLeaderboardDivisionCombined
+  weather: Weather
+  statsLeaderboards(divisionId: ID, page: Float, direction: SortOrderType, orderBy: TourStatsOrderByInput): StatsLeaderboard!
+}
+
+enum PoolStatus {
+  CLOSED
+  PREPARE
+  OPEN
+  PAUSE
+  COMPLETED
+}
+
+enum PoolStartMethod {
+  SHOTGUN
+  TEETIME
+  FLEX
+}
+
+enum PoolPlayFormat {
+  BEST_SCORE
+  BEST_SHOT
+  MODIFIED_BEST_SHOT
+  GREENSOME
+  MODIFIED_GREENSOME
+  COMBINED_SCORE
+  TOUGH_SHOT
+  WORST_SHOT
+  ALTERNATE_THROW
+}
+
+"""Information about Round"""
 type Round {
   id: ID!
-  """
-  CLOSED=All pools are closed, COMPLETED=all pools are completed, ONGOING=If any pool are prepare or open
-  """
   status: RoundStatus!
-  """
-  Is false if status is ONGOING or COMPLETED
-  """
   isDeletable: Boolean!
   event: Event!
-  """
-  Pools are ordered by position ascending
-  """
   pools: [Pool!]!
 }
 
@@ -2574,6 +2233,81 @@ enum RoundStatus {
   CLOSED
   ONGOING
   COMPLETED
+}
+
+type Group {
+  id: ID!
+  status: GroupStatus!
+  position: Float!
+  startsAt: DateTime
+  startHole: Hole
+  pool: Pool!
+  designatedSinglesScorer: User
+  designatedTeamsScorer: Team
+  playerConnections: [GroupPlayerConnection!]!
+  playerConnectionsV2: [GroupPlayerConnectionTypeCombined!]!
+  results(isVerified: Boolean): [Result!]!
+  hasResults: Boolean!
+  resultsV2(isVerified: Boolean): [Result!]
+  marshall: User
+  verifierDisabled: Boolean!
+}
+
+enum GroupStatus {
+  CLOSED
+  OPEN
+  DONE
+}
+
+"""Information about a connection between a Group and a Player"""
+type GroupPlayerConnection {
+  id: ID!
+  position: Float!
+  playerId: ID!
+  groupId: ID!
+  roundTotal: Float
+  tjingRating: Float
+  player: Player!
+  hasSignedResult: Boolean!
+  group: Group!
+}
+
+union GroupPlayerConnectionTypeCombined = GroupPlayerConnection | GroupTeamPlayerConnection
+
+"""Information about a connection between a Group and a Team Player"""
+type GroupTeamPlayerConnection {
+  id: ID!
+  position: Float!
+  teamPlayerId: ID!
+  groupId: ID!
+  teamPlayer: TeamPlayer!
+  roundTotal: Float
+  tjingRating: Float
+  hasSignedResult: Boolean!
+  group: Group!
+}
+
+type Result {
+  id: ID!
+  score: Float!
+  isCircleHit: Boolean!
+  isOutsidePutt: Boolean!
+  isInsidePutt: Boolean!
+  isOutOfBounds: Boolean!
+  penaltyStrokes: Float!
+  createdByUserId: ID!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  hash: String!
+  createdByUser: User!
+  updatedByUserId: ID!
+  updatedByUser: User!
+  isVerified: Boolean!
+  verifiedByUserId: ID
+  verifiedByUser: User
+  playerConnection: GroupPlayerConnection!
+  playerConnectionV2: GroupPlayerConnectionTypeCombined!
+  hole: Hole!
 }
 
 type HoleStats {
@@ -2587,7 +2321,8 @@ type HoleStats {
   circleHitConversions: StatsDetail!
   insidePutts: StatsDetail!
   outsidePutts: StatsDetail!
-  outOfBounds: StatsDetail!
+  outOfBounds: StatsDetail
+  penaltyStrokes: StatsDetail!
   eagles: StatsDetail!
   birdies: StatsDetail!
   pars: StatsDetail!
@@ -2601,16 +2336,15 @@ type StatsDetail {
   part: Float!
 }
 
-"""
-Stats
-"""
+"""Stats"""
 type Stats {
   aces: StatsDetail!
   circleHits: StatsDetail!
   circleHitConversions: StatsDetail!
   insidePutts: StatsDetail!
   outsidePutts: StatsDetail!
-  outOfBounds: StatsDetail!
+  outOfBounds: StatsDetail
+  penaltyStrokes: StatsDetail!
   eagles: StatsDetail!
   birdies: StatsDetail!
   pars: StatsDetail!
@@ -2632,6 +2366,7 @@ type PoolLivescoreDivision {
   type: String!
   players: [PoolLivescorePlayer!]!
   totalPlayers: Float!
+  watchedUsers: [PoolLivescorePlayer!]!
 }
 
 type PoolLivescorePlayer {
@@ -2642,6 +2377,7 @@ type PoolLivescorePlayer {
   firstName: String!
   lastName: String!
   profileImageUrl: String
+  country: Country
   pdgaNumber: Float
   startsAt: DateTime
   isDnf: Boolean!
@@ -2659,7 +2395,8 @@ type PoolLivescoreResult {
   isCircleHit: Boolean!
   isOutsidePutt: Boolean!
   isInsidePutt: Boolean!
-  isOutOfBounds: Boolean!
+  isOutOfBounds: Boolean
+  penaltyStrokes: Int
 }
 
 type PoolLivescoreDivisionTeam {
@@ -2668,6 +2405,7 @@ type PoolLivescoreDivisionTeam {
   type: String!
   players: [PoolLivescoreTeamPlayer!]!
   totalPlayers: Float!
+  watchedTeams: [PoolLivescoreTeamPlayer!]!
 }
 
 type PoolLivescoreTeamPlayer {
@@ -2707,6 +2445,8 @@ type PoolLeaderboardPlayer {
   par: Float
   points: Float
   results: [SimpleResult!]!
+  penalties: [EventPlayerPenalty]!
+  tjingRating: Float
 }
 
 type SimpleResult {
@@ -2716,6 +2456,7 @@ type SimpleResult {
   isOutsidePutt: Boolean!
   isInsidePutt: Boolean!
   isOutOfBounds: Boolean!
+  penaltyStrokes: Float!
   hole: Hole!
 }
 
@@ -2736,551 +2477,87 @@ type PoolLeaderboardTeamPlayer {
   par: Float
   points: Float
   results: [SimpleResult!]!
+  penalties: [EventPlayerPenalty]!
+  rating: Float
 }
 
-union GroupPlayerConnectionTypeCombined = GroupPlayerConnection | GroupTeamPlayerConnection
-
-"""
-Information about a connection between a Group and a Team Player
-"""
-type GroupTeamPlayerConnection {
-  id: ID!
-  """
-  The Team Player's position(order) on the scorecard
-  """
-  position: Float!
-  teamPlayerId: ID!
-  groupId: ID!
-  teamPlayer: TeamPlayer!
-  roundTotal: Float
-  hasSignedResult: Boolean!
-  group: Group!
+"""Information about casual rounds per weekday"""
+type CourseWeekdayUsage {
+  totalUsers: Float!
+  monday: Float!
+  tuesday: Float!
+  wednesday: Float!
+  thursday: Float!
+  friday: Float!
+  saturday: Float!
+  sunday: Float!
 }
 
-"""
-Information about a Team Player
-"""
-type TeamPlayer {
-  id: ID!
-  teamId: ID!
-  divisionId: ID!
-  eventId: ID!
-  isWildcard: Boolean!
-  onSite: Boolean!
-  hasPaid: Boolean!
-  dnfDns: DNFDNS!
-  registration: TeamRegistration!
-  team: Team!
-  division: Division!
-  event: Event!
-  eventTotal: Float
-  tiebreak: Tiebreak
+"""Information about casual rounds per weekday"""
+type CourseMonthUsage {
+  totalUsers: Float!
+  totalUniqueUsers: Float!
+  totalScorecards: Float!
+  january: Float!
+  february: Float!
+  march: Float!
+  april: Float!
+  may: Float!
+  june: Float!
+  july: Float!
+  august: Float!
+  september: Float!
+  october: Float!
+  november: Float!
+  december: Float!
 }
 
-"""
-Did not finish (DNF) - Did not start (DNS)
-"""
-type DNFDNS {
-  dnfDns: String
-  dnfDnsErType: String
-  reportedById: ID
+"""Information about events on the course by month"""
+type CourseMonthEvents {
+  totalPlayers: Float!
+  uniquePlayers: Float!
+  totalEvents: Float!
+  totalRounds: Float!
+  sanctionedEvents: Float!
 }
 
-"""
-Team registration to Event & Division
-"""
-type TeamRegistration {
-  id: ID!
-  date: DateTime!
-  status: RegistrationStatus!
-  createdAt: DateTime!
-  statusUpdatedAt: DateTime!
-  division: Division!
-  team: Team!
-  hasPaid: Boolean!
-  """
-  Team Player in the event. Possible null if the registration is not accepted
-          or if the player has been removed
-  """
-  player: TeamPlayer
-  event: Event!
-  logs: [RegistrationLog!]
-  message: String
-  responses: [RegistrationQuestionResponse]
+"""Ratings for various aspects of the layout"""
+type CourseLayoutRatings {
+  layout: Float
+  teepads: Float
+  baskets: Float
+  upkeep: Float
+  navigation: Float
 }
 
-"""
-Response give by user to a specific question
-"""
-type RegistrationQuestionResponse {
-  id: ID!
-  eventRegistrationId: ID
-  question: String!
-  response: String
-  options: [RegistrationQuestionOption]!
-  createdAt: DateTime!
-  updatedAt: DateTime!
-}
-
-"""
-Option attached to a registration question
-"""
-type RegistrationQuestionOption {
-  id: ID!
-  questionId: ID!
-  value: String!
-  position: Float!
-  createdAt: DateTime!
-  updatedAt: DateTime!
-}
-
-type TeamTourPass {
-  id: ID!
-  team: Team!
-  tour: Tour!
-  division: Division!
-  payment: Payment!
-  order: Order
-  createdAt: DateTime
-}
-
-type StripeConnectedAccount {
-  id: ID!
-  name: String
-  createdAt: DateTime!
-  owner: User!
-  taxRates: [TaxRate]!
-}
-
-enum TourStatus {
-  CLOSED
-  ONGOING
-  COMPLETED
-}
-
-"""
-Information about an administrator
-"""
-type Administrator {
+"""Information about a Course administrator"""
+type CourseAdministrator {
   userId: ID!
-  tourId: ID!
-  role: AdministratorRole!
-  user: User!
-  tour: Tour!
-}
-
-enum AdministratorRole {
-  OWNER
-  ADMIN
-}
-
-type StatsLeaderboard {
-  bestRound: StatsLeaderboardTop
-  mostAces: StatsLeaderboardTop
-  mostEagles: StatsLeaderboardTop
-  mostBirdies: StatsLeaderboardTop
-  mostPars: StatsLeaderboardTop
-  mostCircleHits: StatsLeaderboardTop
-  mostCircleHitConversions: StatsLeaderboardTop
-  mostInsidePutts: StatsLeaderboardTop
-  mostOutsidePutts: StatsLeaderboardTop
-  leaderboardCount: Float!
-  leaderboard: [StatsLeaderboardPlayer]
-}
-
-type StatsLeaderboardTop {
-  user: User
-  team: Team
-  par: Float
-  part: Float
-  count: Float
-}
-
-type StatsLeaderboardPlayer {
-  position: Float!
-  user: User
-  team: Team
-  division: Division!
-  bestRound: BestTourRound
-  birdies: TourStat
-  pars: TourStat
-  aces: TourStat
-  eagles: TourStat
-  bogeys: TourStat
-  doubleBogeys: TourStat
-  trippleBogeysAbove: TourStat
-  circleHits: TourStat
-  circleHitConversions: TourStat
-  insidePutts: TourStat
-  outsidePutts: TourStat
-  outOfBounds: TourStat
-}
-
-type BestTourRound {
-  roundId: ID!
-  par: Float!
-}
-
-type TourStat {
-  count: Float!
-  part: Float!
-}
-
-enum SortOrderType {
-  ASC
-  DESC
-}
-
-enum TourStatsOrderByInput {
-  BEST_ROUND
-  ACE
-  EAGLE
-  BIRDIE
-  PAR
-  BOGEY
-  DOUBLE_BOGEY
-  TRIPLE_BOGEY_ABOVE
-  CIRCLE_HIT
-  CIRCLE_HIT_CONVERSION
-  INSIDE_PUTT
-  OUTSIDE_PUTT
-  OUT_OF_BOUNDS
-}
-
-type TourLeaderboardDivision {
-  id: ID!
-  name: String!
-  type: String!
-  leaderboardCount: Float!
-  players: [TourLeaderboardDivisionTypeCombined!]!
-}
-
-union TourLeaderboardDivisionTypeCombined = TourLeaderboardPlayer | TourLeaderboardTeamPlayer
-
-type TourLeaderboardPlayer {
-  place: Float!
-  userId: ID!
-  firstName: String!
-  lastName: String!
-  profileImageUrl: String
-  pdgaNumber: Float
-  pdgaRating: Float
-  score: Float
-  averageScore: Float
-  par: Float
-  points: Float
-  eventScores: [TourLeaderboardEvent]!
-}
-
-type TourLeaderboardEvent {
-  eventId: ID!
-  place: Float!
-  score: Float!
-  par: Float!
-  points: Float!
-  noResults: Boolean
-}
-
-type TourLeaderboardTeamPlayer {
-  place: Float!
-  team: Team!
-  score: Float
-  averageScore: Float
-  par: Float
-  points: Float
-  eventScores: [TourLeaderboardEvent]!
-}
-
-enum EventsScoringType {
-  AVERAGE_THROWS
-  PAR
-  POINTS
-  CUSTOM_POINTS
-  THROWS
-}
-
-"""
-Message posted by an Admin for the event audience
-"""
-type EventCustomPointsMap {
-  id: ID!
-  tourId: ID!
-  eventId: ID
-  positions: [EventCustomPoint]!
-  defaultPoint: Float!
-  tiePoints: TiePoint!
-  createdAt: Float!
-  updatedAt: Float!
-}
-
-"""
-
-"""
-type EventCustomPoint {
-  place: Float!
-  points: Float!
-}
-
-enum TiePoint {
-  HIGHEST
-  LOWEST
-  AVERAGE
-}
-
-"""
-Information about an organization
-"""
-type Organization {
-  id: ID!
-  administrators: [OrganizationAdministrator]!
-  usersMembership: OrganizationMember
-  type: OrganizationType!
-  acceptMembers: AcceptMembers!
-  tours: [Tour]!
-  connectedOrganizationsCountByStatus: OrganizationConnectedOrganizationsCount!
-  """
-  Only applicable for ASSOCIATION typed organizations
-  """
-  pendingConnectedOrganizations: [Organization]!
-  """
-  Only applicable for ASSOCIATION typed organizations
-  """
-  connectedOrganizations(
-    """
-    Return the first x. Default is 10. Max is 50
-    """
-    first: Float
-    """
-    Skip x. Default is 0.
-    """
-    skip: Float
-    """
-    ASC or DESC, DESC is default
-    """
-    order: SortOrderType
-  ): [Organization]!
-  """
-  Not applicable for ASSOCIATION type organizations
-  """
-  connectedOrganization: Organization
-  organizationConnectionStatus: OrganizationConnectionStatus
-  organizationConnectionUpdatedAt: DateTime!
-  publicMembersList: Boolean!
-  hidden: Boolean!
-  name: String!
-  slug: String!
-  logoUrl: String
-  coverImageUrl: String
-  contactName: String
-  contactMail: String
-  contactPhone: String
-  contactWebsite: String
-  officials: [OrganizationOfficialType]!
-  shopItems: [ShopItem]!
-  pendingMembers: [OrganizationMember]!
-  memberCountByStatus: OrganizationMemberCount!
-  members(
-    """
-    Return the first x. Default is 10. Max is 50
-    """
-    first: Float
-    """
-    Skip x. Default is 0.
-    """
-    skip: Float
-    """
-    ASC or DESC, DESC is default
-    """
-    order: SortOrderType
-    """
-    Searches in firstName, lastName, email
-    """
-    search: String
-  ): [OrganizationMember]!
-  """
-  Counting members with either of statuses ACTIVE, EXPIRED, PENDING_PAYMENT
-  """
-  membersCount: Float!
-  """
-  Only available for the Admin
-  """
-  contactList: [OrganizationContactList!]!
-  courseRelations: [OrganizationCourseRelation]!
-  membershipTypes: [OrganizationMemberType]!
-  sections: [OrganizationContent]!
-  news(
-    """
-    Return the first x. Default is 10. Max is 50
-    """
-    first: Float
-    """
-    Skip x. Default is 0.
-    """
-    skip: Float
-    """
-    ASC or DESC, DESC is default
-    """
-    order: SortOrderType
-  ): [OrganizationContent]!
-  connectedAccount: StripeConnectedAccount
-  """
-  Organizations currency
-  """
-  currency: String!
-  city: City
-  orders(
-    """
-    Return the first x orders. Default is 10
-    """
-    first: Int = 10
-    """
-    Skip x. Default is 0.
-    """
-    skip: Int = 0
-  ): [MembershipOrder]!
-  createdAt: DateTime!
-  updatedAt: DateTime!
-}
-
-"""
-Information about an Organization administrator
-"""
-type OrganizationAdministrator {
-  role: OrganizationAdministrationRole!
-  user: User!
-  organization: Organization!
-}
-
-"""
-Roles for an organization
-"""
-enum OrganizationAdministrationRole {
-  ADMIN
-  OWNER
-}
-
-"""
-Information about an organizations member
-"""
-type OrganizationMember {
-  id: ID!
-  membershipType: OrganizationMemberType!
-  organization: Organization!
-  user: User!
-  status: ID!
-  usersMainClub: Boolean!
-  usersMainClubUpdatedAt: DateTime
-  expiresAt: DateTime!
-  createdAt: DateTime!
-  updatedAt: DateTime!
-}
-
-"""
-Information about an organizations member
-"""
-type OrganizationMemberType {
-  id: ID!
-  name: String!
-  description: String!
-  fee: Float!
-  fullMember: Boolean!
-  archived: Boolean!
-  createdAt: DateTime!
-  updatedAt: DateTime!
-}
-
-enum OrganizationType {
-  CLUB
-  BUSINESS
-  ASSOCIATION
-  TEAM
-}
-
-enum AcceptMembers {
-  DIRECT
-  APPROVAL
-  INVITATION
-  CLOSED
-}
-
-"""
-Information about an organizations number of connections with each status
-"""
-type OrganizationConnectedOrganizationsCount {
-  cancelled: Float!
-  rejected: Float!
-  approved: Float!
-  pendingApproval: Float!
-}
-
-enum OrganizationConnectionStatus {
-  PENDING_APPROVAL
-  APPROVED
-  REJECTED
-  CANCELLED
-}
-
-"""
-Information about an organizations member
-"""
-type OrganizationOfficialType {
-  id: ID!
-  role: String!
-  email: String
-  phone: String
-  user: User!
-  createdAt: DateTime!
-  updatedAt: DateTime!
-}
-
-"""
-Information about an organizations number of members with each status
-"""
-type OrganizationMemberCount {
-  pendingReview: Float!
-  pendingPayment: Float!
-  active: Float!
-  expired: Float!
-}
-
-"""
-Member contact information for the administrators
-"""
-type OrganizationContactList {
-  membershipTypeId: ID!
-  userId: ID!
-  profileImageUrl: String
-  firstName: String!
-  lastName: String!
-  pdgaNumber: Float
-  pdgaRating: Float
-  phone: String
-  email: String!
-}
-
-"""
-Information about an organizations relation to a specific course
-"""
-type OrganizationCourseRelation {
-  id: ID!
+  courseId: ID!
   course: Course!
-  type: OrganizationCourseRelationType!
-  createdAt: DateTime!
-  updatedAt: DateTime!
+  role: CourseAdministratorRole!
+  user: User!
 }
 
-"""
-The relations an organization can have to a course
-"""
+enum CourseAdministratorRole {
+  OWNER
+  ADMIN
+}
+
+type CourseImage {
+  id: ID!
+  imageUrl: String!
+  createdAt: DateTime!
+}
+
+"""The relations an organization can have to a course"""
 enum OrganizationCourseRelationType {
   HOME_COURSE
   EVENT_ORGANIZER
   MAINTAINER
 }
 
-"""
-Information about an organizations content
-"""
+"""Information about an organizations content"""
 type OrganizationContent {
   id: ID!
   organization: Organization!
@@ -3297,25 +2574,19 @@ type OrganizationContent {
   updatedAt: DateTime!
 }
 
-"""
-Audience for an organizations content
-"""
+"""Audience for an organizations content"""
 enum OrganizationContentType {
   SECTION
   NEWS
 }
 
-"""
-Audience for an organizations content
-"""
+"""Audience for an organizations content"""
 enum OrganizationContentAudience {
   MEMBER
   PUBLIC
 }
 
-"""
-Uploaded documents available on this content
-"""
+"""Uploaded documents available on this content"""
 type OrganizationConentDocument {
   id: ID!
   documentType: EventDocumentType!
@@ -3337,9 +2608,7 @@ type City {
   geolocation: Geolocation!
 }
 
-"""
-Information about an order.
-"""
+"""Information about an order."""
 type MembershipOrder {
   id: ID!
   user: User!
@@ -3359,9 +2628,7 @@ enum PackageTierEnum {
   PRO
 }
 
-"""
-Information about transferring subscription ownership
-"""
+"""Information about transferring subscription ownership"""
 type TransferTourOwnershipType {
   id: String!
   transferToken: String!
@@ -3371,9 +2638,7 @@ type TransferTourOwnershipType {
   createdAt: DateTime
 }
 
-"""
-Uploaded documents available on this event
-"""
+"""Uploaded documents available on this event"""
 type EvenDocument {
   id: ID!
   eventId: String!
@@ -3383,6 +2648,48 @@ type EvenDocument {
   tourAvailable: Boolean!
   createdBy: User!
   createdAt: DateTime!
+}
+
+"""Information about available images"""
+type TourImage {
+  id: ID!
+  imageUrl: String!
+}
+
+"""Country restrictions for this event, primarily used in the registration process"""
+type EventCoverImage {
+  id: ID!
+  tourId: ID
+  url: String
+}
+
+"""An image in the event gallery"""
+type EventGalleryImage {
+  id: ID!
+  eventId: ID!
+  imageUrl: String
+  description: String
+  status: GalleryImageStatus!
+  uploadToken: String!
+  uploadedBy: User!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+enum GalleryImageStatus {
+  PENDING
+  PUBLISHED
+}
+
+enum EventCategoryEnum {
+  GAME
+  DISCGOLF
+}
+
+enum ScoringAs {
+  SINGLES
+  DOUBLES
+  RANDOM_DOUBLES
 }
 
 type PdgaEventType {
@@ -3399,12 +2706,10 @@ enum PdgaEventTypeEnum {
 }
 
 """
-
     Only a toggle used by fontend for sorting waitinglist, no API logic impact.
     * Combined creates one big waitingllist in ascending order based on registration.
     * Division sorts ascending order but grouped by division.
-  
-"""
+  """
 type WaitinglistType {
   name: String!
   type: WaitingListTypeEnum!
@@ -3420,6 +2725,8 @@ type EventRegistrationInvitation {
   eventId: ID!
   event: Event!
   status: EventRegistrationInvitationStatus!
+  type: EventRegistrationInvitationTypeType!
+  usageCount: Float!
   acceptedByUser: User
   createdByUser: User!
   createdAt: DateTime!
@@ -3432,9 +2739,12 @@ enum EventRegistrationInvitationStatus {
   CANCELLED
 }
 
-"""
-Contact information to the players in an event for the TD
-"""
+enum EventRegistrationInvitationTypeType {
+  SINGLE_USE
+  MULTI_USE
+}
+
+"""Contact information to the players in an event for the TD"""
 type EventContactList {
   userId: String!
   registrationStatus: RegistrationStatus!
@@ -3450,6 +2760,7 @@ type EventContactList {
   pdgaRating: Float
   phone: String
   email: String!
+  teeOffSongUrl: String
   team: Team
 }
 
@@ -3467,9 +2778,7 @@ type GroupRegistrationReservation {
   event: Event!
 }
 
-"""
-Information about mount  registrations for an event in total and per division.
-"""
+"""Information about mount  registrations for an event in total and per division."""
 type EventRegistrationCount {
   totalAccepted: Float!
   totalWaiting: Float!
@@ -3477,9 +2786,7 @@ type EventRegistrationCount {
   countPerDivision: [PlayerCount]!
 }
 
-"""
-Information about a Player
-"""
+"""Information about a Player"""
 type PlayerCount {
   divisionId: ID!
   totalCount: Float!
@@ -3488,9 +2795,7 @@ type PlayerCount {
   cancelledCount: Float!
 }
 
-"""
-Showing some meta data for the event messages without fetching the messages themselves.
-"""
+"""Showing some meta data for the event messages without fetching the messages themselves."""
 type EventMessageCount {
   accepted: Float!
   pending: Float!
@@ -3499,9 +2804,7 @@ type EventMessageCount {
   readByUser: Float!
 }
 
-"""
-Message posted by an Admin for the event audience
-"""
+"""Message posted by an Admin for the event audience"""
 type EventMessage {
   id: String!
   eventId: String!
@@ -3525,9 +2828,7 @@ type ReadReceipt {
   readAt: String!
 }
 
-"""
-Replies to event messages, can be nested one level. Also using a soft delete to ensure nesting and history can be preserved
-"""
+"""Replies to event messages, can be nested one level. Also using a soft delete to ensure nesting and history can be preserved"""
 type EventMessageReply {
   id: String!
   eventMessageId: String!
@@ -3540,6 +2841,37 @@ type EventMessageReply {
   createdBy: User!
   updatedAt: DateTime!
   updatedBy: User!
+}
+
+union EventTiebreakTypeCombined = Tiebreak | TeamTiebreak
+
+type TeamTiebreak {
+  id: ID!
+  place: Float!
+  eventTeamId: ID!
+  eventTeam: TeamPlayer!
+}
+
+union EventTiesTypeCombined = Tie | TeamTie
+
+type Tie {
+  eventId: ID!
+  divisionId: ID!
+  place: Float!
+  score: Float
+  players: [Player!]!
+  event: Event!
+  division: Division!
+}
+
+type TeamTie {
+  eventId: ID!
+  divisionId: ID!
+  place: Float!
+  score: Float
+  teams: [TeamPlayer!]!
+  event: Event!
+  division: Division!
 }
 
 type RegistrationStage {
@@ -3561,16 +2893,6 @@ enum RegistrationCriteriaType {
   MIN_PDGA_RATING
   MAX_PDGA_RATING
   PDGA_NUMBER
-}
-
-type Tie {
-  eventId: ID!
-  divisionId: ID!
-  place: Float!
-  score: Float
-  players: [Player!]!
-  event: Event!
-  division: Division!
 }
 
 union EventLeaderboardDivisionCombined = EventLeaderboardDivision | EventLeaderboardDivisionTeam
@@ -3598,6 +2920,8 @@ type EventLeaderboardPlayer {
   par: Float
   points: Float
   poolLeaderboards: [EventLeaderboardPool!]!
+  penalties: [EventPlayerPenalty]!
+  boons: [EventPlayerBoon]!
 }
 
 type EventLeaderboardPool {
@@ -3606,6 +2930,7 @@ type EventLeaderboardPool {
   par: Float
   points: Float
   poolId: ID!
+  penalties: [EventPlayerPenalty]!
 }
 
 type EventLeaderboardDivisionTeam {
@@ -3626,6 +2951,8 @@ type EventLeaderboardTeamPlayer {
   par: Float
   points: Float
   poolTeamLeaderboards: [EventTeamLeaderboardPool!]!
+  penalties: [EventPlayerPenalty]!
+  boons: [EventPlayerBoon]!
 }
 
 type EventTeamLeaderboardPool {
@@ -3634,40 +2961,7 @@ type EventTeamLeaderboardPool {
   par: Float
   points: Float
   poolId: ID!
-}
-
-type EventStatsLeaderboard {
-  bestRound: StatsLeaderboardTop
-  mostAces: StatsLeaderboardTop
-  mostEagles: StatsLeaderboardTop
-  mostBirdies: StatsLeaderboardTop
-  mostPars: StatsLeaderboardTop
-  mostCircleHits: StatsLeaderboardTop
-  mostCircleHitConversions: StatsLeaderboardTop
-  mostInsidePutts: StatsLeaderboardTop
-  mostOutsidePutts: StatsLeaderboardTop
-  leaderboardCount: Float!
-  leaderboard: [EventStatsLeaderboardPlayer]
-}
-
-type EventStatsLeaderboardPlayer {
-  position: Float!
-  user: User
-  team: Team
-  division: Division!
-  bestRound: BestTourRound
-  birdies: TourStat
-  pars: TourStat
-  aces: TourStat
-  eagles: TourStat
-  bogeys: TourStat
-  doubleBogeys: TourStat
-  trippleBogeysAbove: TourStat
-  circleHits: TourStat
-  circleHitConversions: TourStat
-  insidePutts: TourStat
-  outsidePutts: TourStat
-  outOfBounds: TourStat
+  penalties: [EventPlayerPenalty]!
 }
 
 type GeneralOrderType {
@@ -3675,9 +2969,7 @@ type GeneralOrderType {
   paid: [Order]
 }
 
-"""
-Information about free order.
-"""
+"""Information about free order."""
 type FreeOrder {
   id: ID!
   eventId: ID!
@@ -3688,9 +2980,7 @@ type FreeOrder {
   createdAt: DateTime!
 }
 
-"""
-Free Line Item of Order
-"""
+"""Free Line Item of Order"""
 type FreeLineItem {
   id: ID!
   orderId: ID!
@@ -3707,22 +2997,193 @@ enum OrderContentType {
 
 union UserEventMetaTypeCombined = EventUserMeta | EventTeamMeta
 
-"""
-Meta information about the user in this event.
-"""
+"""Meta information about the user in this event."""
 type EventUserMeta {
-  groups: [Group!]!
+  groups: [Group]!
   registration: Registration
   favourite: FavouriteEvent
+  tjingEventRating: Float
+  eventGameScorecards: [EventGameScorecard]!
 }
 
-"""
-Meta information about the users team in this event.
-"""
+"""Information about an event game"""
+type EventGameScorecard {
+  id: ID!
+  gameStationLayoutId: ID!
+  gameStationLayout: EventGameStationLayout!
+  round: EventGameRound!
+  players: [EventGameScorecardUser]!
+  status: EventGameScorecardStatus!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+"""Information about an event game"""
+type EventGameStationLayout {
+  id: ID!
+  name: String!
+  type: EventGameCategory!
+  stations: [EventGameStation!]!
+  createdBy: User!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+"""Information about an event game"""
+type EventGameStation {
+  id: ID!
+  eventGameStationLayoutId: ID!
+  eventGameStationLayout: EventGameStationLayout!
+  position: Float!
+  name: String!
+  attempts: Float!
+  attemptsCounted: Float!
+  pointsAwardedPerAttempt: Float
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+"""Information about an event game"""
+type EventGameRound {
+  id: ID!
+  gameId: ID!
+  game: EventGame!
+  gameStationLayoutId: ID
+  automaticallyAssignPlayers: Boolean!
+  gameStationLayout: EventGameStationLayout
+  date: DateTime!
+  status: EventGameRoundStatus!
+  scorecards(userId: ID): [EventGameScorecard]!
+  leaderboard: [EventGameRoundLeaderboardDivision]!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+"""Information about an event game"""
+type EventGame {
+  id: ID!
+  eventId: ID!
+  event: Event!
+  position: Float!
+  type: EventGameCategory!
+  name: String!
+  description: String
+  automaticallyAddPlayers: Boolean!
+  rounds: [EventGameRound]!
+  players: [EventGamePlayer]!
+  playersCount: Float!
+  leaderboard(divisionId: ID): GameEventLeaderboardDivision
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+"""Information about an event game"""
+type EventGamePlayer {
+  id: ID!
+  gameId: ID!
+  game: EventGame!
+  eventPlayerId: ID!
+  eventPlayer: Player!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+type GameEventLeaderboardDivision {
+  id: ID!
+  name: String!
+  type: String!
+  players: [GameEventLeaderboardPlayer!]!
+  totalPlayers: Float!
+}
+
+type GameEventLeaderboardPlayer {
+  place: Float!
+  gamePlayerId: ID!
+  userId: ID!
+  profileImageUrl: String
+  firstName: String!
+  lastName: String!
+  pdgaNumber: Float
+  pdgaRating: Float
+  score: Float!
+}
+
+enum EventGameRoundStatus {
+  CLOSED
+  OPEN
+  COMPLETED
+}
+
+type EventGameRoundLeaderboardDivision {
+  id: ID!
+  name: String!
+  type: String!
+  players: [EventGameRoundLeaderboardPlayer!]!
+  totalPlayers: Float!
+}
+
+type EventGameRoundLeaderboardPlayer {
+  userId: ID!
+  gamePlayerId: ID!
+  eventPlayerId: ID!
+  scorecardUserId: ID!
+  place: Float!
+  firstName: String!
+  lastName: String!
+  profileImageUrl: String
+  pdgaNumber: Float
+  pdgaRating: Float
+  score: Float
+  results: [EventGameRoundLederboardResult]!
+}
+
+type EventGameRoundLederboardResult {
+  stationId: ID!
+  score: Float!
+  attempts: [EventGameScorecardAttempt]!
+}
+
+"""Information about an event game"""
+type EventGameScorecardAttempt {
+  id: ID!
+  score: Float!
+  attemptNumber: Float!
+  stationId: ID!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+"""Information about an event game"""
+type EventGameScorecardUser {
+  id: ID!
+  attempts: [EventGameScorecardAttempt]!
+  eventGameUser: EventGamePlayer!
+  user: User!
+  results: [EventGameScorecardResult]!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+"""Information about an event game"""
+type EventGameScorecardResult {
+  id: ID!
+  score: Float!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+enum EventGameScorecardStatus {
+  CLOSED
+  OPEN
+  COMPLETED
+}
+
+"""Meta information about the users team in this event."""
 type EventTeamMeta {
-  groups: [Group!]!
+  groups: [Group]!
   registrations: [TeamRegistration]!
   favourite: FavouriteEvent
+  tjingEventRating: Float
 }
 
 type DivisionInPoolType {
@@ -3730,9 +3191,7 @@ type DivisionInPoolType {
   divisionId: ID!
 }
 
-"""
-Question asked players registering to an event.
-"""
+"""Question asked players registering to an event."""
 type RegistrationQuestion {
   id: ID!
   eventId: ID!
@@ -3752,9 +3211,7 @@ enum RegistrationQuestionVariant {
   MULTI_CHOICE
 }
 
-"""
-Country restrictions for this event, primarily used in the registration process
-"""
+"""Country restrictions for this event, primarily used in the registration process"""
 type EventCountryRestriction {
   id: ID!
   eventId: ID
@@ -3801,72 +3258,20 @@ input GroupsFilterMetaInput {
   poolStatus: PoolStatus
 }
 
-type Scorecard {
+"""Information about disc storage"""
+type DiscStorage {
   id: ID!
-  date: DateTime!
-  status: ScorecardStatus!
-  playFormat: ScorecardPlayFormat!
-  """
-  Current number of results
-  """
-  currentResultsCount: Float!
-  """
-  Bumber of results when all players have played all holes
-  """
-  maxResultsCount: Float!
-  layoutVersion: LayoutVersion!
-  startHole: Hole!
-  players: [ScorecardPlayer!]!
-  createdAt: DateTime!
-  createdById: ID!
-}
-
-enum ScorecardStatus {
-  NOT_STARTED
-  IN_PROGRESS
-  COMPLETED
-}
-
-enum ScorecardPlayFormat {
-  STANDARD
-  PRACTICE
-  MULLIGAN
-  BEST_SHOT
-  MODIFIED_BEST_SHOT
-  GREENSOME
-  TOUGH_SHOT
-  WORST_SHOT
-  TWO_DISC
-  THREE_DISC
-  X_DISC
-  MATCH_PLAY
-}
-
-type ScorecardPlayer {
-  id: ID!
-  position: Float!
-  user: TeamAndUserAndAnonymousUser!
-  results: [ScorecardResult!]!
-}
-
-union TeamAndUserAndAnonymousUser = User | AnonymousUser | Team
-
-type AnonymousUser {
-  id: ID!
-  name: String!
-  isAnonymous: Boolean!
-}
-
-type ScorecardResult {
-  id: ID!
-  score: Float!
-  isCircleHit: Boolean!
-  isOutsidePutt: Boolean!
-  isInsidePutt: Boolean!
-  isOutOfBounds: Boolean!
-  hole: Hole!
-  createdAt: DateTime!
+  type: DiscStorageType
+  discs: [Disc]!
   updatedAt: DateTime!
+  createdAt: DateTime!
+}
+
+enum DiscStorageType {
+  BAG
+  FOR_SALE
+  STORAGE
+  TROPHY_CASE
 }
 
 input ScorecardFilterMetaInput {
@@ -3878,9 +3283,7 @@ input ScorecardFilterInput {
   status: ScorecardStatus!
 }
 
-"""
-Information about subscription
-"""
+"""Information about subscription"""
 type SubscriptionWithPackage {
   id: String!
   subscriptionId: String
@@ -3902,6 +3305,61 @@ enum Recurrence {
   ANNUALLY
 }
 
+"""Information about a specific friendship request"""
+type FriendshipRequest {
+  id: ID!
+  senderUser: User!
+  receiverUser: User!
+  updatedAt: DateTime!
+  createdAt: DateTime!
+}
+
+"""Information about a friendship between two users"""
+type Friendship {
+  id: ID!
+  friendUser: User!
+  isBlocked: Boolean!
+  note: String
+  pushNotificationsEnabled: Boolean!
+  blockedByUser: User
+  updatedAt: DateTime!
+  createdAt: DateTime!
+}
+
+union ActivityUnion = FriendsEventRound | FriendsCasualRound
+
+type FriendsEventRound {
+  user: User!
+  userId: ID!
+  poolId: ID!
+  roundId: ID!
+  eventId: ID!
+  courseId: ID
+  courseName: String
+  layoutName: String!
+  layoutId: ID!
+  layoutVersionId: ID!
+  layoutPar: Float!
+  date: DateTime!
+  totalThrows: Float!
+  totalPar: Float!
+}
+
+type FriendsCasualRound {
+  user: User!
+  userId: ID!
+  scorecardId: ID!
+  courseId: ID
+  courseName: String
+  layoutName: String!
+  layoutId: ID!
+  layoutVersionId: ID!
+  layoutPar: Float!
+  date: DateTime!
+  totalThrows: Float!
+  totalPar: Float!
+}
+
 input ToursFilterInput {
   operator: FilterOperator = AND
   query: [ToursFilterMetaInput!]!
@@ -3912,23 +3370,21 @@ input ToursFilterMetaInput {
   status: TourStatus
 }
 
-"""
-Information about Event Search
-"""
+"""Information about Event Search"""
 type EventSearchResultType {
   numberOfResults: Int!
   resultsPerPage: Int!
   results: [EventSearchType!]!
 }
 
-"""
-Information about Event
-"""
+"""Information about Event"""
 type EventSearchType {
   id: ID!
   name: String!
   singles: Boolean!
   teamSize: Float!
+  category: EventCategoryEnum!
+  gameType: EventGameCategory!
   startDate: DateTime!
   endDate: DateTime!
   registrationOpenAt: DateTime
@@ -3944,16 +3400,12 @@ type EventSearchType {
   rounds: [EventRoundSearchType]!
 }
 
-"""
-Information about Event Round
-"""
+"""Information about Event Round"""
 type EventRoundSearchType {
   pools: [EventRoundPoolSearchType]!
 }
 
-"""
-Information about Event Round Pool
-"""
+"""Information about Event Round Pool"""
 type EventRoundPoolSearchType {
   date: String
   courseName: String
@@ -3972,9 +3424,6 @@ enum EventSearchSortInputType {
 
 input EventSearchDistanceInputType {
   geolocation: GeolocationInput!
-  """
-  max distance from geolocation in km
-  """
   maxDistance: Float
 }
 
@@ -4011,9 +3460,7 @@ input NameAndDistanceInput {
   geolocation: GeolocationInput
 }
 
-"""
-Information about Course
-"""
+"""Information about Course"""
 type SearchCourse {
   id: ID!
   name: String!
@@ -4021,24 +3468,20 @@ type SearchCourse {
   phone: String
   website: String
   type: CourseType
-  """
-  Distance in KM
-  """
   distance: Float
   geolocation: Geolocation
   facilities: [CourseFacility]
+  ratings(start: DateTime, end: DateTime): CourseLayoutRatings!
   layouts: [Layout!]!
   courseAdmins: [CourseAdministrator!]!
 }
 
-type DivisionTypeItem {
-  id: ID!
-  position: Float!
-  name: String!
-  type: String!
-  canBeGenderLocked: Boolean!
-  canBeAgeRestricted: Boolean!
-  ageRequirement: Float
+union SearchCourseCombined = SearchCourseCluster | SearchCourse
+
+"""Information about Course"""
+type SearchCourseCluster {
+  courseCount: ID!
+  geolocation: Geolocation
 }
 
 type EventMessageAudience {
@@ -4064,9 +3507,90 @@ enum EventMessageTypeEnumType {
   EVENT_MESSAGE_COMMENT
 }
 
-"""
-Public information about the specified user
-"""
+type UserPlayedLayouts {
+  layouts: [UserPlayedLayout]
+  totalCount: Float!
+}
+
+type UserPlayedLayout {
+  courseId: ID
+  courseName: String
+  layoutName: String!
+  layoutColor: LayoutColorType!
+  layoutId: ID!
+}
+
+type CourseUserEventStats {
+  userId: ID!
+  numberOfCoursesPlayed: Float!
+  numberOfRoundsPlayed: Float!
+  numberOfLayoutsPlayed: Float!
+  numberOfHolesPlayed: Float!
+  totalThrows: Float!
+  totalPar: Float!
+  averageRound: Float!
+  averagePar: Float!
+  bestRound: CourseUserEventRound!
+  worstRound: CourseUserEventRound!
+  rounds: [CourseUserEventRound]
+}
+
+type CourseUserEventRound {
+  userId: ID!
+  poolId: ID!
+  groupId: ID!
+  roundId: ID!
+  eventId: ID!
+  courseId: ID
+  courseName: String
+  layoutName: String!
+  layoutId: ID!
+  layoutVersionId: ID!
+  layoutPar: Float!
+  date: DateTime!
+  totalThrows: Float!
+  totalPar: Float!
+  rating: Float
+}
+
+enum CourseStatsSortBy {
+  BEST
+  WORST
+  RECENT
+  OLDEST
+}
+
+type CourseUserCasualStats {
+  userId: ID!
+  numberOfCoursesPlayed: Float!
+  numberOfRoundsPlayed: Float!
+  numberOfLayoutsPlayed: Float!
+  numberOfHolesPlayed: Float!
+  totalThrows: Float!
+  totalPar: Float!
+  averageRound: Float!
+  averagePar: Float!
+  bestRound: CourseUserCasualRound!
+  worstRound: CourseUserCasualRound!
+  rounds: [CourseUserCasualRound]
+}
+
+type CourseUserCasualRound {
+  userId: ID!
+  scorecardId: ID!
+  courseId: ID
+  courseName: String
+  layoutName: String!
+  layoutId: ID!
+  layoutVersionId: ID!
+  layoutPar: Float!
+  date: DateTime!
+  totalThrows: Float!
+  totalPar: Float!
+  rating: Float
+}
+
+"""Public information about the specified user"""
 type PublicUser {
   id: ID!
   firstName: String
@@ -4075,9 +3599,7 @@ type PublicUser {
   teams: [Team]!
 }
 
-"""
-Detailed information about a user
-"""
+"""Detailed information about a user"""
 type PublicUserProfile {
   id: ID!
   club: String
@@ -4092,22 +3614,17 @@ type PublicUserProfile {
   youtube: String
   tiktok: String
   sponsor: String
+  sponsors: [UserSponsor]!
   biography: String
   profileImageUrl: String
-  """
-  Used to determine if the profile details should be visible to other users
-  """
+  teeOffSongUrl: String
   isPublic: Boolean
+  hasPinCode: Boolean
 }
 
-"""
-See more info at https://en.wikipedia.org/wiki/ISO_4217
-"""
+"""See more info at https://en.wikipedia.org/wiki/ISO_4217"""
 type Currency {
   name: String!
-  """
-  3-letter ISO-4217 code.
-  """
   code: String!
   digits: Float!
   isEnabledForPayments: Boolean!
@@ -4117,16 +3634,12 @@ type Meta {
   apiVersion: String!
 }
 
-"""
-Information about subscription
-"""
+"""Information about subscription"""
 type ManageSubscription {
   url: String!
 }
 
-"""
-Information about package prices
-"""
+"""Information about package prices"""
 type PackagePrices {
   id: String!
   currency: String
@@ -4135,854 +3648,167 @@ type PackagePrices {
   isActive: Boolean
 }
 
+type CasualRoundLeaderboardEntry {
+  position: Int!
+  scorecardId: ID!
+  userId: ID!
+  user: PublicUser!
+  courseId: ID!
+  courseName: String!
+  layoutId: ID!
+  layoutName: String!
+  layoutPar: Int!
+  date: DateTime!
+  totalThrows: Int!
+  totalPar: Int!
+  rating: Float
+}
+
+enum CasualRoundsSortBy {
+  RATING
+  PAR
+  SCORE
+  DATE
+}
+
+type CompetitiveRoundLeaderboardEntry {
+  position: Int!
+  poolId: ID!
+  userId: ID!
+  user: PublicUser!
+  courseId: ID!
+  course: Course!
+  courseName: String!
+  layoutId: ID!
+  layoutName: String!
+  layoutPar: Int!
+  date: DateTime!
+  totalThrows: Int!
+  totalPar: Int!
+  rating: Float
+  eventId: ID!
+  event: Event!
+}
+
+enum CompetitiveRoundsSortBy {
+  RATING
+  PAR
+  SCORE
+  DATE
+}
+
 type RootMutation {
-  """
-  roles: [TOUR_ADMIN, SUPER_ADMIN]
-  """
   AddAdministratorByEmail(tourId: ID!, email: String!, asRole: MutationUserRoleType): Administrator
-  """
-  roles: [TOUR_ADMIN, SUPER_ADMIN]
-  """
   AddAdministratorById(tourId: ID!, userId: ID!, asRole: MutationUserRoleType): Administrator
-  """
-
-      Add an anonymous user to a scorecard
-    
-  """
-  AddAnonymousUserToScorecard(name: String!, scorecardId: ID!): ScorecardPlayer
-  """
-
-      Adds a marshall to the group. Can only be called by Admins
-
-      ErrorCodes:
-        * GROUP_HAS_MARSHALL - Group already has an assigned Marshall
-        * PLAYER_IN_GROUP_CANT_BE_MARSHALL - Player in group cant be marshall
-    
-  """
+  AddAnonymousUserToScorecard(name: String!, scorecardId: ID!, scoringMode: ScoringModeType): ScorecardPlayer
   AddGroupMarshall(groupId: ID!, userId: String!): Group
-  """
-
-      Add player to a group
-
-      ErrorCodes:
-        * INVALID_POOL_STATUS - Cant add a player to group if pool is completed
-        * INVALID_FORMAT - Wrong players in the ordering list
-    
-  """
-  AddPlayerToGroup(groupId: ID!, playerId: ID!, playerOrder: [ID!]): Player
-  """
-
-      Add team player to a group
-
-      ErrorCodes:
-        * INVALID_POOL_STATUS - Cant add a player to group if pool is completed
-        * INVALID_FORMAT - Wrong players in the ordering list
-    
-  """
-  AddTeamPlayerToGroup(groupId: ID!, playerId: ID!, playerOrder: [ID!]): TeamPlayer
-  """
-
-    roles: [TOUR_ADMIN, SUPER_ADMIN]
-
-    ErrorCodes:
-      * USER_ALREADY_A_PLAYER - User is already added to event
-      * EVENT_MAX_SPOTS_REACHED - No free spot in the event
-      * POOL_IS_OPEN - Cant add a player after a pool has been started in the event
-
-  """
+  AddPlayerToGroup(groupId: ID!, playerId: ID!, playerOrder: [ID!], asRole: MutationUserRoleType): Player
+  AddTeamPlayerToGroup(groupId: ID!, playerId: ID!, playerOrder: [ID!], asRole: MutationUserRoleType): TeamPlayer
   AddUserToEvent(divisionId: ID!, eventId: ID!, userId: ID!, asRole: MutationUserRoleType): Player
-  """
-
-    roles: [TOUR_ADMIN, SUPER_ADMIN]
-
-    ErrorCodes:
-      * TEAM_ALREADY_A_PLAYER - Team is already added to event
-      * EVENT_MAX_SPOTS_REACHED - No free spot in the event
-      * POOL_IS_OPEN - Cant add a player after a pool has been started in the event
-
-  """
   AddTeamToEvent(divisionId: ID!, eventId: ID!, teamId: ID!, asRole: MutationUserRoleType): TeamPlayer
-  """
-
-      Add an existing user to a scorecard. Only the owner of the scorecard can call this mutation
-
-      ErrorCodes:
-        * USER_ALREADY_A_PLAYER - User is already a player
-    
-  """
-  AddUserToScorecard(userId: ID!, scorecardId: ID!): ScorecardPlayer
-  """
-
-      Add an existing team to a scorecard. Only the owner of the scorecard can call this mutation
-      ErrorCodes:
-        * TEAM_ALREADY_A_PLAYER - Team is already a player
-    
-  """
-  AddTeamToScorecard(teamId: ID!, scorecardId: ID!): ScorecardPlayer
-  """
-
-      Accept an invitation. This will bypass all registration stages and event registration status to place the user in the waitinglist or specified group.
-      If used with group registration some restrictions apply. Groups must be public and event cannot have started its first pool.
-    
-  """
+  AddUserToScorecard(userId: ID!, scorecardId: ID!, scoringMode: ScoringModeType): ScorecardPlayer
+  AddTeamToScorecard(teamId: ID!, scorecardId: ID!, scoringMode: ScoringModeType): ScorecardPlayer
   AcceptRegistrationInvitation(invitationId: ID!, divisionId: ID!, groupId: ID, teamId: ID): Registration
-  """
-
-      Anonymize an account, removes all personal data and disable login but preserves holes scores. 
-      Callable by super-admins and users if they provide correct current password.
-    
-  """
   AnonymizeAccount(userId: ID!, asRole: MutationUserRoleType, password: String): User
-  """
-
-      Used by players to cancel their registration. Can only be used when the status of pools are closed
-
-      ErrorCodes:
-        * POOL_NOT_CLOSED - The event has atleast one ongoing pool
-        * REGISTRATION_IS_DECLINED - The registration cant be cancelled because it is declined
-    
-  """
   CancelRegistration(registrationId: ID!): Registration
-  """
-
-      Used by team players to cancel their registration. Can only be used when the status of pools are closed
-
-      ErrorCodes:
-        * POOL_NOT_CLOSED - The event has atleast one ongoing pool
-        * REGISTRATION_IS_DECLINED - The registration cant be cancelled because it is declined
-    
-  """
   CancelTeamRegistration(registrationId: ID!): TeamRegistration
-  """
-  Change password for the current user
-  """
   ChangePassword(currentPassword: String!, newPassword: String!): Boolean
-  """
-
-    Used by group-members to close(set the status to DONE) the group when scoring is done
-
-      ErrorCodes:
-        * GROUP_HAS_UNVERIFIED_RESULTS - Verify mode and unverified results
-        * GROUP_HAS_UNSIGNED_RESULTS - Sign result is enabled and not all players have signed their result
-        * PLAYER_NOT_PART_OF_GROUP - Current user is not part of group
-        * POOL_NOT_OPEN - Pool is not open
-        * PLAYERS_MISSING_SCORE - Player(s) are missing score
-    
-  """
   CloseGroup(groupId: ID!, confirmDnf: Boolean, asRole: MutationUserRoleType): Group
-  """
-
-      Registers the current logged in user to an event
-
-      ErrorCodes:
-        * STRIPE_TOKEN_ALREADY_USED - token already used
-        * STRIPE_CONNECTION_ERROR - Connection error
-        * STRIPE_INCORRECT_CVC - Incorrect cvc
-        * STRIPE_INCORRECT_CARD_NUMBER - Incorrect card number
-        * STRIPE_INSUFFICIENT_FUNDS - Insufficient funds on card
-        * STRIPE_CARD_DECLINED - Card declined
-        * STRIPE_CARD_ERROR - Generic card error
-        * STRIPE_UNKNOWN_ERROR - Stripe returned an unknown error
-    
-  """
+  OpenGroup(groupId: ID!, asRole: MutationUserRoleType): Group
   ConfirmEventRegistrationPayment(paymentIntentId: ID!, stripePaymentIntentId: ID!): Registration
   CreateAccount(input: CreateAccountInput!): User
-  """
-
-      ErrorCodes:
-        * EMAIL_NOT_FOUND - Email not found
-        * ACCOUNT_DISABLED - Account is disabled
-        * INCORRECT_PASSWORD - Incorrect password
-    
-  """
   CreateAuthToken(email: String!, password: String!): AuthToken
-  """
-
-    Create Connected Account
-
-    ErrorCodes:
-      * CONNECTED_ACCOUNT_ALREADY_EXISTS - Connected account already exists
-
-  """
   CreateConnectedAccount(authorizationCode: String!, name: String): StripeConnectedAccount
   CreateCourse(input: CourseInput!): Course
   CreateTeam(input: TeamInput!): Team
   UpdateTeam(teamId: ID!, input: UpdateTeamInput!): Team
   CreateTeamPlayer(input: TeamPlayerInput!): TeamPlayerType
   UpdateTeamPlayer(teamPlayerId: ID!, input: UpdateTeamPlayerInput!): TeamPlayerType
-  """
-
-      roles: [TOUR_ADMIN, SUPER_ADMIN]
-
-      ErrorCodes:
-        * TOUR_PASS_REQUIRES_REGISTRATION_FEE - Tour-pass requires a registration-fee
-        * CURRENCY_IS_NOT_ENABLED_FOR_PAYMENT - Currency is not enabled for payment
-    
-  """
   CreateDivision(tourId: ID!, input: DivisionInput!, asRole: MutationUserRoleType): Division
-  """
-  roles: [TOUR_ADMIN, SUPER_ADMIN]
-  """
   CreateEvent(tourId: ID!, input: EventInput!, asRole: MutationUserRoleType): Event
   CreateEventTiebreak(playerId: ID!, place: Float!): Tiebreak
   CreateGroup(poolId: ID!, input: GroupInput!): Group
-  """
-
-      Create an event registration invitation that once activated by a user allows registration regardless of registration stages and or payment requirements.
-    
-  """
-  CreateRegistrationInvitation(eventId: ID!): EventRegistrationInvitation
-  """
-
-      Create a reservation for a spot during group signup. The reservation will expire after 3720000 minutes
-
-      ErrorCodes:
-        * REGISTRATION_IS_CLOSED - Registration is closed
-        * REGISTRATION_ALREADY_EXISTS - Registration already exists
-        * USER_ALREADY_A_PLAYER - User is already a player in this event
-        * USER_NOT_VERIFIED - User not verified
-        * GROUP_SIGNUP_NOT_ENABLED - Group signup is not enabled
-        * NO_AVAILABLE_SPOT_IN_GROUP - No available spot in group
-    
-  """
+  CreateRegistrationInvitation(eventId: ID!, type: EventRegistrationInvitationTypeType): EventRegistrationInvitation
   CreateGroupRegistrationReservation(eventId: ID!, groupId: ID!): GroupRegistrationReservation
-  """
-
-    Auto-create groups and place all players in a group.
-
-    ErrorCodes:
-      * GROUPS_EXISTS - Auto-creation cant be run when groups already exists
-      * POOLS_NOT_FOUND - Has to be atleast one pool in round
-      * TOO_MANY_PLAYERS - Not enough holes on the course for the current amount of players
-      * INVALID_START_METHOD - All pools must have same startMethod
-      * INVALID_START_HOLES - For teetime all pools must have a start hole
-      * SELECTED_CREATION_METHOD_CANT_BE_USED_ON_FIRST_ROUND - Selected creationMethod cant be used on the first round
-      * INVALID_NUMBER_OF_POOLS - RANDOM_WITHIN_POOL must have same number of pools in current round as in previous round
-
-  """
-  CreateGroups(
-    roundId: ID!
-    creationMethod: RoundGroupCreationMethod!
-    divisionAssigment: [RoundDivisionAssigmentInput]!
-  ): Round
-  """
-
-    Create groups for a pool.
-
-    ErrorCodes:
-      * GROUPS_EXISTS - Auto-creation cant be run when groups already exists
-      * POOLS_MUST_BE_PART_OF_SAME_EVENT - Pools must be part of same event
-      * TOO_MANY_PLAYERS - Not enough holes on the course for the current amount of players
-      * INVALID_START_HOLES - For teetime all pools must have a start hole
-      * POOL_NOT_COMPLETED - Pool is not completed
-
-  """
-  CreateGroupsForPool(
-    poolId: ID!
-    creationMethod: PoolGroupCreationMethod!
-    divisionAssigment: [DivisionAssigmentInput]!
-    previousPoolId: ID
-  ): Pool
+  CreateGroups(roundId: ID!, creationMethod: RoundGroupCreationMethod!, divisionAssigment: [RoundDivisionAssigmentInput]!): Round
+  CreateGroupsForPool(poolId: ID!, creationMethod: PoolGroupCreationMethod!, divisionAssigment: [DivisionAssigmentInput]!, previousPoolId: ID): Pool
   CreateLayout(courseId: ID, input: LayoutInput!): Layout
-  """
-
-      Creates a new version of the layout with a +1 in version number
-    
-  """
   CreateLayoutVersion(layoutId: ID!, input: CreateLayoutVersionInput!): LayoutVersion
-  """
-  roles: [TOUR_ADMIN, SUPER_ADMIN]
-  """
   CreatePool(roundId: ID!, input: PoolInput!, asRole: MutationUserRoleType): Pool
-  """
-
-      Create result
-
-      ErrorCodes:
-        * GROUP_HAS_UNVERIFIED_RESULTS - Verify-mode and unverified results
-        * RESULT_IS_SIGNED - Sign-result is enabled and player has already signed the results
-        * GROUP_HAS_MARSHALL - Group has an assigned marshall and only that user can create scores
-        * RESULT_FOR_HOLE_EXISTS - The hole already has a result
-        * PLAYER_NOT_PART_OF_GROUP - Player is not part of the group
-        * POOL_NOT_OPEN - Pool is not open
-        * GROUP_NOT_OPEN - Group is not open
-    
-  """
   CreateResult(groupId: ID!, holeId: ID!, playerId: ID!, input: ResultInput!, asRole: MutationUserRoleType): Result
-  """
-
-      Create team result
-
-      ErrorCodes:
-        * GROUP_HAS_UNVERIFIED_RESULTS - Verify-mode and unverified results
-        * RESULT_IS_SIGNED - Sign-result is enabled and player has already signed the results
-        * GROUP_HAS_MARSHALL - Group has an assigned marshall and only that user can create scores
-        * RESULT_FOR_HOLE_EXISTS - The hole already has a result
-        * PLAYER_NOT_PART_OF_GROUP - Player is not part of the group
-        * POOL_NOT_OPEN - Pool is not open
-        * GROUP_NOT_OPEN - Group is not open
-    
-  """
-  CreateTeamResult(
-    groupId: ID!
-    holeId: ID!
-    teamPlayerId: ID!
-    input: TeamResultInput!
-    asRole: MutationUserRoleType
-  ): TeamResult
-  """
-  roles: [TOUR_ADMIN, SUPER_ADMIN]
-  """
+  CreateTeamResult(groupId: ID!, holeId: ID!, teamPlayerId: ID!, input: TeamResultInput!, asRole: MutationUserRoleType): TeamResult
   CreateRound(eventId: ID!, asRole: MutationUserRoleType): Round
-  """
-
-      Create a scorecard for casual play
-    
-  """
   CreateScorecard(input: CreateScorecardInput!): Scorecard
-  """
-
-      Create a result for a casual play scorecard
-
-      ErrorCodes:
-        * RESULT_FOR_HOLE_EXISTS - The hole already has a result
-    
-  """
   CreateScorecardResult(scorecardId: ID!, playerId: ID!, holeId: ID!, input: CreateScorecardResultInput!): ScorecardResult
   CreateTour(input: TourInput!): Tour
-  """
-
-      ErrorCodes:
-        * TOUR_PASS_REQUIRES_REGISTRATION_FEE - Tour-pass requires a registration-fee
-        * CURRENCY_IS_NOT_ENABLED_FOR_PAYMENT - Currency is not enabled for payment
-    
-  """
   CreateTourExtended(input: ExtendedTourInput!): Tour
-  """
-  Create a tax-rate for connected account
-  """
   CreateTaxRate(stripeAccountId: ID!, input: CreateTaxRateInput!): TaxRate
   CreateCheckoutSession(eventId: ID!, successUrl: String!, cancelUrl: String!, input: CheckoutSessionInput!): CheckoutSession
   DeleteAdministrator(tourId: ID!, userId: ID!): Administrator
   DeleteConnectedAccount(id: ID!): StripeConnectedAccount
-  """
-
-      Deletes a division. Can be used if no registration or player are connected to the division.
-
-      ErrorCodes:
-        * DIVISION_CANT_BE_DELETED - Division cant be deleted
-    
-  """
   DeleteDivision(divisionId: ID!): Boolean
-  """
-
-      Deletes an Event. Can be used if no registration or player are connected to the Event.
-
-      ErrorCodes:
-        * EVENT_CANT_BE_DELETED - Event cant be deleted
-    
-  """
   DeleteEvent(eventId: ID!): Boolean
-  """
-  Remove specified document from the event
-  """
   DeleteEventDocument(documentId: ID!, url: ID!): Boolean
   DeleteEventTiebreak(tiebreakId: ID!): Tiebreak
-  """
-
-    ErrorCodes:
-      * GROUP_NOT_CLOSED - Cant delete open or done group
-      * GROUP_NOT_EMPTY - Cant delete Group with players in it
-
-  """
+  DeleteEventTeamTiebreak(tiebreakId: ID!): Boolean
   DeleteGroup(groupId: ID!): Group
-  """
-
-    Delete all groups for a pool
-
-    ErrorCodes:
-      * RESULTS_EXISTS - Groups cant be deleted, results are created for pool
-
-  """
-  DeleteGroups(poolId: ID!): Pool
-  """
-
-    Delete Layout and all versions
-    ErrorCodes:
-      * LAYOUT_IS_IN_USE - Layout is in use
-
-  """
+  DeleteGroups(poolId: ID!, resetPoolStatus: Boolean): Pool
   DeleteLayout(layoutId: ID!): Boolean
-  """
-
-      Deletes layout-version.
-
-      ErrorCodes:
-        * CANT_DELETE_LAYOUT_VERSION_1 - Cant delete layout version with version 1
-        * LAYOUT_VERSION_IS_IN_USE - The layout version is in use
-    
-  """
   DeleteLayoutVersion(layoutVersionId: ID!): Boolean
-  """
-
-    ErrorCodes:
-      * POOL_CANT_BE_DELETED - Cant delete ongoing pool
-
-  """
   DeletePool(poolId: ID!): Boolean
-  """
-
-    Only available to a Tour Admin.
-    ErrorCodes:
-      * POOL_NOT_OPEN - Pool is not open
-      * GROUP_NOT_OPEN - Group is not open
-
-  """
   DeleteResult(resultId: ID!): Boolean
-  """
-
-    Only available to a Tour Admin.
-    ErrorCodes:
-      * POOL_NOT_OPEN - Pool is not open
-      * GROUP_NOT_OPEN - Group is not open
-
-  """
   DeleteTeamResult(resultId: ID!): Boolean
-  """
-
-    ErrorCodes:
-      * ROUND_CANT_BE_DELETED - Cant delete round with ongoing pools
-
-  """
   DeleteRound(roundId: ID!): Boolean
-  """
-
-      Delete a scorecard
-    
-  """
   DeleteScorecard(scorecardId: ID!): Boolean
-  """
-  Deletes a Shop Item. If there is no sales made, you can delete any shop item
-
-    ErrorCodes:
-    * SHOP_ITEM_CANT_BE_DELETED - Shop Item cant be deleted
-    
-  """
   DeleteShopItem(shopItemId: ID!): Boolean
-  """
-
-      Deletes a tour. Can be used if no registration or players exists
-
-      ErrorCodes:
-        * TOUR_CANT_BE_DELETED - Tour cant be deleted
-    
-  """
   DeleteTour(tourId: ID!): Boolean
-  """
-  roles: [TOUR_ADMIN, SUPER_ADMIN]
-  """
   PublishTour(tourId: ID!, asRole: MutationUserRoleType): Tour
-  """
-
-      Registers the current logged in user to an event
-
-      ErrorCodes:
-        * REGISTRATION_IS_CLOSED - Registration is closed
-        * REGISTRATION_ALREADY_EXISTS - Registration already exists
-        * USER_ALREADY_A_PLAYER - User is already a player in this event
-        * USER_NOT_VERIFIED - User not verified
-        * TOUR_PASS_NOT_AVAILABLE - Tour pass is not avaible
-        * USER_HAS_TOUR_PASS_FOR_OTHER_DIVISION - User has tour-pass for other division
-        * NO_AVAILABLE_SPOT_IN_GROUP - No available spot in group
-        * NOT_PASSING_REGISTRATION_STAGE - Not passing registration stage
-        * EVENT_IS_STARTED - Event is started
-        * STRIPE_TOKEN_ALREADY_USED - token already used
-        * STRIPE_CONNECTION_ERROR - Connection error
-        * STRIPE_INCORRECT_CVC - Incorrect cvc
-        * STRIPE_INCORRECT_CARD_NUMBER - Incorrect card number
-        * STRIPE_INSUFFICIENT_FUNDS - Insufficient funds on card
-        * STRIPE_CARD_DECLINED - Card declined
-        * STRIPE_CARD_ERROR - Generic card error
-        * STRIPE_UNKNOWN_ERROR - Stripe returned an unknown error
-    
-  """
-  RegisterToEvent(
-    registrationItem: CreateFreeRegistrationInput!
-    lineItems: [CreateFreeLineItemsInput]
-  ): Registration
-  """
-
-      Registers a team to an event
-
-      ErrorCodes:
-        * REGISTRATION_IS_CLOSED - Registration is closed
-        * REGISTRATION_ALREADY_EXISTS - Registration already exists
-        * TEAM_ALREADY_A_PLAYER - Team is already a player in this event
-        * TOUR_PASS_NOT_AVAILABLE - Tour pass is not avaible
-        * NO_AVAILABLE_SPOT_IN_GROUP - No available spot in group
-        * NOT_PASSING_REGISTRATION_STAGE - Not passing registration stage
-        * EVENT_IS_STARTED - Event is started
-        * STRIPE_TOKEN_ALREADY_USED - token already used
-        * STRIPE_CONNECTION_ERROR - Connection error
-        * STRIPE_INCORRECT_CVC - Incorrect cvc
-        * STRIPE_INCORRECT_CARD_NUMBER - Incorrect card number
-        * STRIPE_INSUFFICIENT_FUNDS - Insufficient funds on card
-        * STRIPE_CARD_DECLINED - Card declined
-        * STRIPE_CARD_ERROR - Generic card error
-        * STRIPE_UNKNOWN_ERROR - Stripe returned an unknown error
-    
-  """
-  RegisterTeamToEvent(
-    registrationItem: CreateFreeTeamRegistrationInput!
-    lineItems: [CreateFreeTeamLineItemsInput]
-  ): TeamRegistration
-  """
-
-      Removes the marshall from the group. Can only be called by the marshall himself and Admins
-
-      ErrorCodes:
-      * GROUP_HAS_NO_MARSHALL - Group does not have an assigned marshall
-    
-  """
+  RegisterToEvent(registrationItem: CreateFreeRegistrationInput!, lineItems: [CreateFreeLineItemsInput]): Registration
+  RegisterTeamToEvent(registrationItem: CreateFreeTeamRegistrationInput!, lineItems: [CreateFreeTeamLineItemsInput]): TeamRegistration
   RemoveGroupMarshall(groupId: ID!): Group
-  """
-
-    ErrorCodes:
-      * PLAYER_NOT_PART_OF_GROUP - Player is not in group
-      * POOL_IS_COMPLETED - Cant remove player from group if pool is completed
-      * GROUP_NOT_CLOSED - Cant remove player from group after group is started
-
-  """
-  RemovePlayerFromGroup(groupId: ID!, playerId: ID!): Player
-  """
-
-    ErrorCodes:
-      * PLAYER_NOT_PART_OF_GROUP - Player is not in group
-      * POOL_IS_COMPLETED - Cant remove player from group if pool is completed
-      * GROUP_NOT_CLOSED - Cant remove player from group after group is started
-
-  """
-  RemoveTeamPlayerFromGroup(groupId: ID!, playerId: ID!): TeamPlayerType
-  """
-
-    ErrorCodes:
-      * PLAYER_NOT_PART_OF_GROUP - Player is not in group
-      * ONGOING_POOLS - Cant remove a player after a pool has been started
-
-  """
+  RemovePlayerFromGroup(groupId: ID!, playerId: ID!, asRole: MutationUserRoleType): Player
+  RemoveTeamPlayerFromGroup(groupId: ID!, playerId: ID!, asRole: MutationUserRoleType): TeamPlayerType
   RemoveUserFromEvent(eventId: ID!, userId: ID!): Player
-  """
-
-      Remove a user from the scorecard. Only members of the scorecard can call this mutation.
-      Owner cannot remove themselves.
-
-      ErrorCodes:
-        * NOT_FOUND - User is not a player or scorecard was not found
-        * NOT_ALLOWED - User is the creator of the scorecard
-    
-  """
   RemoveUserFromScorecard(playerId: ID!, scorecardId: ID!): Boolean
-  """
-
-      Request a password reset link to be sent to the email
-
-      ErrorCodes:
-        * EMAIL_NOT_IN_USE - Email not found
-    
-  """
   RequestPasswordReset(email: String!): Boolean
-  """
-
-      Reset a password with a password reset token
-    
-  """
   ResetPassword(resetToken: String!, newPassword: String!): Boolean
-  """
-
-      Sends an email with verification link
-
-      ErrorCodes:
-        * USER_IS_VERIFIED - User is already verified
-    
-  """
   SendVerifyEmail: Boolean
-  """
-
-    Shuffle all starting holes for all groups in a pool
-
-    ErrorCodes:
-      * RESULTS_EXISTS - Groups cant be shuffled, results are created for pool
-
-  """
   ShuffleStartingHoles(poolId: ID!): Pool
-  """
-
-      ErrorCodes:
-        * RESULT_IS_ALREADY_SIGNED - Results are already signed
-        * PIN_CODE_LOCKED - PinCode is locked
-        * WRONG_PIN_CODE_ENTERED - Wrong pin or the user does not have a pincode
-        * GROUP_HAS_UNVERIFIED_RESULTS - Verify mode and group has unverified results
-        * GROUP_IS_CLOSED - Group has not opened yet
-        * GROUP_IS_DONE - Group is done
-        * EVENT_RESULT_SIGNING_IS_DISABLED - Results signing is not enabled
-        * NO_PIN_CODE - User has no pin code
-    
-  """
   SignResult(groupId: ID!, playerId: ID!, pinCode: String, asRole: MutationUserRoleType): GroupPlayerConnection
-  """
-
-      ErrorCodes:
-        * RESULT_IS_ALREADY_SIGNED - Results are already signed
-        * PIN_CODE_LOCKED - PinCode is locked
-        * WRONG_PIN_CODE_ENTERED - Wrong pin or the user does not have a pincode
-        * GROUP_HAS_UNVERIFIED_RESULTS - Verify mode and group has unverified results
-        * GROUP_IS_CLOSED - Group has not opened yet
-        * GROUP_IS_DONE - Group is done
-        * EVENT_RESULT_SIGNING_IS_DISABLED - Results signing is not enabled
-        * NO_PIN_CODE - User has no pin code
-    
-  """
   SignTeamResult(groupId: ID!, playerId: ID!, pinCode: String, asRole: MutationUserRoleType): GroupPlayerConnection
-  """
-  roles: [TOUR_ADMIN, SUPER_ADMIN]
-  """
   UnPublishTour(tourId: ID!, asRole: MutationUserRoleType): Tour
   UpdateAnonymousUser(userId: ID!, input: UpdateAnonymousUserInput!): AnonymousUser
   UpdateCourse(courseId: ID!, input: UpdateCourseInput!): Course
-  """
-
-      Update 'disable'-flag on account. Only callable by super-admins.
-
-      ErrorCodes:
-        * ACCOUNT_ANONYMIZED - Account is anonymized, cant be updated
-    
-  """
   UpdateDisableAccount(userId: ID!, disabled: Boolean!): User
-  """
-
-      roles: [TOUR_ADMIN, SUPER_ADMIN]
-
-      ErrorCodes:
-        * TOUR_PASS_REQUIRES_REGISTRATION_FEE - Tour-pass requires a registration-fee
-        * CURRENCY_IS_NOT_ENABLED_FOR_PAYMENT - Currency is not enabled for payment
-    
-  """
   UpdateDivision(divisionId: ID!, input: UpdateDivisionInput!, asRole: MutationUserRoleType): Division
-  """
-  roles: [TOUR_ADMIN, SUPER_ADMIN]
-  """
   UpdateEvent(eventId: ID!, input: UpdateEventInput!, asRole: MutationUserRoleType): Event
-  """
-
-    ErrorCodes:
-      * GROUP_NOT_CLOSED - Cant update group when status is OPEN or DONE
-
-  """
   UpdateGroup(groupId: ID!, input: UpdateGroupInput!, asRole: MutationUserRoleType): Group
-  """
-
-    Used by Admin to update the status of the group
-
-    ErrorCodes:
-      * POOL_NOT_OPEN - Pool is not open
-
-  """
   UpdateGroupStatus(groupId: ID!, status: GroupStatus!): Group
   UpdateLayout(layoutId: ID!, input: UpdateLayoutInput!): Layout
-  """
-
-      Update an existing layout-version.
-      * If 'layoutVersion.isInUse' is true then its not possible to add or remove holes but still possible to update pars
-      * If 'layoutVersion.hasResults' is true then there are results created, any modifcation of pars
-
-      ErrorCodes:
-        * LAYOUT_VERSION_IS_IN_USE - Cant add or remove holes when layout version is in use
-        * LAYOUT_VERSION_HAS_RESULTS - Layout-version has results, pass 'confirmUpdateResults':true to update anyway
-    
-  """
-  UpdateLayoutVersion(
-    layoutVersionId: ID!
-    input: UpdateLayoutVersionInput!
-    confirmUpdateResults: Boolean
-  ): LayoutVersion
-  """
-  Updates the currently logged in user
-  """
+  UpdateLayoutVersion(layoutVersionId: ID!, input: UpdateLayoutVersionInput!, confirmUpdateResults: Boolean): LayoutVersion
   UpdateMeUser(input: UpdateMeUserInput!): User
   UpdatePlayer(playerId: ID!, input: UpdatePlayerInput!, asRole: MutationUserRoleType): Player
-  """
-  `asRole` defaults to USER
-  """
   UpdatePlayerDnf(playerId: ID!, isDnf: Boolean!, asRole: MutationUserRoleType): Player
   UpdatePlayerDns(playerId: ID!, isDns: Boolean!, asRole: MutationUserRoleType): Player
-  """
-
-    roles: [TOUR_ADMIN, SUPER_ADMIN]
-
-    ErrorCodes:
-      * INVALID_POOL_STATUS - Cant update pool when status is OPEN or COMPLETED
-      * GROUPS_EXISTS - Cant update layout when groups exists
-
-  """
   UpdatePool(poolId: ID!, input: UpdatePoolInput!, asRole: MutationUserRoleType): Pool
-  """
-  Update the status of the Pool.
-    If the status is set to OPEN and the pool startMethod is SHOTGUN then all the groups will be set to OPEN also
-      ErrorCodes:
-      * PLAYERS_MISSING_SCORE - Player(s) are missing score
-    
-  """
   UpdatePoolStatus(poolId: ID!, status: PoolStatus!, confirmDnf: Boolean): Pool
-  """
-
-      Allow a TD to update the status of a registration invitation between PENDING and CANCELLED
-      Once status is USED it can no longer be updated.
-    
-  """
   UpdateRegistrationInvitation(invitationId: ID!, status: EventRegistrationInvitationStatus!): EventRegistrationInvitation
-  """
-
-      Update a registration.
-      roles: [USER, TOUR_ADMIN, SUPER_ADMIN]
-      ErrorCodes:
-        * EVENT_IS_STARTED - Cant update registration after a pool has been started in the event
-        * NO_AVAILABLE_SPOT_IN_GROUP - No available spot in group
-    
-  """
-  UpdateRegistration(
-    registrationId: ID!
-    input: UpdateRegistrationInput!
-    asRole: MutationUserRoleType
-  ): Registration
-  """
-
-      roles: [TOUR_ADMIN, SUPER_ADMIN]
-
-      ErrorCodes:
-        * INVALID_POOL_STATUS - Event has open or completed pool
-        * EVENT_MAX_SPOTS_REACHED - No free spot in the event
-      
-  """
+  UpdateRegistration(registrationId: ID!, input: UpdateRegistrationInput!, asRole: MutationUserRoleType): Registration
   UpdateRegistrationStatus(registrationId: ID!, status: RegistrationStatus!, asRole: MutationUserRoleType): Registration
-  """
-
-      roles: [TOUR_ADMIN, SUPER_ADMIN]
-
-      ErrorCodes:
-        * INVALID_POOL_STATUS - Event has open or completed pool
-        * EVENT_MAX_SPOTS_REACHED - No free spot in the event
-      
-  """
-  UpdateTeamRegistrationStatus(
-    registrationId: ID!
-    status: RegistrationStatus!
-    asRole: MutationUserRoleType
-  ): TeamRegistration
-  """
-
-      Update a team registration.
-      roles: [USER, TOUR_ADMIN, SUPER_ADMIN]
-      ErrorCodes:
-        * EVENT_IS_STARTED - Cant update registration after a pool has been started in the event
-    
-  """
-  UpdateTeamRegistration(
-    registrationId: ID!
-    input: UpdateTeamRegistrationInput!
-    asRole: MutationUserRoleType
-  ): TeamRegistration
-  """
-
-      Update result
-
-      ErrorCodes:
-        * RESULT_IS_SIGNED - Sign-result is enabled and player has signed the results
-        * GROUP_HAS_MARSHALL - When a group has an assigned marshall only that user can update scores
-        * POOL_NOT_OPEN - Pool is not open
-        * GROUP_NOT_OPEN - Group is not open
-    
-  """
+  UpdateTeamRegistrationStatus(registrationId: ID!, status: RegistrationStatus!, asRole: MutationUserRoleType): TeamRegistration
+  UpdateTeamRegistration(registrationId: ID!, input: UpdateTeamRegistrationInput!, asRole: MutationUserRoleType): TeamRegistration
   UpdateResult(resultId: ID!, input: UpdateResultInput!, asRole: MutationUserRoleType): Result
-  """
-
-      Update team result
-
-      ErrorCodes:
-        * RESULT_IS_SIGNED - Sign-result is enabled and player has signed the results
-        * GROUP_HAS_MARSHALL - When a group has an assigned marshall only that user can update scores
-        * POOL_NOT_OPEN - Pool is not open
-        * GROUP_NOT_OPEN - Group is not open
-    
-  """
+  UpsertGroupScore(groupId: ID!, holeId: ID!, userGroupId: ID!, input: UpsertGroupScoreInput!): GroupScore
+  UpsertTeamGroupScore(groupId: ID!, holeId: ID!, teamGroupId: ID!, input: UpsertTeamGroupScoreInput!): TeamGroupScore
   UpdateTeamResult(resultId: ID!, input: UpdateTeamResultInput!, asRole: MutationUserRoleType): TeamResult
-  """
-
-      Update a scorecard for casual play.
-
-      * If the layoutVersion is updated the startHoleId needs to be updated too.
-
-      ErrorCodes:
-        * CANT_CHANGE_LAYOUT_WHEN_RESULT_EXISTS - Cant change layout-version when results exists
-    
-  """
   UpdateScorecard(scorecardId: ID!, input: UpdateScorecardInput!): Scorecard
-  """
-
-      Update a result for a casual play scorecard
-    
-  """
   UpdateScorecardResult(resultId: ID!, input: UpdateScorecardResultInput!): ScorecardResult
-  """
-  roles: [TOUR_ADMIN, SUPER_ADMIN]
-  """
   UpdateTour(tourId: ID!, input: UpdateTourInput!, asRole: MutationUserRoleType): Tour
-  """
-  Updates the profile for the specified user. Admins only
-  """
   UpdateUser(userId: ID!, input: UpdateUserInput!): UserProfile
-  """
-
-      ErrorCodes:
-      * TOUR_HAS_MANAGED_PAYMENT - Tour has MANAGED payment
-    
-  """
   UpdateUserPayment(eventId: ID!, userId: ID!, hasPaid: Boolean!): Boolean
-  """
-
-      ErrorCodes:
-      * TOUR_HAS_MANAGED_PAYMENT - Tour has MANAGED payment
-    
-  """
   UpdateTeamPayment(eventId: ID!, teamId: ID!, hasPaid: Boolean!): Boolean
-  """
-
-      Verify result
-
-      ErrorCodes:
-        * INVALID_RESULT_HASH - Result hash is not matching
-        * CANT_VERIFY_YOUR_OWN_RESULT - Cant verify your own result
-        * VERIFY_MODE_NOT_ACTIVE - VerifyMode is not activated for this event
-        * POOL_NOT_OPEN - Pool is not open
-        * GROUP_NOT_OPEN - Group is not open
-    
-  """
   UpdateVerifyResult(resultId: ID!, isVerified: Boolean!, resultHash: String!, asRole: MutationUserRoleType): Result
-  """
-
-      Verify team result
-
-      ErrorCodes:
-        * INVALID_RESULT_HASH - Result hash is not matching
-        * CANT_VERIFY_YOUR_OWN_RESULT - Cant verify your own result
-        * VERIFY_MODE_NOT_ACTIVE - VerifyMode is not activated for this event
-        * POOL_NOT_OPEN - Pool is not open
-        * GROUP_NOT_OPEN - Group is not open
-    
-  """
   UpdateVerifyTeamResult(resultId: ID!, isVerified: Boolean!, resultHash: String!, asRole: MutationUserRoleType): Result
-  """
-  Update a tax-rate for connected account
-  """
   UpdateTaxRate(taxId: ID!, input: UpdateTaxRateInput!): TaxRate
   UpdateShopItem(shopItemId: ID!, input: UpdateShopItemInput!): ShopItem
   UpdateOrder(orderId: ID!, input: UpdateOrderInput!): Boolean
@@ -4997,316 +3823,140 @@ type RootMutation {
   UpdateRegistrationCriteria(registrationCriteriaId: ID!, input: UpdateRegistrationCriteriaInput!): RegistrationCriteria
   DeleteRegistrationCriteria(registrationCriteriaId: ID!): Boolean
   CreateCourseFacility(courseId: ID!, input: CourseFacilityInput!): CourseFacility
-  """
-
-      Delete a course facility. Can be deleted by global admins and course managers.
-    
-  """
   DeleteCourseFacility(facilityId: ID!): Boolean
-  """
-
-      Adds a course admin to a specific course for a specific user. Admins can only add other admins, to add owner you need to be owner or global admin.
-    
-  """
   AddCourseAdmin(courseId: ID!, userEmail: String!, role: CourseAdministratorRole!): CourseAdministrator
-  """
-
-      Delete a course administrator. Admins can remove other admins and owners can remove owners and admins.
-    
-  """
   RemoveCourseAdmin(courseId: ID!, userId: ID!): Boolean
   CreateHoleUserNote(holeId: ID!, note: String!): HoleUserNote
-  """
-
-      Delete the users note for the hole. Can only be delete by the user themselves.
-    
-  """
   DeleteHoleUserNote(noteId: ID!): Boolean
   UpdateHole(holeId: ID!, input: UpdateHoleInput!): Hole
-  """
-
-      Create a message for the event with visibility based on target audience.
-    
-  """
   CreateEventMessage(eventId: ID!, input: CreateEventMessageInput!): EventMessage
-  """
-
-      Can be updated by any tour admin
-    
-  """
   UpdateEventMessage(messageId: ID!, input: UpdateEventMessageInput!): EventMessage
-  """
-
-      Can be deleted by any tour admin.
-
-  """
   DeleteEventMessage(messageId: ID!): Boolean
-  """
-
-      Create a read receipt for the event message.
-    
-  """
   CreateEventMessageReadReceipt(messageId: ID!): ReadReceipt
-  """
-
-      Delete a read receipt for the event message.
-    
-  """
   DeleteEventMessageReadReceipt(messageId: ID!): Boolean
-  """
-
-      Create a reply for an event message, optionally you can nest it 1 level to add a comment to a reply.
-    
-  """
   CreateEventMessageReply(eventMessageId: ID!, parentMessageId: ID, message: String!): EventMessageReply
-  """
-
-      Update a reply. Can only be done by author or tour admin. In current version we only 
-      allow the toggeling of deleted flag and not updating the message itself
-    
-  """
   UpdateEventMessageReply(eventMessageReplyId: ID!, isDeleted: Boolean!): EventMessageReply
-  """
-
-      Register user device for push services
-    
-  """
-  RegisterDevice(
-    deviceToken: String!
-    platform: RegisteredDevicePlatform!
-    appVersion: String
-  ): RegisteredDevice
-  """
-
-      Delete the registered device
-    
-  """
+  RegisterDevice(deviceToken: String!, platform: RegisteredDevicePlatform!, appVersion: String): RegisteredDevice
   DeleteRegisteredDevice(deviceToken: String!): Boolean
-  """
-  Mark event as a favourite for the user
-  """
   CreateEventFavourite(eventId: ID!): FavouriteEvent
-  """
-
-      Can only be deleted by the user themselves.
-
-  """
   DeleteFavouriteEvent(favouriteId: ID!): Boolean
   ShopCreateItem(eventId: ID!, input: ShopItemInput!, asRole: MutationUserRoleType): ShopItem
-  Refund(
-    orderId: ID!
-    """
-    Refund Amount (in cents). Can't be more than order total amount.
-    """
-    amount: Int!
-  ): Boolean
+  Refund(orderId: ID!, amount: Int!): Boolean
   UpdateRegistrationLineItem(orderId: ID!, refundStatus: Boolean!): Boolean
-  CreateSubscription(
-    successUrl: String!
-    cancelUrl: String!
-    """
-    Currency code it will be used to fetch Stripe Price Id and add to subscription item
-    """
-    currency: String!
-    """
-    Package type it will be used to fetch Stripe Price Id and add to subscription item
-    """
-    tier: PackageTierEnum!
-    """
-    Recurrence type it will be used to fetch Stripe Price Id and add to subscription item
-    """
-    recurrence: RecurrenceEnum!
-  ): Subscription
-  """
-
-      Callable by the TOUR_ADMIN to change the division the user has a tour pass for.
-    
-  """
-  UpdateTourPaymentDivision(
-    tourPaymentId: ID!
-    divisionId: ID!
-    tourPaymentVariant: TourPaymentVariant!
-    updateExistingRegistrations: Boolean
-  ): TourPass
-  """
-
-      Callable by the SUPER_ADMIN to reindex the elastic search db. 
-    
-  """
+  CreateSubscription(successUrl: String!, cancelUrl: String!, currency: String!, tier: PackageTierEnum!, recurrence: RecurrenceEnum!): Subscription
+  UpdateUserTourPassMutation(tourPaymentId: ID!, divisionTourPassId: ID!, tourPaymentVariant: TourPaymentVariant!, updateExistingRegistrations: Boolean): TourPass
   ReindexElasticSearch: ReindexElasticSearch
-  """
-
-      Callable by the SUPER_ADMIN to reindex the elastic search event specified by Id. 
-    
-  """
   ReindexElasticSearchEvent(eventId: ID!): ReindexElasticSearch
   UpdateGroupPlayerOrder(groupId: ID!, playerOrder: [ID!]!): Boolean
-  """
-
-    ErrorCodes:
-      * INVALID_POOL_STATUS - Cant update group order when the pool is started
-
-  """
   UpdateGroupOrder(poolId: ID!, groupsOrder: [ID!]!): Boolean
   CreateCourseLayoutReview(layoutId: ID!, layoutVersionId: ID!, input: CreateCourseLayoutReviewInput!): CourseLayoutReview
   UpdateCourseLayoutReview(reviewId: ID!, input: UpdateCourseLayoutReviewInput!): CourseLayoutReview
-  """
-
-      ErrorCodes: Can be deleted by the user or the course manager
-    
-  """
   DeleteCourseLayoutReview(reviewId: ID!): Boolean
   CreateTransferTourOwnership(email: String!, tourId: String!): TransferTourOwnershipType
   CancelTransferTourOwnership(transferId: ID!): TransferTourOwnershipType
   AcceptRejectTransferTourOwnership(token: String!, status: TourTransferStatus!): TransferTourOwnershipType
-  """
-  Create a division attributes override for a division on an event.
-  """
   CreateDivisionOverride(eventId: ID!, divisionId: ID!, input: CreateEventDivisionOverrideInput!): EventDivisionOverride
-  """
-
-    Update the event division override
-    
-  """
-  UpdateDivisionOverride(
-    eventRegistrationFeeId: ID!
-    input: UpdateEventDivisionOverrideInput!
-  ): EventDivisionOverride
-  """
-
-      Remove event division override
-    
-  """
+  UpdateDivisionOverride(eventRegistrationFeeId: ID!, input: UpdateEventDivisionOverrideInput!): EventDivisionOverride
   DeleteDivisionOverride(divisionOverrideId: ID!): Boolean
-  """
-
-  """
   CreateFreeOrder(eventId: ID!, lineItems: [CreateFreeOrderInputType]!): FreeOrder
   CreateOrganization(input: OrganizationInput!): Organization
   UpdateOrganization(organizationId: String!, input: UpdateOrganizationInput!): Organization
   DeleteOrganization(organizationId: String!): Boolean
-  """
-  roles: [ADMIN, OWNER]
-  """
-  AddOrganizationAdministrator(
-    organizationId: ID!
-    userId: ID!
-    asRole: OrganizationAdministrationRole
-  ): OrganizationAdministrator
-  """
-
-      Delete an organization administrator. Admins can remove other admins and owners can remove owners and admins.
-    
-  """
+  AddOrganizationAdministrator(organizationId: ID!, userId: ID!, asRole: OrganizationAdministrationRole): OrganizationAdministrator
   RemoveOrganizationAdministrator(organizationId: ID!, userId: ID!): Boolean
   CreateOrganizationMemberType(input: OrganizationMemberTypeInput!): OrganizationMemberType
   UpdateOrganizationMemberType(input: UpdateOrganizationMemberTypeInput!): OrganizationMemberType
   CreateOrganizationMember(membershipTypeId: ID!): OrganizationMember
-  UpdateOrganizationMember(
-    membershipId: ID!
-    asRole: UpdateOrganizationMemberRoleType!
-    input: UpdateOrganizationMemberInput!
-  ): OrganizationMember
+  UpdateOrganizationMember(membershipId: ID!, asRole: UpdateOrganizationMemberRoleType!, input: UpdateOrganizationMemberInput!): OrganizationMember
   DeleteOrganizationMember(membershipId: String!, asRole: DeleteOrganizationMemberRole!): Boolean
-  CreateOrganizationCourseRelation(
-    organizationId: ID!
-    courseId: ID!
-    relationType: OrganizationCourseRelationType!
-  ): OrganizationCourseRelation
+  CreateOrganizationCourseRelation(organizationId: ID!, courseId: ID!, relationType: OrganizationCourseRelationType!): OrganizationCourseRelation
   DeleteOrganizationCourseRelation(courseRelationId: ID!): Boolean
   CreateOrganizationContent(organizationId: ID!, input: OrganizationContentInput!): OrganizationContent
   UpdateOrganizationContent(contentId: ID!, input: UpdateOrganizationContentInput!): Organization
   DeleteOrganizationContent(contentId: ID!): Boolean
-  """
-  Remove specified document from the organizations content
-  """
   DeleteOrganizationContentDocument(documentId: ID!, url: ID!): Boolean
-  CreateMembershipCheckoutSession(
-    successUrl: String!
-    cancelUrl: String!
-    membershipItem: CreateMembershipInput!
-  ): CheckoutSession
-  """
-  Create question for users to awnser 
-  """
+  CreateMembershipCheckoutSession(successUrl: String!, cancelUrl: String!, membershipItem: CreateMembershipInput!): CheckoutSession
   CreateRegistrationQuestion(eventId: ID!, input: RegistrationQuestionInputType!): RegistrationQuestion
-  """
-  Update question for users to awnser, certain criters apply when you can update a question and how.
-  """
   UpdateRegistrationQuestion(questionId: ID!, input: UpdateRegistrationQuestionInputType!): RegistrationQuestion
-  """
-  Update question for users to awnser 
-  """
   DeleteRegistrationQuestion(questionId: ID!): Boolean
-  """
-  Create response to a registration question
-  """
   CreateRegistrationQuestionResponse(questionId: ID!, value: String, options: [String]): RegistrationQuestion
-  """
-
-      Send an email to the guardian of specified course with custom message from user.
-
-      ErrorCodes:
-        * NOT_FOUND - Invalid courseId
-        * NO_COURSE_GUARDIAN - Course has no guardian.
-        * INVALID_LENGTH - Message has an invalid length.
-    
-  """
+  CreateDisc(input: CreateDiscInput!, storageId: ID): Disc
+  UpdateDisc(discId: ID, input: UpdateDiscInput!): Disc
+  DeleteDisc(discId: ID!): Boolean
+  CreateThrows(holeId: ID!, scorecardPlayerId: ID, groupPlayerId: ID, groupTeamPlayerId: ID, input: [CreateThrowsInput!]!): [Throw]
+  UpdateThrow(throwId: ID!, input: UpdateThrowInput!): Throw
+  DeleteThrow(throwId: ID!): Boolean
   ContactCourseGuardian(courseId: ID!, message: String!): Boolean
   AddTourOrganizer(tourId: ID!, organizationId: ID!): Boolean
   RemoveTourOrganizer(organizationId: ID!, tourId: ID!): Boolean
-  CreateOrganizationOfficial(
-    organizationId: ID!
-    email: String!
-    input: CreateOrganizationRoleInput!
-  ): OrganizationOfficialType
+  CreateOrganizationOfficial(organizationId: ID!, email: String!, input: CreateOrganizationRoleInput!): OrganizationOfficialType
   UpdateOrganizationOfficial(officialId: ID!, email: String, input: UpdateOrganizationRoleInput!): OrganizationOfficialType
   DeleteOrganizationOfficial(officialId: ID!): Boolean
-  """
-  Used by admin of either organization or association to set the status of the connection.
-  """
   UpdateOrganizationConnectionStatus(organizationId: String!, connectionStatus: OrganizationConnectionStatusType!): Organization
   CreateCustomLeaderboardSystem(tourId: ID!, input: CreateEventPointsMapInput!): EventCustomPointsMap
   UpdateCustomLeaderboardSystem(systemId: ID!, input: UpdateEventPointsMapInput!): EventCustomPointsMap
   DeleteLeaderboardPointsMap(systemId: ID!): Boolean
-  """
-
-    ErrorCodes:
-      * INVALID_TARGET_GROUP - Swapping within group not allowed, use proper mutation instead.
-      * PLAYER_NOT_PART_OF_GROUP - Player is not in group
-      * POOL_IS_COMPLETED - Cant remove player from group if pool is completed
-      * GROUP_NOT_CLOSED - Cant remove player from group after group is started
-
-  """
   MoveAllPlayersBetweenGroups(sourceGroupId: ID!, targetGroupId: ID!): Boolean
-  """
-
-    ErrorCodes:
-      * INVALID_TARGET_GROUP - Swapping within group not allowed, use proper mutation instead.
-      * PLAYER_NOT_PART_OF_GROUP - Player is not in group
-      * POOL_IS_COMPLETED - Cant remove player from group if pool is completed
-      * GROUP_NOT_CLOSED - Cant remove player from group after group is started
-
-  """
   SwapPlayersBetweenGroups(sourcePlayerId: ID!, sourceGroupId: ID!, targetPlayerId: ID, targetGroupId: ID!): Boolean
-  """
-
-    ErrorCodes:
-      * INVALID_TARGET_GROUP - Swapping within group not allowed, use proper mutation instead.
-      * PLAYER_NOT_PART_OF_GROUP - Player is not in group
-      * POOL_IS_COMPLETED - Cant remove player from group if pool is completed
-      * GROUP_NOT_CLOSED - Cant remove player from group after group is started
-
-  """
   SwapTeamsBetweenGroups(sourceTeamPlayerId: ID!, sourceGroupId: ID!, targetTeamPlayerId: ID, targetGroupId: ID!): Boolean
   CreateEventCountryRestriction(eventId: ID!, countryCode: CountryCode!, isBlacklist: Boolean!): EventCountryRestriction
   DeleteEventCountryRestriction(countryRestrictionId: ID!): Boolean
+  CreateOrganizationLeaderboard(input: OrganizationLeaderboardInput!): OrganizationLeaderboard
+  UpdateOrganizationLeaderboard(leaderboardId: ID!, input: OrganizationLeaderboardUpdateInput!): OrganizationLeaderboard
+  DeleteOrganizationLeaderboard(leaderboardId: String!): Boolean
+  AddEventsToOrganizationLeaderboard(leaderboardId: ID!, eventIds: [ID!]!): Boolean
+  RemoveEventsFromOrganizationLeaderboard(leaderboardId: ID!, eventIds: [ID!]!): Boolean
+  AddBestOfToOrganizationLeaderboard(leaderboardId: ID!, tourConfigs: [LeaderboardTourConfig!]!): Boolean
+  UpdateBestOfToOrganizationLeaderboard(leaderboardConfigId: ID!, scoreBasedOnNumberOfEvents: Float!): OrganizationLeaderboardConfiguration
+  DeleteBestOffFromOrganizationLeaderboard(leaderboardConfigId: ID!): Boolean
+  CreateUserSponsor(input: UserSponsorInput!): UserSponsor
+  UpdateUserSponsor(sponsorId: ID!, input: UpdateUserSponsorInput!): UserSponsor
+  DeleteUserSponsor(sponsorId: ID!): Boolean
+  UpdateScorecardUser(playerId: ID!, scorecardId: ID!, scoringMode: ScoringModeType!): ScorecardPlayer
+  CreateEventPlayerPenalty(eventId: ID!, input: CreateEventPenaltyInput!): EventPlayerPenalty
+  UpdateEventPlayerPenalty(penaltyId: ID!, input: UpdateEventPenaltyInput!): EventPlayerPenalty
+  DeleteEventPlayerPenalty(penaltyId: ID!): Boolean
+  CreateEventPlayerBoon(eventId: ID!, input: CreateEventBoonInput!): EventPlayerBoon
+  UpdateEventPlayerBoon(id: ID!, par: Float, score: Float, points: Float, onlyApplicableForTour: Boolean, icon: BoonIcon, reason: String): EventPlayerBoon
+  DeleteEventPlayerBoon(boonId: ID!): Boolean
+  RequestEmailChange(currentPassword: String!, newEmail: String!): Boolean
+  ChangeEmail(emailToken: String!): Boolean
+  CreateRandomEventTeams(eventId: ID!, input: [TeamConfigurationInput]!): Boolean
+  DeleteRandomEventTeams(eventId: ID!): Boolean
+  CreateEventGame(eventId: ID!, input: CreateEventGameInput): EventGame
+  UpdateEventGame(eventGameId: ID!, input: UpdateEventGameInput!): EventGame
+  DeleteEventGame(eventGameId: ID!): Boolean
+  CreateEventGameRound(eventGameId: ID!, input: CreateEventGameRoundInput): EventGame
+  UpdateEventGameRound(eventGameRoundId: ID!, input: UpdateEventGameRoundInput!): EventGameRound
+  DeleteEventGameRound(eventGameRoundId: ID!): Boolean
+  CreateEventGamePlayers(eventGameId: ID!, eventUserIds: [ID!]!): [EventGamePlayer]
+  DeleteEventGamePlayers(eventGameId: ID!, gamePlayerIds: [ID!]!): Boolean
+  CreateEventGameStationLayout(name: String!, type: EventGameCategory!, stations: [CreateEventGameStationInput]!): EventGameStationLayout!
+  CreateEventGameScorecardAttempt(eventGameScorecardUserId: ID!, score: Float!, eventGameStationId: ID!, attemptNumber: Float!): EventGameScorecardAttempt
+  UpdateEventGameScorecardAttempt(attemptId: ID!, score: Float!): EventGameScorecardAttempt
+  DeleteEventGameScorecardAttempt(attemptId: ID!): Boolean
+  UpdateEventGameScorecard(gameScorecardId: ID!, status: EventGameScorecardStatus!): EventGameScorecard
+  CreateEventGameRoundPlayers(eventGameRoundId: ID!, eventGamePlayerIds: [ID!]!): [EventGamePlayer]
+  RemoveEventGameRoundPlayers(scorecardUserIds: [ID!]!): Boolean
+  CreateTourPass(input: CreateTourPassInput!): TourPass
+  UpdateTourPass(id: ID!, input: UpdateTourPassInput!): TourPass
+  DeleteTourPass(id: ID!): Boolean
+  PurchaseTourPass(input: PurchaseTourPassInput!, successUrl: String!, cancelUrl: String!): CheckoutSession
+  RecalculatePoolRatings(poolId: ID!): Pool
+  CreateFriendshipRequest(receiverUserId: ID!): FriendshipRequest
+  AcceptRejectFriendshipRequest(friendshipRequestId: ID!, acceptRequest: Boolean!, cancelRequest: Boolean): Boolean
+  UpdateFriendship(friendshipId: ID!, input: UpdateFriendshipInput!): Boolean
+  RemoveFriendship(friendshipId: ID!): Boolean
+  GenerateEventGalleryUploadParams(eventId: ID!): SignedUploadParams
+  UpdateEventGalleryImage(uploadToken: String!, imageUrl: String!, description: String): EventGalleryImage
+  UpdateEventGalleryImageAdmin(id: ID!, status: GalleryImageStatus, description: String): EventGalleryImage
+  DeleteEventGalleryImage(id: ID!): Boolean
+  RefreshPdgaData: RefreshPdgaDataResponse
+  UpdatePremiumSubscriptionStatus: Boolean
 }
 
-"""
-In what role the mutation should run as.
-  If the role-check fails an NOT_AUTHORIZED error will be returned
-"""
+"""In what role the mutation should run as.
+  If the role-check fails an NOT_AUTHORIZED error will be returned"""
 enum MutationUserRoleType {
   USER
   TOUR_ADMIN
@@ -5315,47 +3965,18 @@ enum MutationUserRoleType {
 }
 
 input CreateAccountInput {
-  """
-
-          minLength: 2
-          maxLength: 50
-        
-  """
   firstName: String!
-  """
-
-          minLength: 2
-          maxLength: 50
-        
-  """
   lastName: String!
   email: String!
   password: String!
-  """
-
-          minValue: 1
-          maxValue: 1000000
-        
-  """
   pdgaNumber: Float
-  """
-
-          minLength: 2
-          maxLength: 50
-        
-  """
   club: String
   country: CountryCode
   phone: String
-  """
-  Has to be 4 numbers. Cant be all same numbers like 1111 and cant be 1234
-  """
   pinCode: String
 }
 
-"""
-Token is used in Authorization header to authenticate
-"""
+"""Token is used in Authorization header to authenticate"""
 type AuthToken {
   userId: ID!
   token: String!
@@ -5363,40 +3984,18 @@ type AuthToken {
 }
 
 input CourseInput {
-  """
-
-          minLength: 2
-          maxLength: 50
-        
-  """
   name: String!
   address: String
   phone: String
   website: String
   type: CourseType
   geolocation: GeolocationInput
-  """
-
-          maxLength: 2500
-        
-  """
   description: String
   access: CourseAccessType
-  """
-
-          maxLength: 500
-        
-  """
   feeInformation: String
 }
 
 input TeamInput {
-  """
-
-          minLength: 2
-          maxLength: 50
-        
-  """
   name: String!
   type: TeamType
   teamPlayers: [TeamPlayerInputByTeam]!
@@ -5407,12 +4006,6 @@ input TeamPlayerInputByTeam {
 }
 
 input UpdateTeamInput {
-  """
-
-          minLength: 2
-          maxLength: 50
-        
-  """
   name: String
   archived: Boolean
   active: Boolean
@@ -5432,173 +4025,46 @@ input UpdateTeamPlayerInput {
 input DivisionInput {
   type: String!
   taxRateId: ID
-  """
-
-          minValue: 1
-          maxValue: 999
-        
-  """
   maxSpots: Float
-  """
-
-          minValue: 1
-          maxValue: 999
-        
-  """
   reservedSpots: Float
-  """
-
-          minValue: 999
-          maxValue: 1
-        
-  """
   maxRegistrations: Float
-  """
-
-          minValue: 0
-          maxValue: 10000
-        
-  """
   registrationFee: Float
-  """
-
-          minValue: 1
-          maxValue: 10000
-        
-  """
+  membershipRegistrationFee: Float
   tourPassFee: Float
-  """
-
-        Properties to use with custom divisions to apply type and name
-        
-  """
+  membershipTourPassFee: Float
   customDivision: CustomDivisionInput
-  """
-  Can only be  applied to PDGA divisions that have age restrictions
-  """
   isAgeRestricted: Boolean
-  """
-  Can only be  applied to Female PDGA divisions
-  """
   isGenderLocked: Boolean
+  refundPercentage: Float
 }
 
 input CustomDivisionInput {
-  """
-
-          minLength: 3
-          maxLength: 4
-        
-  """
   customType: String
-  """
-
-          minLength: 3
-          maxLength: 20
-        
-  """
   customName: String
 }
 
 input EventInput {
-  """
-
-          minLength: 2
-          maxLength: 70
-        
-  """
   name: String!
-  """
-
-          maxLength: 1500
-        
-  """
   description: String
-  """
-
-          minValue: 1
-          maxValue: 999
-        
-  """
   maxSpots: Float
-  """
-
-          minValue: 1
-          maxValue: 999
-        
-  """
   maxRegistrations: Float
-  """
-
-          minValue: 0
-          maxValue: 99
-        
-  """
   maxWildcards: Float
+  minGroupStartSize: Float
+  registrationMethod: RegistrationMethod!
   registrationOpenAt: DateTime
   registrationCloseAt: DateTime
-  """
-
-          maxLength: 50
-        
-  """
   tournamentDirectorName: String
-  """
-
-          maxLength: 50
-        
-  """
   assistantTournamentDirectorName: String
-  """
-
-          maxLength: 50
-        
-  """
   assistantTournamentDirectorPhone: String
-  """
-
-          maxLength: 50
-        
-  """
   assistantTournamentDirectorEmail: String
-  """
-
-          maxLength: 50
-        
-  """
   phone: String
   email: String
-  """
-
-          maxLength: 200
-        
-  """
   registrationFeesInfo: String
-  """
-
-          maxLength: 200
-        
-  """
   paymentInfo: String
-  """
-
-          maxLength: 250
-        
-  """
   location: String
-  """
-
-          maxLength: 200
-        
-  """
   website: String
   isVerifyMode: Boolean
-  """
-
-          minValue: 2
-          maxValue: 5
-        
-  """
+  ratingEnabled: Boolean
   groupSize: Float
   isResultSigningEnabled: Boolean
   multipleScorecardModeEnabled: Boolean
@@ -5608,21 +4074,20 @@ input EventInput {
   checkInStartsAt: DateTime
   checkInEndsAt: DateTime
   autoOpenRegistration: Boolean
-  singles: Boolean
+  autoConfirmRegistrations: Boolean
+  singles: Boolean!
+  scoringAs: ScoringAs!
   defaultToTeamName: Boolean
   teamSize: Float
-  """
-  Default is `true`
-  """
   autoCloseInactivePools: Boolean
   pdgaEventId: String
   pdgaType: PdgaEventTypeEnum
-  """
-  Toggle between waitinglist modes
-  """
   waitinglistType: WaitingListTypeEnum
   agreementName: String
   agreementUrl: String
+  requireOfficialStatus: Boolean
+  requireOrganizationMembership: Boolean
+  type: EventCategoryEnum
 }
 
 input GroupInput {
@@ -5631,22 +4096,14 @@ input GroupInput {
 }
 
 enum RoundGroupCreationMethod {
-  """
-  Creates groups without adding any players
-  """
+  """Creates groups without adding any players"""
   GROUPS_ONLY
-  """
-  Players are added to groups by random
-  """
+  """Players are added to groups by random"""
   RANDOM
-  """
-  Players are added to groups by random within their
-        respective division.
-  """
+  """Players are added to groups by random within their
+      respective division."""
   RANDOM_WITHIN_DIVISION
-  """
-  Players are added to groups ordered by score and by division. This can not be used on round 1
-  """
+  """Players are added to groups ordered by score and by division. This can not be used on round 1"""
   SCOREANDDIVISION
 }
 
@@ -5657,25 +4114,15 @@ input RoundDivisionAssigmentInput {
 }
 
 enum PoolGroupCreationMethod {
-  """
-  Creates groups without adding any players
-  """
+  """Creates groups without adding any players"""
   GROUPS_ONLY
-  """
-  Players are added to groups by random
-  """
+  """Players are added to groups by random"""
   RANDOM
-  """
-  Players are added to groups by random within their respective divisions
-  """
+  """Players are added to groups by random within their respective divisions"""
   RANDOM_WITHIN_DIVISION
-  """
-  Players are added to groups ordered by score and by division
-  """
+  """Players are added to groups ordered by score and by division"""
   SCOREANDDIVISION
-  """
-  Players are added to same groups as past round. This can not be used on round 1
-  """
+  """Players are added to same groups as past round. This can not be used on round 1"""
   SAME_GROUPS
 }
 
@@ -5685,12 +4132,6 @@ input DivisionAssigmentInput {
 }
 
 input LayoutInput {
-  """
-
-          minValue: 2
-          maxValue: 50
-        
-  """
   name: String!
   holes: [HoleInput]!
   type: CourseType
@@ -5704,46 +4145,12 @@ input LayoutInput {
 }
 
 input HoleInput {
-  """
-
-          minValue: 1
-          maxValue: 99
-        
-  """
   number: Float!
-  """
-
-          minValue: 1
-          maxValue: 99
-        
-  """
   par: Float!
-  """
-
-          minLength: 0
-          maxLength: 50
-        
-  """
   name: String
-  """
-
-          minLength: 0
-          maxLength: 9999
-        
-  """
   length: Float
   measureInMeters: Boolean
-  """
-
-        Set of coordinates indicating exact position of the Teepad, fairway (1 or many points) and basket in that order.
-        
-  """
   geolocation: [GeolocationInput]
-  """
-
-          maxLength: 1000
-        
-  """
   note: String
   hasOb: Boolean
   hasHazard: Boolean
@@ -5757,18 +4164,10 @@ input CreateLayoutVersionInput {
 
 input PoolInput {
   date: DateTime!
-  layoutVersionId: ID!
-  """
-  Default is SHOTGUN
-  """
+  endDate: DateTime
+  layoutVersionId: ID
   startMethod: PoolStartMethod
-  """
-  Only used for doubles or team play to set what play format is used for the pool.
-  """
   playFormat: PoolPlayFormat
-  """
-  Default is 'false'
-  """
   areGroupsPublic: Boolean
 }
 
@@ -5778,6 +4177,7 @@ input ResultInput {
   isOutsidePutt: Boolean!
   isInsidePutt: Boolean!
   isOutOfBounds: Boolean!
+  penaltyStrokes: Int
 }
 
 type TeamResult {
@@ -5787,6 +4187,7 @@ type TeamResult {
   isOutsidePutt: Boolean!
   isInsidePutt: Boolean!
   isOutOfBounds: Boolean!
+  penaltyStrokes: Float!
   createdByUserId: ID!
   hash: String!
   createdAt: DateTime!
@@ -5807,6 +4208,7 @@ input TeamResultInput {
   isOutsidePutt: Boolean!
   isInsidePutt: Boolean!
   isOutOfBounds: Boolean!
+  penaltyStrokes: Float
 }
 
 input CreateScorecardInput {
@@ -5814,214 +4216,74 @@ input CreateScorecardInput {
   layoutVersionId: ID!
   startHoleId: ID!
   playFormat: ScorecardPlayFormat
+  name: String
 }
 
 input CreateScorecardResultInput {
   score: Float!
+  isTapIn: Boolean
   isCircleHit: Boolean
   isOutsidePutt: Boolean
   isInsidePutt: Boolean
   isOutOfBounds: Boolean
+  penaltyStrokes: Float
 }
 
 input TourInput {
-  """
-
-          minLength: 3
-          maxLength: 70
-        
-  """
   name: String!
-  """
-  Default PAR
-  """
   scoringType: ScoringType
-  """
-  Default LIST
-  """
-  registrationMethod: RegistrationMethod
-  """
-
-          minValue: 2
-          maxValue: 52
-        
-  """
   scoreBasedOnNrOfEvents: Float
-  """
-  Default MANUAL
-  """
   paymentType: TourPaymentType
   connectedAccountId: ID
-  """
-  Only applicable if paymentType=MANAGED
-  """
   automaticRefunds: Boolean
   type: String
-  """
-  By default messages are not allowed (default value false)
-  """
   allowRegistrationMessage: Boolean
-  """
-  If fee included or not
-  """
   feeIncluded: Boolean
-  """
-  Tour currency
-  """
   currency: String
 }
 
 input ExtendedTourInput {
-  """
-
-          minLength: 3
-          maxLength: 70
-        
-  """
   name: String!
-  """
-  Default PAR
-  """
   scoringType: ScoringType
-  """
-  Default LIST
-  """
-  registrationMethod: RegistrationMethod
-  """
-
-          minValue: 2
-          maxValue: 52
-        
-  """
   scoreBasedOnNrOfEvents: Float
-  """
-  Default MANUAL
-  """
   paymentType: TourPaymentType
   connectedAccountId: ID
-  """
-  Only applicable if paymentType=MANAGED
-  """
   automaticRefunds: Boolean
   type: String
   events: [ExtendedEventInput!]
   divisions: [DivisionInput!]
   allowRegistrationMessage: Boolean
-  """
-  If fee included or not
-  """
   feeIncluded: Boolean
-  """
-  Tour currency
-  """
   currency: String
 }
 
 input ExtendedEventInput {
-  """
-
-          minLength: 2
-          maxLength: 70
-        
-  """
   name: String!
-  """
-
-          maxLength: 1500
-        
-  """
   description: String
-  """
-
-          minValue: 1
-          maxValue: 999
-        
-  """
   maxSpots: Float
-  """
-
-          minValue: 1
-          maxValue: 999
-        
-  """
   maxRegistrations: Float
-  """
-
-          minValue: 0
-          maxValue: 99
-        
-  """
   maxWildcards: Float
   defaultToTeamName: Boolean
-  singles: Boolean
+  singles: Boolean!
+  scoringAs: ScoringAs!
   teamSize: Float
   rounds: [RoundInput!]
   registrationOpenAt: DateTime
   registrationCloseAt: DateTime
-  """
-
-          maxLength: 50
-        
-  """
   tournamentDirectorName: String
-  """
-
-          maxLength: 50
-        
-  """
   assistantTournamentDirectorName: String
-  """
-
-          maxLength: 50
-        
-  """
   assistantTournamentDirectorPhone: String
-  """
-
-          maxLength: 50
-        
-  """
   assistantTournamentDirectorEmail: String
-  """
-
-          maxLength: 50
-        
-  """
   phone: String
   email: String
-  """
-
-          maxLength: 200
-        
-  """
   registrationFeesInfo: String
-  """
-
-          maxLength: 200
-        
-  """
   paymentInfo: String
-  """
-
-          maxLength: 250
-        
-  """
   location: String
-  """
-
-          maxLength: 200
-        
-  """
   website: String
   isVerifyMode: Boolean
   isResultSigningEnabled: Boolean
+  ratingEnabled: Boolean
   multipleScorecardModeEnabled: Boolean
-  """
-
-          minValue: 2
-          maxValue: 5
-        
-  """
   groupSize: Float
   connectedAccountId: ID
   cityId: ID
@@ -6029,18 +4291,17 @@ input ExtendedEventInput {
   checkInStartsAt: DateTime
   checkInEndsAt: DateTime
   autoOpenRegistration: Boolean
-  """
-  Default is `true`
-  """
   autoCloseInactivePools: Boolean
+  autoConfirmRegistrations: Boolean
   pdgaEventId: String
   pdgaType: PdgaEventTypeEnum
-  """
-  Toggle between waitinglist modes
-  """
   waitinglistType: WaitingListTypeEnum
   agreementName: String
   agreementUrl: String
+  registrationMethod: RegistrationMethod
+  requireOfficialStatus: Boolean
+  requireOrganizationMembership: Boolean
+  type: EventCategoryEnum
 }
 
 input RoundInput {
@@ -6048,35 +4309,13 @@ input RoundInput {
 }
 
 input CreateTaxRateInput {
-  """
-
-          minLength: 2
-          maxLength: 50
-        
-  """
   name: String!
-  """
-
-        min: 0
-        maxLength: 100
-      
-  """
   percentage: Float!
-  """
-  Is tax inclusive? Default: false
-  """
   inclusive: Boolean = false
-  """
-
-          maxLength: 50
-        
-  """
   description: String
 }
 
-"""
-Information about checkout session
-"""
+"""Information about checkout session"""
 type CheckoutSession {
   id: String!
   url: String!
@@ -6100,6 +4339,7 @@ input CreateRegistrationInput {
   groupId: ID
   message: String
   includeTourPass: Boolean = false
+  tourPassId: ID
   teamId: ID
   questionResponses: [CreateRegistrationQuestionResponseInput]
 }
@@ -6159,179 +4399,60 @@ input UpdateAnonymousUserInput {
 }
 
 input UpdateCourseInput {
-  """
-
-          minLength: 2
-          maxLength: 50
-        
-  """
   name: String
   address: String
   phone: String
   website: String
   type: CourseType
   geolocation: GeolocationInput
-  """
-
-          maxLength: 2500
-        
-  """
   description: String
   paymentInformation: String
   access: CourseAccessType
   payToPlay: Boolean
   isPublished: Boolean
   publicStats: Boolean
+  disableReviews: Boolean
+  courseImageId: ID
 }
 
 input UpdateDivisionInput {
   taxRateId: ID
-  """
-
-          minValue: 1
-          maxValue: 999
-        
-  """
   maxSpots: Float
-  """
-
-          minValue: 1
-          maxValue: 999
-        
-  """
   reservedSpots: Float
-  """
-
-          minValue: 999
-          maxValue: 1
-        
-  """
   maxRegistrations: Float
-  """
-
-          minValue: 0
-          maxValue: 10000
-        
-  """
   registrationFee: Float
-  """
-
-          minValue: 1
-          maxValue: 10000
-        
-  """
+  membershipRegistrationFee: Float
   tourPassFee: Float
-  """
-  Can only be  applied to PDGA divisions that have age restrictions
-  """
+  membershipTourPassFee: Float
   isAgeRestricted: Boolean
-  """
-  Can only be  applied to Female PDGA divisions
-  """
   isGenderLocked: Boolean
+  refundPercentage: Float
 }
 
 input UpdateEventInput {
-  """
-
-          minLength: 2
-          maxLength: 70
-        
-  """
   name: String
-  """
-
-          maxLength: 1500
-        
-  """
   description: String
-  """
-
-          minValue: 1
-          maxValue: 999
-        
-  """
   maxSpots: Float
-  """
-
-          minValue: 1
-          maxValue: 999
-        
-  """
   maxRegistrations: Float
   isRegistrationOpen: Boolean
-  """
-
-          minValue: 0
-          maxValue: 99
-        
-  """
   maxWildcards: Float
+  minGroupStartSize: Float
+  registrationMethod: RegistrationMethod
   registrationOpenAt: DateTime
   registrationCloseAt: DateTime
-  """
-
-          maxLength: 50
-        
-  """
   tournamentDirectorName: String
-  """
-
-          maxLength: 50
-        
-  """
   assistantTournamentDirectorName: String
-  """
-
-          maxLength: 50
-        
-  """
   assistantTournamentDirectorPhone: String
-  """
-
-          maxLength: 50
-        
-  """
   assistantTournamentDirectorEmail: String
-  """
-
-          maxLength: 50
-        
-  """
   phone: String
   email: String
-  """
-
-          maxLength: 200
-        
-  """
   registrationFeesInfo: String
-  """
-
-          maxLength: 200
-        
-  """
   paymentInfo: String
-  """
-
-          maxLength: 250
-        
-  """
   location: String
-  """
-
-          maxLength: 200
-        
-  """
   website: String
   isPublished: Boolean
   isVerifyMode: Boolean
-  """
-
-          minValue: 2
-          maxValue: 5
-        
-  """
+  ratingEnabled: Boolean
   groupSize: Float
   isResultSigningEnabled: Boolean
   multipleScorecardModeEnabled: Boolean
@@ -6341,43 +4462,30 @@ input UpdateEventInput {
   checkInStartsAt: DateTime
   checkInEndsAt: DateTime
   autoOpenRegistration: Boolean
-  """
-  Default is `true`
-  """
   autoCloseInactivePools: Boolean
+  autoConfirmRegistrations: Boolean
   pdgaEventId: String
   pdgaType: PdgaEventTypeEnum
-  """
-  Toggle between waitinglist modes
-  """
   waitinglistType: WaitingListTypeEnum
   agreementName: String
   agreementUrl: String
-  """
-  Only used for doubles/team events
-  """
   defaultToTeamName: Boolean
-  """
-  Only used for doubles/team events, can only be changed until there is a registration made for the event.
-  """
   teamSize: Float
   licenceRequiredFromAssociationId: String
   requireLicenceFromForeignPlayers: Boolean
+  coverImageId: ID
+  requireOfficialStatus: Boolean
+  requireOrganizationMembership: Boolean
 }
 
 input UpdateGroupInput {
   startHoleId: ID
   startsAt: DateTime
   setAsDesignatedScorer: ID
+  verifierDisabled: Boolean
 }
 
 input UpdateLayoutInput {
-  """
-
-          minValue: 2
-          maxValue: 50
-        
-  """
   name: String
   type: CourseType
   published: Boolean
@@ -6396,124 +4504,52 @@ input UpdateLayoutInput {
 }
 
 input UpdateLayoutVersionInput {
-  holes: [HoleInput]!
+  difficulty: DifficultyInput
+  holes: [HoleInput]
+}
+
+input DifficultyInput {
+  distance: Float!
+  terrain: Float!
+  precision: Float!
+  obstacles: Float!
 }
 
 input UpdateMeUserInput {
   isPublicProfile: Boolean
-  """
-
-          minLength: 2
-          maxLength: 50
-        
-  """
   firstName: String
-  """
-
-          minLength: 2
-          maxLength: 50
-        
-  """
   lastName: String
-  """
-
-          minLength: 2
-          maxLength: 50
-        
-  """
   club: String
-  """
-
-          minLength: 2
-          maxLength: 200
-        
-  """
   instagram: String
-  """
-
-          minLength: 2
-          maxLength: 200
-        
-  """
   facebook: String
-  """
-
-          minLength: 2
-          maxLength: 200
-        
-  """
   twitter: String
-  """
-
-          minLength: 2
-          maxLength: 200
-        
-  """
   youtube: String
-  """
-
-          minLength: 2
-          maxLength: 200
-        
-  """
   tiktok: String
-  """
-
-          minLength: 2
-          maxLength: 200
-        
-  """
   sponsor: String
-  """
-
-          minLength: 2
-          maxLength: 1500
-        
-  """
   biography: String
-  """
-
-          minValue: 1
-          maxValue: 1000000
-        
-  """
   pdgaNumber: Float
+  pdgaEmail: String
   country: CountryCode
   phone: String
-  """
-  Has to be 4 numbers. Cant be all same numbers like 1111, 2222 etc and cant be 1234
-  """
   pinCode: String
   birthDate: DateTime
   gender: GenderType
   socialSecurityId: String
+  teeOffSongUrl: String
 }
 
 input UpdatePlayerInput {
-  """
-
-        Updatable by [TOUR_ADMIN, SUPER_ADMIN]
-  """
   isWildcard: Boolean
-  """
-  Updatable by [USER, TOUR_ADMIN, SUPER_ADMIN]
-  """
   onSite: Boolean
-  """
-
-        Updatable by [TOUR_ADMIN, SUPER_ADMIN]
-  """
   divisionId: ID
 }
 
 input UpdatePoolInput {
   name: String
   date: DateTime
+  endDate: DateTime
   layoutVersionId: ID
   startMethod: PoolStartMethod
-  """
-  Only used for doubles or team play to set what play format is used for the pool.
-  """
   playFormat: PoolPlayFormat
   areGroupsPublic: Boolean
 }
@@ -6525,6 +4561,7 @@ input UpdateRegistrationInput {
 
 input UpdateTeamRegistrationInput {
   divisionId: ID
+  groupId: ID
 }
 
 input UpdateResultInput {
@@ -6533,6 +4570,37 @@ input UpdateResultInput {
   isOutsidePutt: Boolean
   isInsidePutt: Boolean
   isOutOfBounds: Boolean
+  penaltyStrokes: Float
+}
+
+type GroupScore {
+  id: ID!
+  score: Float!
+  holeId: ID!
+  userGroupId: ID
+  teamGroupId: ID
+  groupId: ID!
+  scorerUserGroupId: ID
+  scorerTeamGroupId: ID
+}
+
+input UpsertGroupScoreInput {
+  score: Float!
+}
+
+type TeamGroupScore {
+  id: ID!
+  score: Float!
+  holeId: ID!
+  userGroupId: ID
+  teamGroupId: ID
+  groupId: ID!
+  scorerUserGroupId: ID
+  scorerTeamGroupId: ID
+}
+
+input UpsertTeamGroupScoreInput {
+  score: Float!
 }
 
 input UpdateTeamResultInput {
@@ -6541,6 +4609,7 @@ input UpdateTeamResultInput {
   isOutsidePutt: Boolean
   isInsidePutt: Boolean
   isOutOfBounds: Boolean
+  penaltyStrokes: Float
 }
 
 input UpdateScorecardInput {
@@ -6549,58 +4618,38 @@ input UpdateScorecardInput {
   startHoleId: ID
   status: ScorecardStatus
   playFormat: ScorecardPlayFormat
+  name: String
 }
 
 input UpdateScorecardResultInput {
   score: Float
+  isTapIn: Boolean
   isCircleHit: Boolean
   isOutsidePutt: Boolean
   isInsidePutt: Boolean
   isOutOfBounds: Boolean
+  penaltyStrokes: Float
 }
 
 input UpdateTourInput {
-  """
-
-          minLength: 3
-          maxLength: 70
-        
-  """
   name: String
+  description: String
   scoringType: ScoringType
   registrationMethod: RegistrationMethod
-  """
-
-          minValue: 2
-          maxValue: 52
-        
-  """
   scoreBasedOnNrOfEvents: Float
+  sortLeaderboardByEventsPlayed: Boolean
   paymentType: TourPaymentType
   connectedAccountId: ID
-  """
-  Only applicable if paymentType=MANAGED
-  """
   automaticRefunds: Boolean
   isArchived: Boolean
   type: String
   allowRegistrationMessage: Boolean
-  """
-  If fee included or not
-  """
   feeIncluded: Boolean
-  """
-  Tour currency
-  """
   currency: String
-  """
-  If tour is private or not
-  """
   isPrivate: Boolean
-  """
-  Tax Rate ID
-  """
   taxRateId: ID
+  tourImageId: ID
+  maxTourPassCount: Int
 }
 
 input UpdateUserInput {
@@ -6608,89 +4657,33 @@ input UpdateUserInput {
 }
 
 input UpdateTaxRateInput {
-  """
-
-          minLength: 2
-          maxLength: 50
-        
-  """
   name: String
-  """
-
-          maxLength: 50
-        
-  """
   description: String
-  """
-  Is tax rate active?
-  """
   active: Boolean
 }
 
 input UpdateShopItemInput {
-  """
-  Title of Shop Item
-        minLength: 2
-        maxLength: 50
-        
-  """
   title: String
-  """
-  Description of Shop Item
-        maxLength: 1500
-  """
   description: String
-  """
-  Link of Shop Item
-        maxLength: 512
-  """
   link: String
-  """
-  Amount of Shop Item (in cents) | Format: (XXX -> X.XX) | Range: 0 - 999999
-  """
   amount: Int
-  """
-  Stock of Shop Item | Range: -1 - 99999
-  """
   stock: Int
-  """
-  Product image ID
-  """
   eventShopImageId: ID
-  """
-  Tax Rate ID
-  """
   taxRateId: ID
   isPublished: Boolean
-  """
-  Is this shop item available for all events in the tournament.
-  """
   isAvailableAllEvents: Boolean
 }
 
 input UpdateOrderInput {
-  """
-  Order Comment
-        maxLength: 500
-        
-  """
   comment: String
 }
 
 input UpdateLineItemInput {
-  """
-  Refund Status: true or false
-  """
   refundStatus: Boolean
-  """
-  Is Delivered?
-  """
   isDelivered: Boolean
 }
 
-"""
-Allows updating the display name of the document and toggle tour availability
-"""
+"""Allows updating the display name of the document and toggle tour availability"""
 input EventDocumentUpdateInput {
   displayName: String
   tourAvailable: Boolean
@@ -6723,12 +4716,6 @@ input UpdateRegistrationCriteriaInput {
 }
 
 input CourseFacilityInput {
-  """
-
-          minLength: 2
-          maxLength: 50
-        
-  """
   name: String!
   type: CourseFacilityEnum!
   geolocation: GeolocationInput
@@ -6740,67 +4727,19 @@ input UpdateHoleInput {
 }
 
 input CreateEventMessageInput {
-  """
-
-          minLength: 1
-          maxLength: 255
-          
-  """
   subject: String!
-  """
-
-          minLength: 1
-          maxLength: 2500
-          
-  """
   message: String!
-  """
-
-          Audiences:
-            * PUBLIC
-            * ACCEPTED
-            * PENDING
-          
-  """
   audience: EventMessageAudienceEnum!
-  """
-
-          Message types:
-            * EVENT_POST
-          
-  """
   messageType: EventMessageTypeEnumType!
 }
 
 input UpdateEventMessageInput {
-  """
-
-          minLength: 1
-          maxLength: 255
-          
-  """
   subject: String
-  """
-
-          minLength: 1
-          maxLength: 2500
-          
-  """
   message: String
-  """
-
-          Audiences: 
-            * PUBLIC
-            * ACCEPTED
-            * PENDING
-          
-  """
   audience: EventMessageAudienceEnum
 }
 
-"""
-Users registered device, used primarily for receiving push notifications.
-"""
+"""Users registered device, used primarily for receiving push notifications."""
 type RegisteredDevice {
   id: ID!
   userId: ID!
@@ -6813,60 +4752,25 @@ type RegisteredDevice {
 }
 
 enum RegisteredDevicePlatform {
-  """
-  Device is added into the Android collection
-  """
+  """Device is added into the Android collection"""
   ANDROID
-  """
-  Device is added into the iOS collection
-  """
+  """Device is added into the iOS collection"""
   IOS
 }
 
 input ShopItemInput {
-  """
-  Title of Shop Item
-        minLength: 2
-        maxLength: 50
-        
-  """
   title: String!
-  """
-  Description of Shop Item
-        maxLength: 1500
-  """
   description: String
-  """
-  Link of Shop Item
-        maxLength: 512
-  """
   link: String
-  """
-  Amount of Shop Item (in cents) | Format: (XXX -> X.XX) | Range: 0 - 999999
-  """
   amount: Int!
-  """
-  Stock of Shop Item | Range: -1 - 99999
-  """
   stock: Int = 0
-  """
-  Tax Rate ID
-  """
   taxRateId: ID
-  """
-  Product image ID
-  """
   eventShopImageId: ID
   isPublished: Boolean = false
-  """
-  Is this shop item available for all events in the tournament.
-  """
   isAvailableAllEvents: Boolean = false
 }
 
-"""
-Information about subscription
-"""
+"""Information about subscription"""
 type Subscription {
   id: String!
   subscriptionId: String
@@ -6921,74 +4825,24 @@ enum TourTransferStatus {
   REJECTED
 }
 
-"""
-Leaving a field emtpty will default to the division's value.
-"""
+"""Leaving a field emtpty will default to the division's value."""
 input CreateEventDivisionOverrideInput {
-  """
-
-          minValue: 1
-          maxValue: 999
-        
-  """
+  disabled: Boolean
   maxSpots: Float
-  """
-
-          minValue: 1
-          maxValue: 999
-        
-  """
   reservedSpots: Float
-  """
-
-          minValue: 999
-          maxValue: 1
-        
-  """
   maxRegistrations: Float
-  """
-
-          Can also be set to 0 to make the registration free.
-          minValue: 0
-          maxValue: 10000
-        
-  """
   registrationFee: Float
+  refundPercentage: Float
 }
 
-"""
-Will update the override to matcht the new input, fields left out will be nulled.
-"""
+"""Will update the override to matcht the new input, fields left out will be nulled."""
 input UpdateEventDivisionOverrideInput {
-  """
-
-          minValue: 1
-          maxValue: 999
-        
-  """
+  disabled: Boolean
   maxSpots: Float
-  """
-
-          minValue: 1
-          maxValue: 999
-        
-  """
   reservedSpots: Float
-  """
-
-          minValue: 999
-          maxValue: 1
-        
-  """
   maxRegistrations: Float
-  """
-
-          Can also be set to 0 to make the registration free.
-          minValue: 0
-          maxValue: 10000
-        
-  """
   registrationFee: Float
+  refundPercentage: Float
 }
 
 input CreateFreeOrderInputType {
@@ -7012,6 +4866,7 @@ input OrganizationInput {
 }
 
 input UpdateOrganizationInput {
+  fiscalYearStartMonth: Float
   acceptMembers: AcceptMembers
   publicMembersList: Boolean
   hidden: Boolean
@@ -7044,10 +4899,8 @@ input UpdateOrganizationMemberTypeInput {
   fullMember: Boolean
 }
 
-"""
-In what role the mutation should run as.
-  If the role-check fails an NOT_AUTHORIZED error will be returned
-"""
+"""In what role the mutation should run as.
+  If the role-check fails an NOT_AUTHORIZED error will be returned"""
 enum UpdateOrganizationMemberRoleType {
   USER
   ORGANIZATION_ADMIN
@@ -7068,10 +4921,8 @@ enum OrganizationMemberStatus {
   PENDING_PAYMENT
 }
 
-"""
-In what role the mutation should run as.
-  If the role-check fails an NOT_AUTHORIZED error will be returned
-"""
+"""In what role the mutation should run as.
+  If the role-check fails an NOT_AUTHORIZED error will be returned"""
 enum DeleteOrganizationMemberRole {
   USER
   ORGANIZATION_ADMIN
@@ -7116,7 +4967,68 @@ input UpdateRegistrationQuestionInputType {
 input RegistrationQuestionOptionsInputType {
   id: ID!
   value: String!
-  position: Float!
+}
+
+input CreateDiscInput {
+  brand: String!
+  mold: String!
+  plastic: String!
+  color: String!
+  speed: Float!
+  glide: Float!
+  turn: Float!
+  fade: Float!
+  userEstimatedSpeed: Float
+  userEstimatedGlide: Float
+  userEstimatedTurn: Float
+  userEstimatedFade: Float
+  condition: Float
+  description: String
+}
+
+input UpdateDiscInput {
+  brand: String
+  mold: String
+  plastic: String
+  color: String
+  speed: Float
+  glide: Float
+  turn: Float
+  fade: Float
+  userEstimatedSpeed: Float
+  userEstimatedGlide: Float
+  userEstimatedTurn: Float
+  userEstimatedFade: Float
+  condition: Float
+  description: String
+}
+
+input CreateThrowsInput {
+  inTheBasket: Boolean!
+  distanceToBasket: Float!
+  lie: Lie!
+  throwType: ThrowType
+  lieGeolocation: GeolocationInput
+  lieDifficulty: LieDifficulty
+  restriction: ThrowRestriction
+  shotShape: ShotShape
+  nearMiss: NearMiss
+  penalties: Float
+  discId: ID
+}
+
+input UpdateThrowInput {
+  inTheBasket: Boolean!
+  distanceToBasket: Float!
+  throwType: ThrowType
+  lie: Lie!
+  lieGeolocation: GeolocationInput
+  lieDifficulty: LieDifficulty
+  restriction: ThrowRestriction
+  shotShape: ShotShape
+  nearMiss: NearMiss
+  penalties: Float
+  discId: ID
 }
 
 input CreateOrganizationRoleInput {
@@ -7160,3 +5072,143 @@ input UpdateEventCustomPointInput {
   points: Float!
 }
 
+input OrganizationLeaderboardInput {
+  organizationId: ID!
+  title: String!
+  description: String
+  divisionTypes: [String!]
+}
+
+input OrganizationLeaderboardUpdateInput {
+  title: String
+  description: String
+  divisionTypes: [String!]
+}
+
+input LeaderboardTourConfig {
+  tourId: ID!
+  scoreBasedOnNumberOfEvents: Float!
+}
+
+input UserSponsorInput {
+  name: ID!
+  sponsorUrl: String
+}
+
+input UpdateUserSponsorInput {
+  name: String!
+  sponsorUrl: String
+}
+
+"""Can specify eventTeamId or eventUserId but 
+                not both or neither. Specify the pool if enalty is for a specific round / pool."""
+input CreateEventPenaltyInput {
+  penalty: Float!
+  reason: String!
+  poolId: ID
+  eventUserId: ID
+  eventTeamId: ID
+}
+
+"""Can only update the reason or the penalty amount."""
+input UpdateEventPenaltyInput {
+  penalty: Float!
+  reason: String!
+}
+
+input CreateEventBoonInput {
+  par: Float
+  score: Float
+  points: Float
+  onlyApplicableForTour: Boolean
+  reason: String!
+  icon: BoonIcon
+  eventUserId: ID
+  eventTeamId: ID
+}
+
+input TeamConfigurationInput {
+  divisionId: ID!
+  teamSize: Float!
+  numberOfTeams: Float!
+}
+
+input CreateEventGameInput {
+  name: String!
+  type: EventGameCategory!
+  description: String
+  automaticallyAddPlayers: Boolean!
+}
+
+input UpdateEventGameInput {
+  name: String
+  description: String
+  automaticallyAddPlayers: Boolean
+}
+
+input CreateEventGameRoundInput {
+  date: DateTime!
+  stationLayoutId: ID
+  automaticallyAssignPlayers: Boolean
+}
+
+input UpdateEventGameRoundInput {
+  date: DateTime
+  stationLayoutId: ID
+  status: EventGameRoundStatus
+  automaticallyAssignPlayers: Boolean
+}
+
+input CreateEventGameStationInput {
+  name: String!
+  attempts: Float!
+  attemptsCounted: Float
+  pointsAwardedPerAttempt: Float
+}
+
+input CreateTourPassInput {
+  divisionId: ID!
+  uses: Int
+  stock: Int = null
+  fee: Int
+  membershipFee: Int
+  active: Boolean = true
+  alwaysAvailable: Boolean = false
+}
+
+input UpdateTourPassInput {
+  name: String
+  uses: Int
+  stock: Int
+  fee: Int
+  membershipFee: Int
+  active: Boolean
+  alwaysAvailable: Boolean
+}
+
+input PurchaseTourPassInput {
+  tourPassId: ID!
+  teamId: ID
+}
+
+input UpdateFriendshipInput {
+  isBlocked: Boolean
+  note: String
+  pushNotificationsEnabled: Boolean
+}
+
+type SignedUploadParams {
+  uploadUrl: String!
+  uploadToken: String!
+  signature: String
+  timestamp: Int
+  cloudName: String
+  apiKey: String
+  folder: String
+  allowedFormats: [String]
+}
+
+type RefreshPdgaDataResponse {
+  success: Boolean!
+  message: String
+}

@@ -1,8 +1,7 @@
 import WebSocket from 'ws';
-import { LevandeVideoInstance } from './index';
-import {WebSocketSubscription} from "./config";
-import {Player} from "./coordinator_communication"; // Make sure to export LevandeVideoInstance
-
+import {LevandeVideoInstance} from './index.js';
+import {WebSocketSubscription} from "./config.js";
+import {Player} from "./coordinator_communication.js"; // Make sure to export LevandeVideoInstance
 
 
 export class WebSocketManager {
@@ -43,13 +42,13 @@ export class WebSocketManager {
 
     private updateVariable(value: string): void {
         if (this.subscription.variableName === 'selected_players') {
-            JSON.parse(value).forEach((p: any,index:number) => {
+            JSON.parse(value).forEach((p: any, index: number) => {
                 let player = Player.fromJSON(p);
                 this.instance.focused_players[index] = player.toDropdown(index);
                 this.instance.setVariableValues({[`p${index + 1}`]: player.name});
             });
         }
-        this.instance.setVariableValues({ [this.subscription.variableName]: value });
+        this.instance.setVariableValues({[this.subscription.variableName]: value});
     }
 
     public reload(): void {

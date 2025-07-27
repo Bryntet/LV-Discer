@@ -1,22 +1,15 @@
 {
-	"extends": "@companion-module/tools/tsconfig/node18/recommended",
-	"include": [
-      "src/**/*.ts",
-      "src/**/*.cts",
-		"node_modules/@types/node/"
-    ],
-	"exclude": ["node_modules/**",
-      "src/**/*spec.ts",
-      "src/**/__tests__/*",
-      "src/**/__mocks__/*"
-    ],
-	"compilerOptions": {
-		"outDir": "./built",
-		"baseUrl": "./",
-		"paths": {
-			"*": ["./node_modules/*"]
-		}
-	},
-
-
+  "extends": "./tsconfig.build.json",
+  "include": [
+    "src/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules/**"
+  ],
+  "compilerOptions": {
+    "types": [
+      "jest",
+      "node"
+    ]
+  }
 }

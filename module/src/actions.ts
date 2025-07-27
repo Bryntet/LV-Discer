@@ -1,9 +1,9 @@
 import {CompanionActionDefinitions, CompanionActionEvent} from "@companion-module/base";
-import {Config} from "./config";
-import {InstanceBaseExt} from "./util";
-import {CompanionCommonCallbackContext} from "@companion-module/base/dist/module-api/common";
-import {Player} from "./coordinator_communication";
-import {LevandeVideoInstance} from "./index";
+import {Config} from "./config.js";
+import {InstanceBaseExt} from "./util.js";
+import {CompanionCommonCallbackContext} from "@companion-module/base/dist/module-api/common.js";
+import {Player} from "./coordinator_communication.js";
+import {LevandeVideoInstance} from "./index.js";
 
 
 export enum ActionId {

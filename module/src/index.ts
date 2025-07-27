@@ -7,13 +7,13 @@ import {
     runEntrypoint,
     SomeCompanionConfigField
 } from '@companion-module/base';
-import {Config, getConfigFields, WebSocketSubscription} from "./config";
-import {setActionDefinitions} from "./actions";
-import {setFeedbackDefinitions} from './feedbacks';
-import {ApiClient} from './coordinator_communication';
-import {example_conversion} from './upgrades'
+import {Config, getConfigFields, WebSocketSubscription} from "./config.js";
+import {setActionDefinitions} from "./actions.js";
+import {setFeedbackDefinitions} from './feedbacks.js';
+import {ApiClient} from './coordinator_communication.js';
+import {example_conversion} from './upgrades.js'
 import * as console from "console";
-import {WebSocketManager} from "./websocket_manager";
+import {WebSocketManager} from "./websocket_manager.js";
 
 
 export class LevandeVideoInstance extends InstanceBase<Config> {
