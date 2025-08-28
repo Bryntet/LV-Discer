@@ -1,9 +1,11 @@
 use crate::controller::coordinator::FlipUpVMixCoordinator;
+use crate::controller::queries::Division;
 use crate::{controller, dto};
 use itertools::Itertools;
 use rocket_okapi::okapi::schemars;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
+use std::sync::Arc;
 
 #[derive(Serialize, Debug, JsonSchema, Clone)]
 pub struct Player {
@@ -14,6 +16,8 @@ pub struct Player {
     pub holes_finished: usize,
     pub index: usize,
     pub queue: Option<usize>,
+    #[serde(skip)]
+    pub division: Arc<Division>,
 }
 #[derive(Debug, JsonSchema, Clone, FromForm, Deserialize)]
 pub struct HoleSetting {
@@ -29,6 +33,7 @@ impl Player {
         holes_finished: usize,
         index: usize,
         queue: Option<usize>,
+        division: Arc<Division>,
     ) -> Self {
         Self {
             id,
@@ -38,6 +43,7 @@ impl Player {
             holes_finished,
             index,
             queue,
+            division,
         }
     }
 
@@ -50,6 +56,7 @@ impl Player {
             holes_finished: player.amount_of_holes_finished(),
             index: player.group_index,
             queue,
+            division: player.division.clone(),
         }
     }
 }
@@ -63,6 +70,7 @@ impl From<&controller::Player> for self::Player {
             holes_finished: player.amount_of_holes_finished(),
             index: player.group_index,
             queue: None,
+            division: player.division.clone(),
         }
     }
 }

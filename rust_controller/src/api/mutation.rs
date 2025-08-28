@@ -198,8 +198,8 @@ pub async fn next_featured_hole_card(coordinator: Coordinator) -> Result<(), Err
 
 #[openapi(tag = "Featured hole")]
 #[post("/featured-hole/rewind-card")]
-pub async fn rewind_featured_hole_card(coordinator: Coordinator) {
-    coordinator.lock().await.rewind_card();
+pub async fn rewind_featured_hole_card(coordinator: Coordinator) -> Result<(), Error> {
+    coordinator.lock().await.rewind_card().await
 }
 
 #[openapi(tag = "Leaderboard")]

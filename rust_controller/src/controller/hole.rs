@@ -5,9 +5,10 @@ use itertools::Itertools;
 use rayon::prelude::*;
 
 use crate::controller::fix_score;
+use crate::controller::queries::results_getter::HoleResult;
 use crate::vmix::functions::VMixSelectionTrait;
 
-use super::queries::{Division, HoleResult};
+use super::queries::Division;
 
 pub struct HoleStats {
     pub hole_number: u8,
@@ -24,22 +25,26 @@ impl HoleStats {
     pub fn average_score(&self, division: &Division) -> (isize, std::cmp::Ordering) {
         let all_used_results = self
             .player_results
-            .par_iter()
-            .filter(|(div, _)| div.as_ref() == division)
-            .map(|(_, score)| score);
-        let amount_of_results = all_used_results.clone().count() as f64;
-        dbg!(self.hole_number);
-        let par = all_used_results
-            .clone()
-            .find_any(|r| r.hole.par.is_some())
-            .unwrap()
-            .hole
-            .par
-            .unwrap() as isize;
-        let avg_result =
-            all_used_results.clone().map(|res| res.score).sum::<f64>() / amount_of_results;
+            .iter()
+            .filter(|(div, _)| div.id == division.id)
+            .map(|(_, score)| score)
+            .collect_vec();
+
+        let par = all_used_results.first().map(|res| res.par).unwrap_or({
+            warn!("Par not found on Div: {}", division.short_name);
+            3
+        });
+
+        let avg_result = all_used_results
+            .iter()
+            .map(|res| res.score as f64)
+            .sum::<f64>()
+            / all_used_results.len() as f64;
         let cmp = avg_result.total_cmp(&0.);
-        ((avg_result * 10.).round() as isize - par * 10, cmp)
+        (
+            (avg_result * 10.).round() as isize - (par as isize) * 10,
+            cmp,
+        )
     }
 }
 #[derive(Clone, Debug)]

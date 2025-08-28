@@ -297,7 +297,12 @@ impl RustHandler {
             let out = event
                 .into_iter()
                 .enumerate()
-                .map(|(round_number, event)| {
+                .map(async |(round_number, event)| {
+                    let round_id = event.rounds[round_number].as_ref().unwrap().id.clone();
+                    let player_results =
+                        controller::queries::results_getter::get_round_results(round_id.into())
+                            .await
+                            .unwrap();
                     event
                         .players
                         .into_iter()
@@ -335,6 +340,7 @@ impl RustHandler {
 
                             Player::from_query(
                                 player,
+                                &player_results,
                                 round_number,
                                 holes,
                                 divisions.clone(),
@@ -348,6 +354,7 @@ impl RustHandler {
                 })
                 .collect_vec();
             for (round_num, round_players) in out.into_iter().enumerate() {
+                let round_players = round_players.await;
                 match player_rounds.get_mut(round_num) {
                     Some(players) => players.extend(round_players),
                     None => player_rounds.push(round_players),
@@ -448,19 +455,17 @@ impl RustHandler {
                     .await
                     .expect("failed to send request");
 
-                let out = dbg!(
-                    response
-                        .json::<GraphQlResponse<queries::EventQuery>>()
-                        .await
-                )
-                .expect("failed to parse response")
-                .data
-                .unwrap();
+                let out = response
+                    .json::<GraphQlResponse<queries::EventQuery>>()
+                    .await
+                    .expect("failed to parse response")
+                    .data
+                    .unwrap();
                 rounds.push(out.event.unwrap());
             }
             out.push(rounds);
         }
-        out.try_into().unwrap()
+        out
     }
 
     pub async fn get_rounds(event_ids: &[String]) -> Result<Vec<Vec<String>>, Error> {

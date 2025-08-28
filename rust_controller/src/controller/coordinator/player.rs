@@ -54,7 +54,7 @@ impl PlayerRound {
     pub fn current_result_mut(&mut self, hole: usize) -> Option<&mut HoleResult> {
         for result in self.results.iter_mut() {
             if let Some(ref tjing_result) = result.tjing_result {
-                if tjing_result.number == hole && tjing_result.is_verified {
+                if tjing_result.hole_number == hole && tjing_result.is_verified {
                     return Some(result);
                 }
             }
@@ -74,13 +74,14 @@ impl PlayerRound {
             if let Some(res) = self
                 .results
                 .iter_mut()
-                .find(|hole| hole.hole == result.number as u8)
+                .find(|hole| hole.hole == result.hole_number as u8)
             {
                 res.tjing_result = Some(result.to_owned());
                 res.finished = true;
             } else {
                 self.results.push(
-                    HoleResult::from_tjing(result.number as u8, holes, result.clone()).unwrap(),
+                    HoleResult::from_tjing(result.hole_number as u8, holes, result.clone())
+                        .unwrap(),
                 )
             }
         }
@@ -298,13 +299,14 @@ impl Player {
             .into_iter()
             .find(|div| div.id == player.division.id)
             .ok_or(Error::UnableToParse)?;
+        let v = vec![];
         let results = player_results
             .0
             .get(&player.id)
-            .expect("Player results' existence")
-            .into_iter()
+            .unwrap_or(&v)
+            .iter()
             .map(
-                |r| match HoleResult::from_tjing(r.number as u8, &holes, r.to_owned()) {
+                |r| match HoleResult::from_tjing(r.hole_number as u8, &holes, r.to_owned()) {
                     None => {
                         panic!("No hole result")
                     }

@@ -1,10 +1,11 @@
+use crate::controller::queries::Division;
+use crate::dto;
+use crate::dto::Player;
 use chrono::{DateTime, NaiveDateTime, Timelike, Utc};
 use rocket_okapi::okapi::schemars;
 use schemars::JsonSchema;
 use serde::Serialize;
-
-use crate::dto;
-use crate::dto::Player;
+use std::sync::Arc;
 
 #[derive(Serialize, JsonSchema, Clone, Debug)]
 pub struct Group {
@@ -46,7 +47,11 @@ impl From<&crate::controller::queries::Group> for Group {
                 if let crate::controller::queries::group::GroupPlayerConnectionTypeCombined::GroupPlayerConnection(connection) = connection {
                     let player = &connection.player;
                     let name = format!("{} {}", player.user.first_name.clone().unwrap(), player.user.last_name.clone().unwrap());
-                    Some(dto::Player::new(player.id.clone().into_inner(), name, None, 0, 100, None))
+                    Some(dto::Player::new(player.id.clone().into_inner(), name, None, 0, 100, None, Arc::new(Division{
+                        id: cynic::Id::new(""),
+                        short_name: "MPO".to_string(),
+                        name: "Mixed Pro Open".to_string(),
+                    })))
                 } else {
                     None
                 }
@@ -74,7 +79,11 @@ impl From<crate::controller::queries::Group> for Group {
                     let player = connection.player;
 
                     let name = format!("{} {}", player.user.first_name.unwrap(), player.user.last_name.unwrap());
-                    Some(dto::Player::new(player.id.into_inner().parse().ok()?, name, None, 0, 100, None))
+                    Some(dto::Player::new(player.id.into_inner().parse().ok()?, name, None, 0, 100, None, Arc::new(Division{
+                        id: cynic::Id::new(""),
+                        short_name: "MPO".to_string(),
+                        name: "Mixed Pro Open".to_string(),
+                    }) ))
                 } else {
                     None
                 }

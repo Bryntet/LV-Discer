@@ -6,7 +6,6 @@ use itertools::Itertools;
 pub use player::Player;
 use player_queue_system::PlayerManager;
 use rayon::prelude::*;
-use rocket::yansi::Paint;
 use serde::{Deserialize, Serialize};
 use tokio::sync::Mutex;
 use vmix::functions::VMixInterfacer;
@@ -65,14 +64,16 @@ impl FlipUpVMixCoordinator {
         let handler = RustHandler::new(event_ids.clone(), round, broadcast_type.clone()).await?;
 
         let all_divs = handler.get_divisions();
-        let first_group = handler
+        let Some(first_group) = handler
             .groups
             .get(round)
             .as_ref()
             .unwrap()
             .iter()
             .find(|group| !group.players.is_empty())
-            .unwrap();
+        else {
+            return Err(Error::GroupNotFound);
+        };
         let next_group = Arc::new(Mutex::new(first_group.id.to_owned()));
 
         let card_starts_at_hole = handler
@@ -198,13 +199,13 @@ impl FlipUpVMixCoordinator {
         Ok(())
     }
 
-    pub fn rewind_card(&mut self) {
+    pub async fn rewind_card(&mut self) -> Result<(), Error> {
         if self.groups_featured_so_far < 2 {
             self.groups_featured_so_far = 0
         } else {
             self.groups_featured_so_far -= 2;
         }
-        self.next_featured_card();
+        self.next_featured_card().await
     }
 
     pub fn available_players_mut(&mut self) -> Vec<&mut Player> {
@@ -562,6 +563,7 @@ impl FlipUpVMixCoordinator {
                 &self.leaderboard_division,
                 self.vmix_queue.clone(),
                 self.leaderboard_round,
+                false,
             );
         } else {
             println!("PANIC, hole > 18");

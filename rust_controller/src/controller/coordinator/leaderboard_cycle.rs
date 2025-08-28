@@ -1,7 +1,9 @@
 use crate::controller::coordinator::FlipUpVMixCoordinator;
 use crate::controller::queries::Division;
 use crate::flipup_vmix_controls::Leaderboard;
+use crate::vmix::functions::VMixInterfacer;
 use crate::vmix::VMixQueue;
+use itertools::Itertools;
 use std::collections::VecDeque;
 use std::sync::Arc;
 use std::time::Duration;
@@ -13,6 +15,7 @@ pub struct LeaderboardCycle {
     coordinator: Arc<Mutex<FlipUpVMixCoordinator>>,
     leaderboard: Leaderboard,
     round: usize,
+    current_featured_div: Arc<Division>,
 }
 
 impl LeaderboardCycle {
@@ -22,6 +25,13 @@ impl LeaderboardCycle {
         let round = temp_coordinator.round_ind;
         let mut leaderboard = temp_coordinator.handler.get_previous_leaderboards();
         leaderboard.cycle = true;
+        let first_featured_div = temp_coordinator
+            .featured_card
+            .players(temp_coordinator.available_players())
+            .first()
+            .unwrap()
+            .division
+            .clone();
         drop(temp_coordinator);
         Self {
             current_cycled: all_divisions.front().unwrap().clone(),
@@ -29,7 +39,45 @@ impl LeaderboardCycle {
             coordinator,
             leaderboard,
             round,
+            current_featured_div: first_featured_div,
         }
+    }
+
+    pub async fn set_featured_div(&mut self, division: Arc<Division>, group_id: String) {
+        self.current_featured_div = division.clone();
+        let mut coordinator = self.coordinator.lock().await;
+        let state = coordinator.current_leaderboard_state();
+        self.leaderboard.add_state(state);
+        let queue = coordinator.vmix_queue.clone();
+        let players = coordinator
+            .groups()
+            .iter()
+            .find(|group| group.id == group_id)
+            .map(|group| group.players.clone())
+            .unwrap_or({
+                warn!("USING DEFAULT PAR 3");
+                vec![]
+            });
+
+        let stats = coordinator.make_stats();
+        if let Some(player) = coordinator.find_player_mut(&players[0].id) {
+            let holes = player.holes.clone();
+            let out = player
+                .results
+                .get_hole_info(1, stats, &holes, &division)
+                .into_iter()
+                .map(VMixInterfacer::into_featured_hole_card)
+                .collect_vec();
+
+            queue.add(out.into_iter());
+        }
+
+        self.leaderboard
+            .send_to_vmix(&self.current_featured_div, queue, self.round, true);
+    }
+    fn refresh_leaderboard(&mut self, queue: Arc<VMixQueue>) {
+        self.leaderboard
+            .send_to_vmix(&self.current_cycled, queue, self.round, false)
     }
 
     pub async fn update_leaderboard(&mut self) {
@@ -37,13 +85,13 @@ impl LeaderboardCycle {
         let state = coordinator.current_leaderboard_state();
         self.leaderboard.add_state(state);
         let queue = coordinator.vmix_queue.clone();
-        self.leaderboard
-            .send_to_vmix(&self.current_cycled, queue, self.round)
+        drop(coordinator);
+        self.refresh_leaderboard(queue);
     }
 
     fn send(&self, queue: Arc<VMixQueue>, round: usize) {
         self.leaderboard
-            .send_to_vmix(&self.current_cycled, queue, round)
+            .send_to_vmix(&self.current_cycled, queue, round, false)
     }
 
     pub async fn next(&mut self) {
@@ -57,6 +105,9 @@ impl LeaderboardCycle {
 
     fn cycle_next(&mut self, queue: Arc<VMixQueue>) -> Arc<Division> {
         let div = self.all_divisions.pop_front().unwrap();
+        if self.current_featured_div == div {
+            return self.cycle_next(queue);
+        }
         self.all_divisions.push_back(div.clone());
         let all_players = self.leaderboard.all_players_in_div(div.clone(), self.round);
         if all_players.is_empty() {

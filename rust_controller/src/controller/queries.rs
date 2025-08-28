@@ -1,7 +1,10 @@
 pub use group::Group;
+use rocket_okapi::JsonSchema;
+use serde::Serialize;
 
 pub mod results_getter {
     use super::schema;
+    use serde::Deserialize;
     use std::collections::HashMap;
 
     #[derive(cynic::QueryVariables, Debug)]
@@ -16,6 +19,10 @@ pub mod results_getter {
         pub round: Option<Round>,
     }
 
+    #[derive(Deserialize)]
+    struct RoundResultsGetter {
+        pub data: RoundResultsQuery,
+    }
     #[derive(cynic::QueryFragment, Debug, Clone)]
     #[cynic(graphql_type = "Round")]
     struct Round {
@@ -49,6 +56,7 @@ pub mod results_getter {
     #[cynic(graphql_type = "Hole")]
     struct HoleNumber {
         pub number: f64,
+        pub par: Option<f64>,
     }
 
     #[derive(cynic::QueryFragment, Debug, Clone)]
@@ -62,12 +70,14 @@ pub mod results_getter {
         pub results: Vec<HoleResult>,
     }
 
+    #[derive(Debug)]
     pub struct PlayerResults(pub HashMap<cynic::Id, Vec<HoleResult>>);
 
     #[derive(Debug, Clone)]
     pub struct HoleResult {
         pub score: usize,
-        pub number: usize,
+        pub hole_number: usize,
+        pub par: u8,
         pub is_circle_hit: bool,
         pub is_inside_putt: bool,
         pub is_out_of_bounds: bool,
@@ -81,55 +91,69 @@ pub mod results_getter {
         let query = RoundResultsQuery::build(RoundResultsQueryVariables {
             round_id: round_id.clone(),
         });
-        if let Ok(response) = reqwest::Client::new()
+        let Ok(response) = reqwest::Client::new()
             .post("https://api.tjing.se/graphql")
             .json(&query)
             .send()
             .await
-        {
-            match response.json::<RoundResultsQuery>().await {
-                Ok(RoundResultsQuery {
-                    round: Some(Round { pools }),
-                }) => {
-                    let results = pools
-                        .iter()
-                        .flat_map(|pool| pool.groups)
-                        .flat_map(|group| group.results)
-                        .collect_vec();
-                    let mut player_map = HashMap::new();
+        else {
+            return None;
+        };
 
-                    for result in results {
-                        let player_id = result.player_connection.player_id.clone();
-                        let hole_number = result.hole.number as usize;
-                        let score = result.score as usize;
+        let res = response.bytes().await;
 
-                        let hole_result = HoleResult {
-                            score,
-                            number: hole_number,
-                            is_circle_hit: result.is_circle_hit,
-                            is_inside_putt: result.is_inside_putt,
-                            is_out_of_bounds: result.is_out_of_bounds,
-                            is_outside_putt: result.is_outside_putt,
-                            is_verified: result.is_verified,
-                        };
+        let test =
+            serde_json::from_slice::<RoundResultsGetter>(&res.unwrap()).map(|result| result.data);
 
-                        player_map
-                            .entry(player_id)
-                            .or_insert_with(Vec::new)
-                            .push(hole_result);
-                    }
+        match test {
+            Ok(RoundResultsQuery {
+                round: Some(Round { pools }),
+            }) => {
+                let results = pools
+                    .into_iter()
+                    .flat_map(|pool| pool.groups)
+                    .flat_map(|group| group.results)
+                    .collect_vec();
+                let mut player_map = HashMap::new();
+
+                for result in results {
+                    let player_id = result.player_connection.player_id.clone();
+                    let hole_number = result.hole.number as usize;
+                    let score = result.score as usize;
+
+                    let Some(par) = result.hole.par.map(|par| par as u8) else {
+                        println!("BIG ISSUE, par not found");
+                        continue;
+                    };
+
+                    let hole_result = HoleResult {
+                        score,
+                        hole_number,
+                        par,
+                        is_circle_hit: result.is_circle_hit,
+                        is_inside_putt: result.is_inside_putt,
+                        is_out_of_bounds: result.is_out_of_bounds,
+                        is_outside_putt: result.is_outside_putt,
+                        is_verified: result.is_verified,
+                    };
+
+                    player_map
+                        .entry(player_id)
+                        .or_insert_with(Vec::new)
+                        .push(hole_result);
                 }
-                Ok(RoundResultsQuery { round: None }) => {
-                    eprintln!(
-                        "No results found for round with ID: {}",
-                        round_id.into_inner()
-                    );
-                    None
-                }
-                Err(e) => {
-                    eprintln!("Error parsing response: {}", e);
-                    None
-                }
+                Some(PlayerResults(player_map))
+            }
+            Ok(RoundResultsQuery { round: None }) => {
+                eprintln!(
+                    "No results found for round with ID: {}",
+                    round_id.into_inner()
+                );
+                None
+            }
+            Err(e) => {
+                eprintln!("Error parsing response: {}", e);
+                None
             }
         }
     }
@@ -158,9 +182,12 @@ pub struct Event {
 pub struct Round {
     pub id: cynic::Id,
 }
-#[derive(cynic::QueryFragment, Debug, Clone, PartialEq, Eq)]
+#[derive(cynic::QueryFragment, Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct Division {
     pub name: String,
+    #[cynic(rename = "type")]
+    #[serde(rename = "type")]
+    pub short_name: String,
     pub id: cynic::Id,
 }
 
@@ -168,6 +195,7 @@ impl Default for Division {
     fn default() -> Self {
         Division {
             name: "".to_string(),
+            short_name: "".to_string(),
             id: cynic::Id::new(""),
         }
     }

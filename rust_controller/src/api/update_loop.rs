@@ -44,7 +44,7 @@ impl TjingResultMap {
         if let Some(res) = results
             .iter_mut()
             .flatten()
-            .find(|hole| hole.number as u8 == hole_result.number as u8)
+            .find(|hole| hole.hole_number as u8 == hole_result.hole_number as u8)
         {
             if res.score != hole_result.score {
                 res.score = hole_result.score;
@@ -108,7 +108,6 @@ pub async fn update_loop(
     let temp_coordinator = coordinator.lock().await;
     let mut tjing_result_map = TjingResultMap::new(temp_coordinator.available_players());
 
-    let mut requests = vec![];
     let round_ids = temp_coordinator.round_ids();
     drop(temp_coordinator);
 
@@ -143,7 +142,7 @@ pub async fn update_loop(
                                 .is_some_and(|hole| hole.hole == 18)
                         })
                 {
-                    if let Some(group_id) = coordinator
+                    if let Some((group_id, Some(division))) = coordinator
                         .groups()
                         .into_par_iter()
                         .find_any(|group| {
@@ -152,11 +151,23 @@ pub async fn update_loop(
                                 .iter()
                                 .any(|group_player| group_player.id == player.player_id)
                         })
-                        .map(|group| group.id.clone())
+                        .map(|group| {
+                            (
+                                group.id.clone(),
+                                group.players.first().map(|player| player.division.clone()),
+                            )
+                        })
                     {
-                        *next_group.lock().await = group_id;
+                        *next_group.lock().await = group_id.clone();
+                        let cycle_mutex = leaderboard_cycle.clone();
+                        cycle_mutex
+                            .lock()
+                            .await
+                            .set_featured_div(division, group_id)
+                            .await;
                     }
                     hole_finished_alert.send(HoleFinishedAlert::JustFinished);
+
                     let alert = hole_finished_alert.clone();
                     tokio::spawn(async move {
                         tokio::time::sleep(Duration::from_secs(2 * 60)).await;
@@ -164,7 +175,12 @@ pub async fn update_loop(
                     });
                 }
                 drop(coordinator);
-                leaderboard_cycle.lock().await.update_leaderboard().await;
+                leaderboard_cycle
+                    .clone()
+                    .lock()
+                    .await
+                    .update_leaderboard()
+                    .await;
             }
 
             tokio::time::sleep(tokio::time::Duration::new(5, 0)).await;
