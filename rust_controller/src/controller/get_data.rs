@@ -246,29 +246,6 @@ impl RustHandler {
 
         warn!("Time taken to get event: {:?}", time.elapsed());
 
-        let conversion_names = [
-            ("women's amateur 1", "FA1"),
-            ("women's amateur 2", "FA2"),
-            ("women's amateur 3", "FA3"),
-            ("women's amateur 4", "FA4"),
-            ("mixed amateur 1", "MA1"),
-            ("mixed amateur 2", "MA2"),
-            ("mixed amateur 3", "MA3"),
-            ("mixed amateur 4", "MA4"),
-            ("mixed amateur 40+", "MA40"),
-            ("mixed amateur 50+", "MA50"),
-        ];
-        let division_name_conversion: HashMap<&'static str, &'static str> =
-            HashMap::from(conversion_names);
-
-        let sort_conversion: [(&'static str, usize); 10] = conversion_names
-            .into_iter()
-            .enumerate()
-            .map(|(usize, (_, new_name))| (new_name, usize))
-            .collect_vec()
-            .try_into()
-            .unwrap();
-        let sort: HashMap<&str, usize> = HashMap::from(sort_conversion);
         let mut divisions: Vec<Arc<Division>> = events
             .iter()
             .flat_map(|event| {
@@ -276,17 +253,9 @@ impl RustHandler {
                     .iter()
                     .flat_map(|event| event.divisions.clone())
                     .flatten()
-                    .map(|mut div| {
-                        let div_name = div.name.to_lowercase();
-                        div.name = division_name_conversion
-                            .get(div_name.as_str())
-                            .map(|name| name.to_string())
-                            .unwrap_or(div.name);
-                        div
-                    })
             })
-            .sorted_by_key(|div| *sort.get(div.name.as_str()).unwrap_or(&0))
-            .dedup_by(|a, b| a.name == b.name)
+            .sorted_by_key(|div| div.short_name.clone())
+            .dedup_by(|a, b| a.short_name == b.short_name)
             .map(Arc::new)
             .collect_vec();
 
@@ -320,15 +289,6 @@ impl RustHandler {
                                 })
                                 .map(|group| (player, group))
                         })
-                        .map(|(mut player, group)| {
-                            let div_name = player.division.name.to_lowercase();
-                            player.division.name = division_name_conversion
-                                .get(div_name.as_str())
-                                .unwrap_or(&player.division.name.as_str())
-                                .to_string();
-
-                            (player, group)
-                        })
                         .map(|(player, group)| {
                             let holes = match holes[event_number][round_number].get(&group.id) {
                                 Some(holes) => holes.clone(),
@@ -347,6 +307,13 @@ impl RustHandler {
                                 group.start_at_hole,
                                 event_number,
                                 broadcast_type.clone(),
+                                group.layout.clone(),
+                                chrono::NaiveTime::from_num_seconds_from_midnight_opt(
+                                    group.start_time.unwrap_or_default(),
+                                    0,
+                                )
+                                .unwrap_or_default(),
+                                group.id.clone(),
                             )
                             .unwrap()
                         })
@@ -588,10 +555,16 @@ impl RustHandler {
                     round
                         .pools
                         .into_iter()
-                        .flat_map(|pool| pool.groups)
-                        .sorted_by_key(|group| group.id.inner().to_owned())
+                        .flat_map(|pool| {
+                            let layout =
+                                Arc::new(pool.layout_version.expect("valid layout").layout);
+
+                            pool.groups
+                                .into_iter()
+                                .map(move |group| group.to_dto_group(layout.clone()))
+                        })
+                        .sorted_by_key(|group| group.id.clone())
                         .dedup_by(|group1, group2| group1.id == group2.id)
-                        .map(dto::Group::from)
                         .collect_vec()
                 })
                 .collect::<Vec<Vec<dto::Group>>>();

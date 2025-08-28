@@ -8,6 +8,7 @@ use crate::controller::queries::HoleResult;
 use cynic::{GraphQlResponse, QueryBuilder};
 use itertools::Itertools;
 use rayon::prelude::*;
+use rocket::form::validate::Contains;
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Duration;
@@ -108,6 +109,7 @@ pub async fn update_loop(
     let temp_coordinator = coordinator.lock().await;
     let mut tjing_result_map = TjingResultMap::new(temp_coordinator.available_players());
 
+    let divisions = temp_coordinator.all_divs.clone();
     let round_ids = temp_coordinator.round_ids();
     drop(temp_coordinator);
 
@@ -131,21 +133,24 @@ pub async fn update_loop(
                 let queue = coordinator.vmix_queue.clone();
                 coordinator.add_state_to_leaderboard();
                 //coordinator.leaderboard.update_little_lb(&div, queue);
-                if let Some(player) =
-                    coordinator
-                        .available_players()
-                        .into_par_iter()
-                        .find_any(|player| {
-                            player
-                                .results
-                                .latest_hole_finished()
-                                .is_some_and(|hole| hole.hole == 18)
-                        })
+                if let Some(player) = coordinator
+                    .available_players()
+                    .into_iter()
+                    .filter(|player| player.layout.name.to_lowercase().contains("vit"))
+                    .sorted_by(|a, b| b.start_time.cmp(&a.start_time))
+                    .find(|player| {
+                        player
+                            .results
+                            .latest_hole_finished()
+                            .is_some_and(|hole| hole.hole == 18)
+                    })
                 {
                     if let Some((group_id, Some(division))) = coordinator
                         .groups()
-                        .into_par_iter()
-                        .find_any(|group| {
+                        .iter()
+                        // TODO: Make dynamic based on which pool we want to show
+                        .filter(|group| group.layout.name.contains("vit"))
+                        .find(|group| {
                             group
                                 .players
                                 .iter()
@@ -154,11 +159,20 @@ pub async fn update_loop(
                         .map(|group| {
                             (
                                 group.id.clone(),
-                                group.players.first().map(|player| player.division.clone()),
+                                group.players.iter().find_map(|player| {
+                                    if divisions.contains(&player.division) {
+                                        Some(player.division.clone())
+                                    } else {
+                                        None
+                                    }
+                                }),
                             )
                         })
                     {
-                        *next_group.lock().await = group_id.clone();
+                        {
+                            *next_group.lock().await = group_id.clone();
+                        }
+
                         let cycle_mutex = leaderboard_cycle.clone();
                         cycle_mutex
                             .lock()

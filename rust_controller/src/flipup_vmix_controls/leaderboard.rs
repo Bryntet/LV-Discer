@@ -45,9 +45,15 @@ impl Leaderboard {
             .leaderboard_players(&division, self.previous_state(round))
     }
     fn current_state(&self, round: usize) -> Option<&LeaderboardState> {
-        match self.broadcast_type.as_ref() {
-            BroadcastType::PostLive => self.states.get(round.saturating_sub(1)),
-            BroadcastType::Live => self.states.get(round),
+        let state = match self.broadcast_type.as_ref() {
+            BroadcastType::PostLive => self.find_state_by_round(round),
+            BroadcastType::Live => self.find_state_by_round(round),
+        };
+
+        if state.is_none() {
+            self.states.first()
+        } else {
+            state
         }
     }
 
@@ -114,13 +120,11 @@ impl Leaderboard {
             .find(|lb_player| lb_player.id == player.player_id)
     }
 
-    pub fn find_player_in_current_state(&self, player: &Player) -> &Player {
-        self.find_state_by_round(player.round_ind)
-            .unwrap()
+    pub fn find_player_in_current_state(&self, player: &Player) -> Option<&Player> {
+        self.find_state_by_round(player.round_ind)?
             .players
             .iter()
             .find(|p| p.player_id == player.player_id)
-            .unwrap()
     }
 
     fn find_state_by_round(&self, round: usize) -> Option<&LeaderboardState> {
@@ -129,7 +133,10 @@ impl Leaderboard {
 
     pub fn update_little_lb(&self, div: &Division, queue: Arc<VMixQueue>) {
         if let Some(current) = self.current_state(self.states.len() - 1) {
-            let previous = self.previous_state(self.states.len() - 1);
+            let previous = match self.states.len().checked_sub(2) {
+                Some(round) => self.previous_state(round),
+                None => None,
+            };
             let previous_batch = current.big_leaderboard_funcs(div, previous, 0);
             current.update_little_leaderboard::<CycledLeaderboard>(
                 div,
@@ -137,6 +144,7 @@ impl Leaderboard {
                 previous,
                 queue,
                 self.cycle,
+                false,
             );
         }
     }
@@ -277,17 +285,11 @@ impl LeaderboardState {
                 self.big_leaderboard_funcs(division, other, 0),
                 other,
                 queue,
-                cycled || featured,
+                cycled,
+                featured,
             )
         } else {
-            func(
-                self,
-                division,
-                first_batch,
-                other,
-                queue,
-                cycled || featured,
-            );
+            func(self, division, first_batch, other, queue, cycled, featured);
         }
     }
 
@@ -322,6 +324,7 @@ impl LeaderboardState {
         other: Option<&Self>,
         queue: Arc<VMixQueue>,
         cycled: bool,
+        featured: bool,
     ) where
         S: VMixSelectionTrait,
         VMixInterfacer<S>: From<VMixInterfacer<LeaderboardTop6>>,
@@ -329,7 +332,7 @@ impl LeaderboardState {
         let lb_players = self.leaderboard_players(division, other);
 
         let mut second_batch: Vec<_> = first_batch
-            .into_par_iter()
+            .into_iter()
             .flat_map(VMixInterfacer::to_top_6)
             .collect();
 
@@ -356,11 +359,12 @@ impl LeaderboardState {
                         .collect_vec(),
                 )
             })
-            .flatten()
-            .collect_vec();
+            .flatten();
 
         second_batch.extend(v);
-        if cycled {
+
+        info!("Update little lb length: {}", second_batch.len());
+        if cycled || featured {
             queue.add(second_batch.into_iter().map(VMixInterfacer::<S>::from));
         } else {
             queue.add_ref(second_batch.iter());
@@ -628,7 +632,7 @@ mod prop {
         }
 
         fn input_id(&self) -> &'static str {
-            "65d64465-3756-43a3-89f4-12d12b692027"
+            "1900db1a-4f83-4111-848d-d9a87474f56c"
         }
     }
     impl From<VMixInterfacer<LeaderboardTop6>> for VMixInterfacer<FeaturedLeaderboard> {
@@ -636,7 +640,6 @@ mod prop {
             let value = interfacer.value;
             let function = interfacer.function;
 
-            info!("just made featured LB");
             Self {
                 value,
                 function,
@@ -670,14 +673,11 @@ mod prop {
             let value = interfacer.value;
             let function = interfacer.function;
 
-            info!("just made cycled LB");
-
-            let s = Self {
+            Self {
                 value,
                 function,
                 input: interfacer.input.map(CycledLeaderboard),
-            };
-            s
+            }
         }
     }
     pub enum LeaderboardTop6 {

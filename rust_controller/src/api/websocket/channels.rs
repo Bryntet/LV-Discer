@@ -22,7 +22,7 @@ impl<T: ChannelAttributes> GeneralChannel<T> {
     pub fn send(&self, t: T) {
         match self.sender.send(t) {
             Ok(_) => (),
-            Err(e) => warn!("Error sending message: {:?}", e),
+            Err(e) => (),
         }
     }
 

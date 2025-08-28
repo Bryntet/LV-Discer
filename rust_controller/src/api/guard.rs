@@ -100,6 +100,8 @@ pub enum Error {
     PlayerInCardNotFound(usize),
     #[error("Group not found")]
     GroupNotFound,
+    #[error("Round not initialised")]
+    RoundNotInitialised,
 }
 
 impl<'r, 'o: 'r> Responder<'r, 'o> for Error {
@@ -122,6 +124,7 @@ impl<'r, 'o: 'r> Responder<'r, 'o> for Error {
             CardIndexNotFound(_) | TooManyHoles | InvalidDivision(_) | PlayerInCardNotFound(_) => {
                 Err(Status::BadRequest)
             }
+            RoundNotInitialised => Err(Status::FailedDependency),
         }
     }
 }

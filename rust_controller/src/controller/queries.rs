@@ -4,6 +4,7 @@ use serde::Serialize;
 
 pub mod results_getter {
     use super::schema;
+    use crate::controller::queries::layout::LayoutVersion;
     use serde::Deserialize;
     use std::collections::HashMap;
 
@@ -32,6 +33,7 @@ pub mod results_getter {
     #[cynic(graphql_type = "Pool")]
     struct Pool {
         pub groups: Vec<Group>,
+        pub layout_version: Option<LayoutVersion>,
     }
 
     #[derive(cynic::QueryFragment, Debug, Clone)]
@@ -404,7 +406,7 @@ pub mod layout {
         pub layout: Layout,
     }
 
-    #[derive(cynic::QueryFragment, Debug, Clone)]
+    #[derive(cynic::QueryFragment, Debug, Clone, Default)]
     pub struct Layout {
         pub name: String,
         pub course: Option<Course>,
@@ -471,6 +473,7 @@ pub mod group {
         pub start_hole: Option<super::Hole>,
         pub starts_at: Option<DateTime<Utc>>,
     }
+
     impl_scalar!(DateTime<Utc>, schema::DateTime);
     #[derive(cynic::InlineFragments, Debug, Clone)]
     pub enum GroupPlayerConnectionTypeCombined {

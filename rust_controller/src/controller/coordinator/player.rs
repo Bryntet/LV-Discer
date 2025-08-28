@@ -11,7 +11,7 @@ use crate::controller::coordinator::BroadcastType;
 use crate::controller::get_data::{HoleResult, DEFAULT_FOREGROUND_COL_ALPHA};
 use crate::controller::hole::{DroneHoleInfo, HoleDifficulty, HoleStats};
 use crate::controller::queries::layout::hole::Hole;
-use crate::controller::queries::layout::Holes;
+use crate::controller::queries::layout::{Holes, Layout};
 use crate::controller::queries::results_getter::PlayerResults;
 use crate::controller::queries::Division;
 use crate::controller::{hole, queries};
@@ -222,6 +222,9 @@ impl PlayerRound {
     }
 
     pub fn latest_hole_finished(&self) -> Option<&HoleResult> {
+        if self.results.len() == 18 {
+            return None;
+        }
         self.holes_sorted_by_completion().last()
     }
 
@@ -273,6 +276,9 @@ pub struct Player {
     pub holes: Holes,
     pub event_number: usize,
     broadcast_type: Arc<BroadcastType>,
+    pub layout: Arc<Layout>,
+    pub start_time: chrono::NaiveTime,
+    pub group_id: String,
 }
 
 impl Player {
@@ -285,6 +291,9 @@ impl Player {
         starts_at_hole: u8,
         event_number: usize,
         broadcast_type: Arc<BroadcastType>,
+        layout: Arc<Layout>,
+        start_time: chrono::NaiveTime,
+        group_id: String,
     ) -> Result<Self, Error> {
         let mut first_name = player.user.first_name.unwrap();
         let mut surname = player.user.last_name.unwrap();
@@ -353,6 +362,9 @@ impl Player {
             holes,
             event_number,
             broadcast_type,
+            layout,
+            start_time,
+            group_id,
             ..Default::default()
         })
     }
@@ -480,7 +492,9 @@ impl Player {
             return_vec.push(set_pos);
         }
         if max_all {
-            let player_with_correct = lb.find_player_in_current_state(self);
+            let Some(player_with_correct) = lb.find_player_in_current_state(self) else {
+                return Err(Error::RoundNotInitialised);
+            };
             return_vec.push(player_with_correct.set_tot_score());
             return_vec.push(player_with_correct.set_round_score());
         } else {

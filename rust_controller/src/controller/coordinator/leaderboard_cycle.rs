@@ -1,9 +1,10 @@
 use crate::controller::coordinator::FlipUpVMixCoordinator;
 use crate::controller::queries::Division;
 use crate::flipup_vmix_controls::Leaderboard;
-use crate::vmix::functions::VMixInterfacer;
+use crate::vmix::functions::{Compare2x2, VMixInterfacer};
 use crate::vmix::VMixQueue;
 use itertools::Itertools;
+use rayon::prelude::*;
 use std::collections::VecDeque;
 use std::sync::Arc;
 use std::time::Duration;
@@ -16,6 +17,7 @@ pub struct LeaderboardCycle {
     leaderboard: Leaderboard,
     round: usize,
     current_featured_div: Arc<Division>,
+    featured_group_id: String,
 }
 
 impl LeaderboardCycle {
@@ -25,26 +27,36 @@ impl LeaderboardCycle {
         let round = temp_coordinator.round_ind;
         let mut leaderboard = temp_coordinator.handler.get_previous_leaderboards();
         leaderboard.cycle = true;
-        let first_featured_div = temp_coordinator
-            .featured_card
-            .players(temp_coordinator.available_players())
-            .first()
-            .unwrap()
-            .division
-            .clone();
+        let featured_player = temp_coordinator
+            .get_latest_player_to_soon_play_featured()
+            .unwrap_or(
+                temp_coordinator
+                    .available_players()
+                    .iter()
+                    .find(|player| player.division.short_name == "MA1")
+                    .unwrap(),
+            );
+        let (featured_div, featured_group_id) = (
+            featured_player.division.clone(),
+            featured_player.group_id.clone(),
+        );
+        dbg!(&featured_div);
         drop(temp_coordinator);
         Self {
             current_cycled: all_divisions.front().unwrap().clone(),
+            current_featured_div: featured_div,
             all_divisions,
             coordinator,
             leaderboard,
             round,
-            current_featured_div: first_featured_div,
+            featured_group_id,
         }
     }
 
     pub async fn set_featured_div(&mut self, division: Arc<Division>, group_id: String) {
+        warn!("setting featured div: {}", division.name);
         self.current_featured_div = division.clone();
+        self.featured_group_id = group_id;
         let mut coordinator = self.coordinator.lock().await;
         let state = coordinator.current_leaderboard_state();
         self.leaderboard.add_state(state);
@@ -52,7 +64,7 @@ impl LeaderboardCycle {
         let players = coordinator
             .groups()
             .iter()
-            .find(|group| group.id == group_id)
+            .find(|group| group.id == self.featured_group_id)
             .map(|group| group.players.clone())
             .unwrap_or({
                 warn!("USING DEFAULT PAR 3");
@@ -61,6 +73,7 @@ impl LeaderboardCycle {
 
         let stats = coordinator.make_stats();
         if let Some(player) = coordinator.find_player_mut(&players[0].id) {
+            dbg!(&player.division);
             let holes = player.holes.clone();
             let out = player
                 .results
@@ -71,10 +84,17 @@ impl LeaderboardCycle {
 
             queue.add(out.into_iter());
         }
-
+        let all_players = self
+            .leaderboard
+            .all_players_in_div(division.clone(), self.round);
+        if all_players.len() < 6 {
+            queue.add(FlipUpVMixCoordinator::clear_little_cycling_lb().into_iter())
+        }
+        drop(coordinator);
         self.leaderboard
             .send_to_vmix(&self.current_featured_div, queue, self.round, true);
     }
+
     fn refresh_leaderboard(&mut self, queue: Arc<VMixQueue>) {
         self.leaderboard
             .send_to_vmix(&self.current_cycled, queue, self.round, false)
@@ -94,6 +114,33 @@ impl LeaderboardCycle {
             .send_to_vmix(&self.current_cycled, queue, round, false)
     }
 
+    async fn send_featured(&mut self) {
+        let c = self.coordinator.lock().await;
+
+        let players = c.available_players();
+        if let Some(featured_player) = c.get_latest_player_to_soon_play_featured() {
+            let (featured_div, featured_group_id) = (
+                featured_player.division.clone(),
+                featured_player.group_id.clone(),
+            );
+            self.featured_group_id = featured_group_id;
+            self.current_featured_div = featured_div;
+        }
+        let queue = c.vmix_queue.clone();
+        self.leaderboard
+            .send_to_vmix(&self.current_featured_div, queue.clone(), self.round, true);
+
+        let s = players
+            .into_iter()
+            .filter(|player| player.group_id == self.featured_group_id)
+            .flat_map(|player| {
+                player.set_all_compare_2x2_values(player.group_index, &self.leaderboard, false)
+            })
+            .flatten()
+            .map(VMixInterfacer::<Compare2x2>::into_featured);
+        queue.add(s)
+    }
+
     pub async fn next(&mut self) {
         let coordinator = self.coordinator.lock().await;
         let queue = coordinator.vmix_queue.clone();
@@ -105,12 +152,14 @@ impl LeaderboardCycle {
 
     fn cycle_next(&mut self, queue: Arc<VMixQueue>) -> Arc<Division> {
         let div = self.all_divisions.pop_front().unwrap();
+
+        self.all_divisions.push_back(div.clone());
         if self.current_featured_div == div {
+            warn!("skipping div in cycle due to featured");
             return self.cycle_next(queue);
         }
-        self.all_divisions.push_back(div.clone());
         let all_players = self.leaderboard.all_players_in_div(div.clone(), self.round);
-        if all_players.is_empty() {
+        if all_players.is_empty() || all_players.iter().all(|player| player.position == 1) {
             self.cycle_next(queue)
         } else {
             if all_players.len() < 6 {
@@ -129,9 +178,13 @@ pub async fn start_leaderboard_cycle(
     tokio::spawn(async move {
         let cycle = loop_cycle;
         loop {
-            let mut cycle = cycle.lock().await;
-            cycle.next().await;
-            cycle.update_leaderboard().await;
+            {
+                let mut cycle = cycle.lock().await;
+                cycle.send_featured().await;
+                cycle.next().await;
+                cycle.update_leaderboard().await;
+                dbg!(&cycle.current_featured_div);
+            }
             tokio::time::sleep(Duration::from_secs(20)).await;
         }
     });

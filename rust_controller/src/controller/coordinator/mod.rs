@@ -712,6 +712,20 @@ impl FlipUpVMixCoordinator {
         &self.focused_player().name
     }
 
+    pub fn get_latest_player_to_soon_play_featured(&self) -> Option<&Player> {
+        self.available_players()
+            .into_iter()
+            .filter(|player| player.layout.name.to_lowercase().contains("vit"))
+            .sorted_by(|a, b| b.start_time.cmp(&a.start_time))
+            .find(|player| {
+                let results = &player.results;
+                results.current_result(18).is_some()
+                    && results
+                        .current_result(1)
+                        .is_none_or(|res| res.tjing_result.is_none())
+            })
+    }
+
     // TODO: Refactor out into api function
 
     /*pub fn make_separate_lb(&mut self, div: &Division) -> Result<(), Error> {
